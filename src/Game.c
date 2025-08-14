@@ -412,12 +412,12 @@ void Game_hurtEntityAt(Game_t* game, int i, int i2, int i3, int i4, int z, int z
 
 				if (CombatEntity_getHealth(&entity->monster->ce) <= 0) {
 					SDL_snprintf(text, sizeof(text), "%s took %d damage! %s died!", entity->def->name, (i3 + i4), entity->def->name);
-					Hud_addMessage(game->doomRpg->hud, text);
+					Hud_addMessage(game->doomRpg->doomCanvas, text);
 					Entity_died(entity);
 					return;
 				}
 				SDL_snprintf(text, sizeof(text), "%s took %d damage!", entity->def->name, (i3 + i4));
-				Hud_addMessage(game->doomRpg->hud, text);
+				Hud_addMessage(game->doomRpg->doomCanvas, text);
 
 				// Pain Sound
 				soundId = EntityMonster_getSoundRnd(entity->monster, 6);
@@ -1518,7 +1518,7 @@ boolean Game_executeEvent(Game_t* game, int event, int codeId, int arg1, int arg
 
 		// 4 Message(byte stringID)
 		case EV_MESSAGE: { // EV_MESSAGE
-			Hud_addMessage(game->doomRpg->hud, game->doomRpg->render->mapStringsIDs[arg1]);
+			Hud_addMessage(doomCanvas, game->doomRpg->render->mapStringsIDs[arg1]);
 			return true;
 		}
 
@@ -1535,7 +1535,7 @@ boolean Game_executeEvent(Game_t* game, int event, int codeId, int arg1, int arg
 
 		// 5 Pain(int damage)
 		case EV_PAIN: { // EV_PAIN
-			Hud_addMessage(game->doomRpg->hud, "Pain!");
+			Hud_addMessage(game->doomRpg->doomCanvas, "Pain!");
 			Player_painEvent(game->doomRpg->player, NULL);
 			Player_pain(game->doomRpg->player, arg1, 0);
 			break;
@@ -1833,19 +1833,19 @@ boolean Game_executeEvent(Game_t* game, int event, int codeId, int arg1, int arg
 
 		case EV_CHECK_KEY: { // EV_CHECK_KEY
 			if (arg1 == 0 && (game->doomRpg->player->keys & 0x1) == 0x0) {
-				Hud_addMessage(game->doomRpg->hud, "Need Green Key");
+				Hud_addMessage(doomCanvas, "Need Green Key");
 			}
 			else if (arg1 == 1 && (game->doomRpg->player->keys & 0x2) == 0x0) {
-				Hud_addMessage(game->doomRpg->hud, "Need Yellow Key");
+				Hud_addMessage(doomCanvas, "Need Yellow Key");
 			}
 			else if (arg1 == 2 && (game->doomRpg->player->keys & 0x4) == 0x0) {
-				Hud_addMessage(game->doomRpg->hud, "Need Blue Key");
+				Hud_addMessage(doomCanvas, "Need Blue Key");
 			}
 			else {
 				if (arg1 != 3 || (game->doomRpg->player->keys & 0x8) != 0x0) {
 					return false;
 				}
-				Hud_addMessage(game->doomRpg->hud, "Need Red Key");
+				Hud_addMessage(doomCanvas, "Need Red Key");
 			}
 
 			Sound_playSound(game->doomRpg->sound, 5065, 0, 2);
@@ -2418,7 +2418,7 @@ void Game_updateSpawnPortals(Game_t* game)
 			Game_gsprite_allocAnim(game, 2, a, 992);
 			DoomCanvas_updateViewTrue(game->doomRpg->doomCanvas);
 			SDL_snprintf(text, sizeof(text), "Portal spawns %s!", game->spawnMonster->def->name);
-			Hud_addMessage(game->doomRpg->hud, text);
+			Hud_addMessage(game->doomRpg->doomCanvas, text);
 		}
 		game->spawnCount = 1 + (DoomRPG_randNextInt(&game->doomRpg->random) & 3);
 	}
