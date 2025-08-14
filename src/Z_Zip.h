@@ -1,7 +1,11 @@
 #ifndef Z_ZIP_H__
 #define Z_ZIP_H__
 
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#else
 #include <SDL.h>
+#endif
 
 #define ZIP_LOCAL_FILE_SIG 0x04034b50
 #define ZIP_CENTRAL_DIRECTORY_SIG 0x02014b50

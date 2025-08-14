@@ -1,10 +1,18 @@
 
 
 //Using SDL and standard IO
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#include <SDL/SDL_mixer.h>
+//#include <SDL/SDL_opengl.h>
+#include <SDL/SDL_audio.h>
+#include <stdio.h>
+#else
 #include <SDL.h>
 #include <SDL_mixer.h>
 #include <stdio.h>
 #include <fluidsynth.h>
+#endif
 
 #include "DoomRPG.h"
 #include "Game.h"
@@ -12,7 +20,10 @@
 
 SDLVideo_t sdlVideo;
 SDLController_t sdlController;
+#ifdef __3DS__
+#else
 FluidSynth_t fluidSynth;
+#endif
 
 SDLVidModes_t sdlVideoModes[14] =
 {
@@ -31,9 +42,24 @@ SDLVidModes_t sdlVideoModes[14] =
 	{640, 480},
 	{800, 600}
 };
-
 void SDL_InitVideo(void)
 {
+#ifdef __3DS__
+	putenv("SDL_N3DS_CONSOLE=");
+	SDL_memset(&sdlVideo, 0, sizeof(sdlVideo));
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
+	{
+		DoomRPG_Error("Could not initialize SDL: %s", SDL_GetError());
+	}
+	SDL_SetVideoMode(400, 240, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	sdlVideo.screenSurface = SDL_GetVideoSurface();
+
+	sdlVideo.screenW = sdlVideo.screenSurface->w;
+	sdlVideo.screenH = sdlVideo.screenSurface->h;
+	printf("3DS video initialized: %dx%d\n", sdlVideo.screenW, sdlVideo.screenH);
+	//SDL_FillRect(sdlVideo.screenSurface, NULL, SDL_MapRGB(sdlVideo.screenSurface->format, 0, 0, 0));
+	//SDL_Flip(sdlVideo.screenSurface);
+#else
 	Uint32 flags;
 	int video_w, video_h;
 
@@ -46,9 +72,7 @@ void SDL_InitVideo(void)
 	sdlVideo.integerScaling = true;
 	sdlVideo.resolutionIndex = 8;
 	sdlVideo.displaySoftKeys = true;
-
 	Game_loadConfig(NULL);
-
 	SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
         DoomRPG_Error("Could not initialize SDL: %s", SDL_GetError());
@@ -150,12 +174,18 @@ void SDL_InitVideo(void)
 			}
 		}
 	}
+#endif
 }
-
 void SDL_Close(void)
 {
-	printf("SDL_Close\n");
-	//Close game controller or joystick with haptics
+
+#ifdef __3DS__
+
+	if (sdlController.gJoystick) {
+		SDL_JoystickClose(sdlController.gJoystick);
+		sdlController.gJoystick = NULL;
+	}
+#else
 	if (sdlController.gGameController) {
 		SDL_GameControllerClose(sdlController.gGameController);
 	}
@@ -179,6 +209,7 @@ void SDL_Close(void)
 	if (sdlVideo.window) {
 		SDL_DestroyWindow(sdlVideo.window);
 	}
+#endif
 
     //Quit SDL subsystems
     SDL_Quit();
@@ -188,31 +219,106 @@ SDLVideo_t* SDL_GetVideo(void)
 {
 	return &sdlVideo;
 }
-
-void SDL_RenderDrawFillCircle(SDL_Renderer* renderer, int x, int y, int r)
+void SDL_RenderSetClipRect(SDL_Surface *surface, const SDL_Rect *rect)
 {
-	int dx, dy, accum;
+    if (!surface) return;
+    SDL_SetClipRect(surface, rect);
+}
+static int curColor = 0x0;
+void SDL_SetRenderDrawColor(SDL_Surface *surface, Uint8 r, Uint8 g, Uint8 b, Uint8 a)
+{
+    Uint32 color = SDL_MapRGB(surface->format, r, g, b);
+    curColor = (uintptr_t)color;
+}
 
-	dx = r;
-	dy = 0;
-	accum = dx - (dy << 1) - 1;
+void SDL_RenderPresent(SDL_Surface *surface)
+{
+    SDL_Flip(surface);
+}
 
-	while (dy <= dx) {
+void SDL_RenderClear(SDL_Surface *surface)
+{
+    Uint32 color = (Uint32)(uintptr_t)curColor;
+    SDL_FillRect(surface, NULL, color);
+}
 
-		SDL_RenderDrawLine(renderer, dx + x, dy + y, -dx + x, dy + y);
-		SDL_RenderDrawLine(renderer, dy + x, dx + y, -dy + x, dx + y);
-		SDL_RenderDrawLine(renderer, -dx + x, -dy + y, dx + x, -dy + y);
-		SDL_RenderDrawLine(renderer, -dy + x, -dx + y, dy + x, -dx + y);
+void SDL_RenderDrawRect(SDL_Surface *surface, const SDL_Rect *rect)
+{
+    if (!rect) return;
+    SDL_Rect top = { rect->x, rect->y, rect->w, 1 };
+    SDL_Rect bottom = { rect->x, rect->y + rect->h - 1, rect->w, 1 };
+    SDL_Rect left = { rect->x, rect->y, 1, rect->h };
+    SDL_Rect right = { rect->x + rect->w - 1, rect->y, 1, rect->h };
 
-		dy++;
-		if ((accum -= (dy << 1) - 1) < 0) {
-			dx--;
-			accum += dx << 1;
+    Uint32 color = (Uint32)(uintptr_t)curColor;
+    SDL_FillRect(surface, &top, color);
+    SDL_FillRect(surface, &bottom, color);
+    SDL_FillRect(surface, &left, color);
+    SDL_FillRect(surface, &right, color);
+}
+
+void SDL_RenderFillRect(SDL_Surface *surface, const SDL_Rect *rect)
+{
+    Uint32 color = (Uint32)(uintptr_t)curColor;
+    SDL_FillRect(surface, rect, color);
+}
+static void put_pixel_unlocked(SDL_Surface* surface, int x, int y, Uint32 color)
+{
+	if (x < 0 || y < 0 || x >= surface->w || y >= surface->h) return;
+	Uint32* pixels = (Uint32*)surface->pixels;
+	pixels[y * surface->w + x] = color;
+}
+void put_pixel_safe(SDL_Surface *surface, int x, int y, Uint32 color)
+{
+	if (x >= 0 && x < 400 && y >= 0 && y < 240) {
+		if (surface && surface->pixels) {
+			Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * surface->format->BytesPerPixel;
+			*(Uint32 *)p = color;
 		}
 	}
 }
+void SDL_RenderDrawLine(SDL_Surface *surface, int x1, int y1, int x2, int y2)
+{
+	int dx = abs(x2 - x1);
+	int dy = abs(y2 - y1);
+	int sx = (x1 < x2) ? 1 : -1;
+	int sy = (y1 < y2) ? 1 : -1;
+	int err = dx - dy;
+	int e2;
 
-void SDL_RenderDrawCircle(SDL_Renderer* renderer, int x, int y, int r)
+	Uint32 color = (Uint32)(uintptr_t)curColor;
+
+	if (SDL_MUSTLOCK(surface)) {
+		if (SDL_LockSurface(surface) < 0) {
+			return;
+		}
+	}
+
+	while (1) {
+		put_pixel_safe(surface, x1, y1, color);
+
+		if (x1 == x2 && y1 == y2) {
+			break;
+		}
+
+		e2 = 2 * err;
+
+		if (e2 > -dy) {
+			err -= dy;
+			x1 += sx;
+		}
+
+		if (e2 < dx) {
+			err += dx;
+			y1 += sy;
+		}
+	}
+
+	if (SDL_MUSTLOCK(surface)) {
+		SDL_UnlockSurface(surface);
+	}
+}
+void SDL_RenderDrawFillCircle(RenderTarget* target, int x, int y, int r)
 {
 	int dx, dy, accum;
 
@@ -220,23 +326,16 @@ void SDL_RenderDrawCircle(SDL_Renderer* renderer, int x, int y, int r)
 	dy = 0;
 	accum = dx - (dy << 1) - 1;
 
-	while (dy <= dx) {
-
-		const SDL_Point points[8] = {
-			{ dx + x,  dy + y},
-			{-dx + x,  dy + y},
-			{ dy + x,  dx + y},
-			{-dy + x,  dx + y},
-			{-dx + x, -dy + y},
-			{ dx + x, -dy + y},
-			{-dy + x, -dx + y},
-			{ dy + x, -dx + y}
-		};
-
-		SDL_RenderDrawPoints(renderer, points, 8);
+	while (dy <= dx)
+	{
+		SDL_RenderDrawLine(target, dx + x, dy + y, -dx + x, dy + y);
+		SDL_RenderDrawLine(target, dy + x, dx + y, -dy + x, dx + y);
+		SDL_RenderDrawLine(target, -dx + x, -dy + y, dx + x, -dy + y);
+		SDL_RenderDrawLine(target, -dy + x, -dx + y, dy + x, -dx + y);
 
 		dy++;
-		if ((accum -= (dy << 1) - 1) < 0) {
+		if ((accum -= (dy << 1) - 1) < 0)
+		{
 			dx--;
 			accum += dx << 1;
 		}
@@ -248,49 +347,15 @@ void SDL_RenderDrawCircle(SDL_Renderer* renderer, int x, int y, int r)
 void SDL_InitAudio(void)
 {
 	printf("SDL_InitAudio\n");
-
-	fluidSynth.settings = NULL;
-	fluidSynth.synth = NULL;
-	fluidSynth.adriver = NULL;
-
-	// create the settings
-	fluidSynth.settings = new_fluid_settings();
-	if (fluidSynth.settings == NULL) {
-		DoomRPG_Error("Failed to create the settings");
-	}
-
-	// create the synthesizer
-	fluidSynth.synth = new_fluid_synth(fluidSynth.settings);
-	if (fluidSynth.synth == NULL) {
-		DoomRPG_Error("Failed to create the synthesizer");
-	}
-
-	// create the audio driver
-	fluidSynth.adriver = new_fluid_audio_driver(fluidSynth.settings, fluidSynth.synth);
-	if (fluidSynth.synth == NULL) {
-		DoomRPG_Error("Failed to create the audio driver");
-	}
-
-	if (fluid_is_soundfont("gm.sf2")) {
-		fluid_synth_sfload(fluidSynth.synth, "gm.sf2", 1);
-	}
-	else {
-		DoomRPG_Error("Cannot find the soundfont %s file", "gm.sf2");
-	}
-
 	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
 		DoomRPG_Error("Could not initialize SDL Mixer: %s", Mix_GetError());
 	}
 }
-
+/*
 void SDL_CloseAudio(void) {
 
-	delete_fluid_audio_driver(fluidSynth.adriver);
-	delete_fluid_synth(fluidSynth.synth);
-	delete_fluid_settings(fluidSynth.settings);
-
 	Mix_Quit();
-}
+}*/
 
 //--------------------
 
@@ -300,7 +365,8 @@ int SDL_GameControllerGetButtonID(void)
 
 	deadZoneLeft = (sdlController.deadZoneLeft * 32768) / 100;
 	deadZoneRight = (sdlController.deadZoneRight * 32768) / 100;
-
+#ifdef __3DS__
+#else
 	if (SDL_GameControllerGetButton(sdlController.gGameController, SDL_CONTROLLER_BUTTON_A)) {
 		return CONTROLLER_BUTTON_A;
 	}
@@ -396,7 +462,7 @@ int SDL_GameControllerGetButtonID(void)
 			return CONTROLLER_BUTTON_RAXIS_RIGHT;
 		}
 	}
-
+#endif
 	return CONTROLLER_BUTTON_INVALID;
 }
 
@@ -520,7 +586,7 @@ int SDL_JoystickGetButtonID(void)
 			return CONTROLLER_BUTTON_RAXIS_RIGHT;
 		}
 	}
-	
+
 	return CONTROLLER_BUTTON_INVALID;
 }
 

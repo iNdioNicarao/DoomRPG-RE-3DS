@@ -1,4 +1,8 @@
-#include <SDL.h>
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#else
+
+#endif
 #include <stdio.h>
 
 #include "DoomRPG.h"
@@ -169,8 +173,7 @@ int Combat_calcHit(Combat_t* combat, Entity_t* entity, int i)
 
 void Combat_worldDistToTileDist(Combat_t* combat)
 {
-	DoomCanvas_t* doomCanvas;
-	doomCanvas = combat->doomRpg->doomCanvas;
+	DoomCanvas_t* doomCanvas = combat->doomRpg->doomCanvas;
 
 	combat->worldDist = Entity_calcWorldDistance(combat->curTarget, doomCanvas->viewX, doomCanvas->viewY);
 	combat->tileDist = -1;

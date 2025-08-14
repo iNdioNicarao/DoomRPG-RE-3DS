@@ -1,10 +1,14 @@
+#ifdef __3DS__
 #include <SDL.h>
+#else
+#include <SDL.h>
+#endif
 #include <stdio.h>
 
 #include "DoomRPG.h"
 #include "Combat.h"
 #include "CombatEntity.h"
-#include "SDL_Video.h"
+//#include "SDL_Video.h"
 
 byte monsterAttacks[] = { 2, 3, 12, 13, 4, 4, 15, 12, 13, 14, 13, 12, 15, 13, 15, 14, 7, 12, 7, 3, 15, 15, 16, 17, 7, 17, 12, 13 };
 
@@ -24,6 +28,7 @@ void CombatEntity_initCombatEntity(CombatEntity_t* ce, int type, int health, int
 
 int CombatEntity_getHealth(CombatEntity_t* ce)
 {
+
 	return (ce->param1 & 0xff);
 }
 

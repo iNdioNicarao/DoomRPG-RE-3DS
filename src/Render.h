@@ -1,5 +1,6 @@
 #ifndef RENDER_H__
 #define RENDER_H__
+#pragma once
 
 #define MAPNAMESTRLEN 16
 #define MAX_CUSTOM_SPRITES 16
@@ -14,6 +15,42 @@
 struct DoomRPG_s;
 struct Entity_s;
 struct Render_s;
+
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#include <SDL/SDL_video.h>
+typedef SDL_Surface RenderTarget;
+#else
+#include <SDL2/SDL.h>
+typedef SDL_Renderer RenderTarget;
+#endif
+
+static void PutPixel(SDL_Surface* surface, int x, int y, Uint32 color)
+{
+	if (x < 0 || y < 0 || x >= surface->w || y >= surface->h) return;
+	Uint32* pixels = (Uint32*)surface->pixels;
+	pixels[y * surface->w + x] = color;
+}
+
+static void DrawLine(SDL_Surface* surface, int x1, int y1, int x2, int y2, Uint32 color)
+{
+	int dx = abs(x2 - x1);
+	int sx = x1 < x2 ? 1 : -1;
+	int dy = -abs(y2 - y1);
+	int sy = y1 < y2 ? 1 : -1;
+	int err = dx + dy;
+	int e2;
+
+	while (true)
+	{
+		PutPixel(surface, x1, y1, color);
+		if (x1 == x2 && y1 == y2) break;
+		e2 = 2 * err;
+		if (e2 >= dy) { err += dy; x1 += sx; }
+		if (e2 <= dx) { err += dx; y1 += sy; }
+	}
+}
+
 
 /* think_t is a function pointer to a routine to handle an actor */
 typedef void (*span_t) (struct Render_s* render, int param_2, int param_3, int param_4, int param_5, int param_6);
@@ -55,7 +92,7 @@ typedef struct Sprite_s
 	int x;
 	int y;
 	int info;
-	byte renderMode;
+	char renderMode;
 	int sortZ;
 	struct Node_s* node;
 	struct Sprite_s* nodeNext;
@@ -86,7 +123,7 @@ typedef struct Render_s
 	int* mapByteCode;
 	char** mapStringsIDs;
 	int mapStringCount;
-	byte mapFlags[1024];
+	char mapFlags[1024];
 	char mapName[MAPNAMESTRLEN];
 	short unk1;
 	short mapNameID;
@@ -112,10 +149,10 @@ typedef struct Render_s
 	int mappingMemory;
 	short* ceilingColor;
 	short* floorColor;
-	byte floorTex;
-	byte ceilingTex;
-	byte unk3;
-	boolean damageBlend;
+	char floorTex;
+	char ceilingTex;
+	char unk3;
+	bool damageBlend;
 	int viewCos_;
 	int viewSin_;
 	int viewTransX;
@@ -123,14 +160,14 @@ typedef struct Render_s
 	int viewCos;
 	int viewTransY;
 	int sinTable[256];
-	boolean skipStretch;
-	boolean unk4;
-	boolean skipCull;
-	boolean skipBSP;
-	boolean skipLines;
-	boolean unk5;
-	boolean skipSprites;
-	boolean skipViewNudge;
+	bool skipStretch;
+	bool unk4;
+	bool skipCull;
+	bool skipBSP;
+	bool skipLines;
+	bool unk5;
+	bool skipSprites;
+	bool skipViewNudge;
 	int lineCount;
 	int lineRasterCount;
 	int nodeCount;
@@ -152,7 +189,7 @@ typedef struct Render_s
 	int ioBufferPos;
 	int screenX;
 	int screenY;
-	byte* mediaTexels;
+	char* mediaTexels;
 	short* mediaPalettes;
 	int mediaPalettesLength;
 	short* shapeData;
@@ -163,7 +200,7 @@ typedef struct Render_s
 	unsigned short* spanPalettes;
 	unsigned short newSpanPalette[16];
 	struct Line_s tmpLine;
-	byte spanMode;
+	char spanMode;
 	int numLines;
 	int animFrameTime;
 	int currentFrameTime;

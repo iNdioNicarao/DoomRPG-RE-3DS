@@ -1,5 +1,9 @@
 
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#else
 #include <SDL.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 

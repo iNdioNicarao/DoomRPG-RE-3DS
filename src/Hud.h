@@ -5,7 +5,7 @@
 #define MSG_DISPLAY_TIME 1200
 #define MS_PER_CHAR 64
 #define MAX_MESSAGES 5
-
+#include "logger.h"
 struct DoomRPG_s;
 struct Image_s;
 

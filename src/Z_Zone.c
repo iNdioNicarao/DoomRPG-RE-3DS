@@ -9,18 +9,19 @@
 // https://github.com/svkaiser/Doom64EX/blob/master/src/engine/zone/z_zone.cc
 //-----------------------------------------------------------------------------
 
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#else
 #include <SDL.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h>
+//#include <malloc.h>
 
 #include "DoomRPG.h"
 #include "Z_Zone.h"
 
-static SDL_malloc_func malloc_func;
-static SDL_calloc_func calloc_func;
-static SDL_realloc_func realloc_func;
-static SDL_free_func free_func;
+
 
 #define ZONEID    0x1d4a12
 
@@ -99,7 +100,7 @@ void SDLCALL Z_Free(void* ptr) {
     Z_RemoveBlock(block);
 
     // Free back to system
-    free_func(block);
+    free(block);
 }
 
 //
@@ -114,7 +115,7 @@ void* SDLCALL Z_Malloc(size_t size) {
     // Malloc a block of the required size
     newblock = NULL;
 
-    newblock = (memblock_t*)malloc_func(sizeof(memblock_t) + size);
+    newblock = (memblock_t*)malloc(sizeof(memblock_t) + size);
 
     if (!newblock) {
         DoomRPG_Error("Z_Malloc: failed on allocation of %u bytes", size);
@@ -167,7 +168,7 @@ void* SDLCALL Z_Realloc(void* ptr, size_t size) {
     block->next = NULL;
     block->prev = NULL;
 
-    newblock = (memblock_t*)realloc_func(block, sizeof(memblock_t) + size);
+    newblock = (memblock_t*)realloc(block, sizeof(memblock_t) + size);
     if (!newblock) {
         DoomRPG_Error("Z_Realloc: failed on allocation of %u bytes", size);
         return NULL;

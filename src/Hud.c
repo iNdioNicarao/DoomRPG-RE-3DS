@@ -1,5 +1,10 @@
 
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#define skipNullptr 1
+#else
 #include <SDL.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -54,6 +59,12 @@ void Hud_addMessage(Hud_t* hud, char* str)
 
 void Hud_addMessageForce(Hud_t* hud, char* str, boolean force)
 {
+#if skipNullptr
+    if (!hud->doomRpg->doomCanvas) {
+        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
+        return;
+    }
+#endif
     if (str) {
         if (force) {
             hud->msgCount = 0;
@@ -78,9 +89,18 @@ void Hud_addMessageForce(Hud_t* hud, char* str, boolean force)
 
 void Hud_calcMsgTime(Hud_t* hud)
 {
+#if skipNullptr
+    if (!hud->doomRpg->doomCanvas) {
+        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
+        return;
+    }
+#endif
     int len;
-
-    hud->msgTime = hud->doomRpg->doomCanvas->time;
+    if (!hud->doomRpg->doomCanvas->time) {
+        hud->msgTime = 0;
+    }
+    else
+        hud->msgTime = hud->doomRpg->doomCanvas->time;
     len = strlen(hud->messages[0]);
 
     if (len <= hud->msgMaxChars) {
@@ -93,6 +113,12 @@ void Hud_calcMsgTime(Hud_t* hud)
 
 void Hud_drawBarTiles(Hud_t* hud, int x, int y, int width, boolean isLargerStatusBar)
 {
+#if skipNullptr
+    if (!hud->doomRpg->doomCanvas) {
+        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
+        return;
+    }
+#endif
     Image_t* img;
     int height;
 
@@ -110,6 +136,12 @@ void Hud_drawBarTiles(Hud_t* hud, int x, int y, int width, boolean isLargerStatu
 
 void Hud_drawBottomBar(Hud_t* hud)
 {
+#if skipNullptr
+    if (!hud->doomRpg->doomCanvas) {
+        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
+        return;
+    }
+#endif
     Image_t* img;
     DoomCanvas_t* doomCanvas;
     CombatEntity_t* ce;
@@ -121,11 +153,10 @@ void Hud_drawBottomBar(Hud_t* hud)
     int faceState, faceX;
     int weapon;
     char dir[2];
-
     ce = &hud->doomRpg->player->ce;
     doomCanvas = hud->doomRpg->doomCanvas;
-    dispW = doomCanvas->displayRect.w;
-    dispH = doomCanvas->displayRect.h;
+    dispW = 400;
+    dispH = 240;
     stbH = hud->statusBarHeight;
     cx = doomCanvas->SCR_CX;
     y = dispH - (stbH >> 1);
@@ -141,7 +172,7 @@ void Hud_drawBottomBar(Hud_t* hud)
         x = 7;
     }
 
-    Hud_drawBarTiles(hud, 0, dispH - stbH, doomCanvas->displayRect.w, hud->largeHud);
+    Hud_drawBarTiles(hud, 0, dispH - stbH, 400, hud->largeHud);
 
     // draw vertical gray lines
     lx1 = hud->statusLine1Xpos + cx;
@@ -252,14 +283,22 @@ void Hud_drawBottomBar(Hud_t* hud)
 
 void Hud_drawEffects(Hud_t* hud)
 {
+#if skipNullptr
+    if (!hud->doomRpg->doomCanvas) {
+        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
+        return;
+    }
+#endif
     DoomRPG_t* doomRpg;
     DoomCanvas_t* doomCanvas;
     char str[8];
     int x, y, srcY;
-
     doomRpg = hud->doomRpg;
     doomCanvas = doomRpg->doomCanvas;
-
+    if (doomCanvas->time == (int)NULL)
+        doomCanvas->time=0;
+    if (!hud->damageTime)
+        hud->damageTime = 0;
     if (doomCanvas->time < hud->damageTime) {
         if (hud->damageCount > 0) {
             DoomRPG_setColor(doomRpg, 0xBB0000);
@@ -268,26 +307,26 @@ void Hud_drawEffects(Hud_t* hud)
             DoomRPG_setColor(doomRpg, 0xFFFFFF);
         }
 
-        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight, 2, doomRpg->render->screenHeight + -1);
-        DoomRPG_fillRect(doomRpg, doomCanvas->displayRect.w + -2, hud->statusTopBarHeight, 2, doomRpg->render->screenHeight + -1);
-        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight, doomCanvas->displayRect.w - 1, 2);
-        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight + doomRpg->render->screenHeight + -2, doomCanvas->displayRect.w - 1, 2);
+        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight, 2, 240 + -1);
+        DoomRPG_fillRect(doomRpg, 400 + -2, hud->statusTopBarHeight, 2, 240 + -1);
+        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight, 400 - 1, 2);
+        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight + 240 + -2, 400 - 1, 2);
 
         if (hud->damageDir && (hud->damageCount > 0)) {
             srcY = 0;
             if (hud->damageDir == 1) {
-                x = doomCanvas->displayRect.w - 20;
-                y = doomCanvas->displayRect.h >> 1;
+                x = 400 - 20;
+                y = 240 >> 1;
                 srcY = 36;
             }
             else if (hud->damageDir == 3) {
                 x = 20;
-                y = doomCanvas->displayRect.h >> 1;
+                y = 240 >> 1;
                 srcY = 18;
             }
             else {
-                x = doomCanvas->displayRect.w >> 1;
-                y = (doomCanvas->displayRect.h - hud->statusBarHeight) - 20;
+                x = 400 >> 1;
+                y = (240 - hud->statusBarHeight) - 20;
             }
 
             DoomCanvas_drawImageSpecial(doomCanvas, &hud->imgAttArrow, 0, srcY, 18, 18, 0, x, y, 0x30);
@@ -299,7 +338,7 @@ void Hud_drawEffects(Hud_t* hud)
     }
 
     if (doomRpg->player->berserkerTics) {
-        // Bloqueo esta línea ya que la puse en otra función.
+        // Bloqueo esta lï¿½nea ya que la puse en otra funciï¿½n.
         // I block this line since I put it in another function.
         //{
         //    Render_setBerserkColor(doomRpg->render);
@@ -307,12 +346,18 @@ void Hud_drawEffects(Hud_t* hud)
 
         SDL_snprintf(str, sizeof(str), "%d", hud->doomRpg->player->berserkerTics);
         doomCanvas = hud->doomRpg->doomCanvas;
-        DoomCanvas_drawString1(doomCanvas, str, doomCanvas->displayRect.w - 2, hud->doomRpg->hud->statusTopBarHeight + 2, 9);
+        DoomCanvas_drawString1(doomCanvas, str, 400 - 2, hud->doomRpg->hud->statusTopBarHeight + 2, 9);
     }
 }
 
 void Hud_drawTopBar(Hud_t* hud)
 {
+#if skipNullptr
+    if (!hud->doomRpg->doomCanvas) {
+        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
+        return;
+    }
+#endif
     DoomCanvas_t* doomCanvas;
     char* text;
     int len;
@@ -321,7 +366,7 @@ void Hud_drawTopBar(Hud_t* hud)
     boolean updateTime;
 
     doomCanvas = hud->doomRpg->doomCanvas;
-    Hud_drawBarTiles(hud, 0, 0, doomCanvas->displayRect.w, false);
+    Hud_drawBarTiles(hud, 0, 0, 400, false);
 
     updateTime = true;
     // New Code Lines
@@ -375,7 +420,7 @@ void Hud_drawTopBar(Hud_t* hud)
     }  
 
     strEnd = SDL_strlen(text);
-    w = doomCanvas->displayRect.w;
+    w = 400;
     if (((strEnd * 9) + 10) > w) {
         strEnd = ((unsigned int)((w - 1) / 7)) - 1;
     }
@@ -438,7 +483,7 @@ void Hud_startup(Hud_t* hud, boolean largeStatus)
 
 	doomRpg = hud->doomRpg;
 
-	hud->msgMaxChars = (doomRpg->doomCanvas->displayRect.w - 4) / 7;
+	hud->msgMaxChars = (400 - 4) / 7;
 	hud->statusTopBarHeight = 20;
     DoomRPG_createImage(doomRpg, "bar_lg.bmp", false, &hud->imgStatusBarLarge);
     DoomRPG_createImage(doomRpg, "k.bmp", false, &hud->imgStatusBar);

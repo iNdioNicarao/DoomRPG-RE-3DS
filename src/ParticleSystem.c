@@ -1,5 +1,10 @@
 
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 
@@ -12,8 +17,12 @@
 #include "SDL_Video.h"
 
 int recalcScales(int val1, int val2) { // New code
+#ifdef __3DS__
+#else
 	int div = (sdlVideoModes[sdlVideo.resolutionIndex].width / 128);
 	return val1 + (val1 - (((val1 << 16) / (val2 << 8)) / div));
+#endif
+	return 0;
 }
 
 ParticleSystem_t* ParticleSystem_init(ParticleSystem_t* particleSystem, DoomRPG_t* doomRpg)
@@ -203,7 +212,7 @@ void ParticleSystem_render(ParticleSystem_t* particleSystem, int z)
 					ParticleSystem_unlinkParticle(particleSystem, particleNode);
 				}
 				else if (particleNode->particleSize > 0) {
-					DoomRPG_fillCircle(particleSystem->doomRpg, i6, i7, particleNode->particleSize >> 1);
+					//DoomRPG_fillCircle(particleSystem->doomRpg, i6, i7, particleNode->particleSize >> 1);
 				}
 				else {
 					/*int i12 = 16 * ((-nVar.particleSize) - 1);
@@ -266,9 +275,12 @@ void ParticleSystem_render(ParticleSystem_t* particleSystem, int z)
 					}
 
 					int flags = 0;
+#ifdef __3DS__
+#else
 					if (sdlVideoModes[sdlVideo.resolutionIndex].width >= 640) {
 						flags |= 64; // set flag SCALE
 					}
+#endif
 
 					if (iVar5 > 0) {
 						if (doomCanvas->doomRpg->player->berserkerTics) { // New
@@ -285,7 +297,11 @@ void ParticleSystem_render(ParticleSystem_t* particleSystem, int z)
 		}
 
 
+#ifdef __3DS__
+		SDL_SetClipRect(sdlVideo.screenSurface, NULL);
+#else
 		SDL_RenderSetClipRect(sdlVideo.renderer, NULL);
+#endif
 
 		particleSystem->startTime = doomRpg->doomCanvas->time;
 		if (z) {
@@ -463,13 +479,16 @@ void ParticleSystem_startup(ParticleSystem_t* particleSystem)
 
 	doomRpg = particleSystem->doomRpg;
 
-	w = 128;
-	h = 88;
+	w = 400;
+	h = 240;
 
+#ifdef __3DS__
+#else
 	if (sdlVideoModes[sdlVideo.resolutionIndex].width >= 320) {
 		w = recalcScales(128, doomRpg->render->screenWidth);
 		h = recalcScales(88, doomRpg->render->screenHeight);
 	}
+#endif
 
 	particleSystem->scaleX = ((doomRpg->render->screenWidth << FRACBITS) / (w << 8));
 	particleSystem->scaleY = ((doomRpg->render->screenHeight << FRACBITS) / (h << 8));

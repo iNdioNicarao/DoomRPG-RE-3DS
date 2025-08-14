@@ -1,9 +1,15 @@
+
+#ifdef __3DS__
+#include <SDL/SDL_mixer.h>
+#include <SDL/SDL.h>
+typedef SDL_Surface SDL_Texture;
+#endif
 #ifndef DOOMRPG_H__
 #define DOOMRPG_H__
 
 #ifndef __BYTEBOOL__
 #define __BYTEBOOL__
-typedef enum { false, true } boolean;
+typedef enum { bool_false, bool_true } boolean;
 typedef unsigned char byte;
 #endif
 
@@ -298,7 +304,8 @@ void DoomRPG_loopGame(DoomRPG_t* doomrpg);
 void DoomRPG_setClipFalse(DoomRPG_t* doomrpg);
 void DoomRPG_setClipTrue(DoomRPG_t* doomrpg, int x, int y, int w, int h);
 void DoomRPG_setColor(DoomRPG_t* doomrpg, int color);
-void DoomRPG_flushGraphics(DoomRPG_t* doomrpg);
+void DoomRPG_flushGraphics(...);
+boolean DoomRPG_ReinitCanvasAndRenderer(DoomRPG_t* doomRpg);
 void DoomRPG_clearGraphics(DoomRPG_t* doomrpg);
 void DoomRPG_drawRect(DoomRPG_t* doomrpg, int x, int y, int w, int h);
 void DoomRPG_fillRect(DoomRPG_t* doomrpg, int x, int y, int w, int h);

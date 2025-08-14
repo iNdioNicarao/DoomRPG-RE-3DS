@@ -1,5 +1,9 @@
 
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#else
 #include <SDL.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -821,8 +825,8 @@ void Menu_initMenu(Menu_t* menu, int i)
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Pos:", text, 0, 0);
 
 			
-			// En el código fuente original se obtiene la memoria RAM del dispositivo
-			// In the actual source code, the device’s RAM memory is obtained
+			// En el cï¿½digo fuente original se obtiene la memoria RAM del dispositivo
+			// In the actual source code, the deviceï¿½s RAM memory is obtained
 			// SDL_snprintf(text, sizeof(text), "%dK", ((menu->doomRpg->m_DeviceInfo).dwRAM + 1023) / 1024);
 			
 			// Actualmente se obtiene el total de toda la momoria inicializada
@@ -845,9 +849,9 @@ void Menu_initMenu(Menu_t* menu, int i)
 
 			int iVar8 = 0;
 			int iVar3 = 0;
-			do {
+			/*do {
 				iVar8 = menu->doomRpg->sound->soundChannel[iVar3].size + iVar8;
-			} while (++iVar3 < 10);
+			} while (++iVar3 < 10);*/
 
 			SDL_snprintf(text, sizeof(text), "%dK", (iVar8 + 1023) / 1024);
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Sound:", text, 0, 0);
@@ -1005,17 +1009,24 @@ void Menu_initMenu(Menu_t* menu, int i)
 			}
 
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Back", 0, 0);
+#ifdef __3DS__
+#else
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "FullScreen:", sdlVideo.fullScreen ? "on" : "off", 0, 0);
+
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "VSync:", sdlVideo.vSync ? "on" : "off", 0, 0);
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "IntScaling:", sdlVideo.integerScaling ? "on" : "off", 0, 0);
 			textDivider = MenuSystem_buildDivider(menuSystem, "Resolution");
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], textDivider, 3, 0);
 			SDL_snprintf(text, sizeof(text), "(%dx%d)", sdlVideoModes[sdlVideo.resolutionIndex].width, sdlVideoModes[sdlVideo.resolutionIndex].height);
+#endif
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], text, NULL, 2, 0);
 
 			textDivider = MenuSystem_buildDivider(menuSystem, "Display");
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], textDivider, 3, 0);
+#ifdef __3DS__
+#else
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Softkeys:", sdlVideo.displaySoftKeys ? "on" : "off", 0, 0);
+#endif
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Floor/Ceil:", menu->doomRpg->doomCanvas->renderFloorCeilingTextures ? "on" : "off", 0, 0);
 			
 			break;
@@ -1946,7 +1957,10 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			if (itemId == 0) {
 				return menuSystem->oldMenu;
 			}
+#ifdef __3DS__
+#else
 			else if (itemId == 1) { // New Full Screen Option
+
 				sdlVideo.fullScreen ^= true;
 				strncpy(menuSystem->items[itemId].textField2, sdlVideo.fullScreen ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
 
@@ -1977,6 +1991,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 				sdlVideo.displaySoftKeys ^= true;
 				strncpy(menuSystem->items[itemId].textField2, sdlVideo.displaySoftKeys ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
 			}
+			#endif
 			else if (itemId == 8) { // New display SoftKeys Option
 				menu->doomRpg->doomCanvas->renderFloorCeilingTextures ^= true;
 				strncpy(menuSystem->items[itemId].textField2, menu->doomRpg->doomCanvas->renderFloorCeilingTextures ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));

@@ -1,5 +1,51 @@
+#define __Saving__
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#define LOG_FILENAME "doomrpg_naebnulsya.txt"
+void Log_Init(void) {
+	FILE *logFile = fopen(LOG_FILENAME, "w"); // "w" - режим записи, очищает файл при открытии
+	if (logFile) {
+		fprintf(logFile, "--- Лог запущен. Ищем проблему. ---\n");
+		fclose(logFile);
+	}
+}
 
+void Log_Write(const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+
+	FILE *logFile = fopen(LOG_FILENAME, "a"); // "a" - режим дозаписи в конец файла
+	if (logFile) {
+		// Записываем форматированную строку
+		vfprintf(logFile, format, args);
+		// Добавляем перенос строки для читаемости
+		fprintf(logFile, "\n");
+		fclose(logFile);
+	}
+
+	va_end(args);
+}
+
+void Log_FatalError(const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+
+	FILE *logFile = fopen(LOG_FILENAME, "a");
+	if (logFile) {
+		fprintf(logFile, "\n\n!!! FATAL ERROR !!!\n");
+		vfprintf(logFile, format, args);
+		fprintf(logFile, "\n!!! Приложение аварийно завершено. !!!\n");
+		fclose(logFile);
+	}
+
+	va_end(args);
+
+	// Завершаем программу с кодом ошибки
+	exit(1);
+}
+#else
 #include <SDL.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -40,7 +86,7 @@ Game_t* Game_init(Game_t* game, DoomRPG_t* doomRpg)
 {
 	int i;
 	EntityMonster_t* entityMonst;
-
+	Log_Init();
 	printf("Game_init\n");
 
 	if (game == NULL)
@@ -726,23 +772,37 @@ void Game_loadConfig(Game_t* game)
 
 			// New
 			boolData = File_readByte(rw);
+#ifdef __3DS__
+#else
 			sdlVideo.fullScreen = boolData != 0 ? true : false;
+#endif
 
 			// New
 			boolData = File_readByte(rw);
+#ifdef __3DS__
+#else
 			sdlVideo.vSync = boolData != 0 ? true : false;
+#endif
 
 			// New
 			boolData = File_readByte(rw);
+#ifdef __3DS__
+#else
 			sdlVideo.integerScaling = boolData != 0 ? true : false;
-
+#endif
 			// New
 			boolData = File_readByte(rw);
+
+#ifdef __3DS__
+#else
 			sdlVideo.displaySoftKeys = boolData != 0 ? true : false;
-			
+#endif
 			// New
 			intData = File_readInt(rw);
+#ifdef __3DS__
+#else
 			sdlVideo.resolutionIndex = intData;
+#endif
 
 			// New
 			intData = File_readInt(rw);
@@ -1388,6 +1448,14 @@ void Game_remove(Game_t* game, Entity_t* entity)
 
 boolean Game_executeEvent(Game_t* game, int event, int codeId, int arg1, int arg2, int flags)
 {
+	Log_Write("\n--- [EVENT START] ---");
+	Log_Write("Исполняется ивент: codeId = %d, arg1 = %d, arg2 = %d, flags = %d", codeId, arg1, arg2, flags);
+
+	// Проверяем самый главный указатель ПЕРЕД началом работы
+	if (!game || !game->doomRpg) {
+		Log_FatalError("[Game_executeEvent] КРИТИЧЕСКАЯ ОШИБКА: game или game->doomRpg - NULL!");
+		return false; // Не должно произойти, но лучше проверить
+	}
 	DoomCanvas_t* doomCanvas;
 	Sprite_t* sprite;
 	Entity_t* entity, *entNext;
@@ -1900,6 +1968,9 @@ boolean Game_runEvent(Game_t* game, int event, int index, int flags)
 						code[commandIndex + i + BYTE_CODE_ARG2] = 0;
 					}
 				}
+				else {
+					break;
+				}
 				if (game->saveTileEvent) {
 					game->tileEventIndex = i / BYTE_CODE_MAX;
 					game->tileEventFlags = flags;
@@ -1914,6 +1985,7 @@ boolean Game_runEvent(Game_t* game, int event, int index, int flags)
 
 void Game_saveConfig(Game_t* game, int num)
 {
+#ifndef __Saving__
 	SDL_RWops* rw;
 	int version;
 	//printf("saveConfig %d\event", num);
@@ -1928,11 +2000,14 @@ void Game_saveConfig(Game_t* game, int num)
 	File_writeInt(rw, game->doomRpg->player->totalDeaths);
 
 	// New
+#ifdef __3DS__
+#else
 	File_writeByte(rw, sdlVideo.fullScreen);
 	File_writeByte(rw, sdlVideo.vSync);
 	File_writeByte(rw, sdlVideo.integerScaling);
 	File_writeByte(rw, sdlVideo.displaySoftKeys);
 	File_writeInt(rw, sdlVideo.resolutionIndex);
+#endif
 	File_writeInt(rw, game->doomRpg->doomCanvas->mouseSensitivity);
 	File_writeByte(rw, game->doomRpg->doomCanvas->mouseYMove);
 	File_writeInt(rw, sdlController.deadZoneLeft);
@@ -1947,6 +2022,7 @@ void Game_saveConfig(Game_t* game, int num)
 	}
 
 	SDL_RWclose(rw);
+#endif
 }
 
 void Game_savePlayerState(Game_t* game, char* fileName, char* fileMapName, int x, int y, int angle)
@@ -2014,7 +2090,7 @@ void Game_saveState(Game_t* game, int mapId, int x, int y, int angleDir, boolean
 		DoomRPG_fillRect(game->doomRpg, 0, 0, game->doomRpg->doomCanvas->displayRect.w, game->doomRpg->doomCanvas->displayRect.h);
 		DoomRPG_setColor(game->doomRpg, 0xffffffff);
 		DoomCanvas_drawString1(game->doomRpg->doomCanvas, "Saving...", game->doomRpg->doomCanvas->SCR_CX, game->doomRpg->doomCanvas->SCR_CY - 24, 17);
-		DoomRPG_flushGraphics(game->doomRpg);
+		//DoomRPG_flushGraphics(game->doomRpg);
 	}
 
 	DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);

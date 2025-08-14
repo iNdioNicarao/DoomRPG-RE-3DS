@@ -1,7 +1,11 @@
 #ifndef SOUND_H__
 #define SOUND_H__
 
+#ifdef __3DS__
+#include <SDL/SDL_mixer.h>
+#else
 #include <SDL_mixer.h>
+#endif
 
 struct DoomRPG_s;
 struct Image_s;
@@ -20,7 +24,15 @@ typedef struct AudioFile_s
 	void* ptr;
 } AudioFile_t;
 
+#ifdef __3DS__
+typedef int fluid_player_t;
+
+#elif __aarch64__
+typedef int fluid_player_t;
+#else
 #include <fluidsynth.h>
+#endif
+#ifndef __3DS__
 typedef struct SoundChannel_s
 {
 	//int heap;
@@ -44,7 +56,28 @@ typedef struct Sound_s
 	struct DoomRPG_s* doomRpg;
 	AudioFile_t* audioFiles; // New
 } Sound_t;
+#else
+typedef struct SoundChannel_s
+{
+    Mix_Chunk* mediaAudioSound;
+    Mix_Music* mediaAudioMusic; // Изменено с fluid_player_t* на Mix_Music*
+    int size;
+    byte flags;
+} SoundChannel_t;
 
+typedef struct Sound_s
+{
+    boolean soundEnabled;
+    int priority;
+    int channel;
+    int nextplay;
+    struct SoundChannel_s soundChannel[MAX_SOUNDCHANNELS + 1];
+    int volume;
+    struct DoomRPG_s* doomRpg;
+    AudioFile_t* audioFiles;
+} Sound_t;
+
+#endif
 Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg);
 void Sound_free(Sound_t* sound, boolean freePtr);
 void Sound_stopSounds(Sound_t* sound);
@@ -55,7 +88,7 @@ void Sound_loadSound(Sound_t* sound, int chan, short resourceID);
 void Sound_readySound(Sound_t* sound, int chan);
 void Sound_playSound(Sound_t* sound, int resourceID, byte flags, int priority);
 void Sound_freeSounds(Sound_t* sound);
-int Sound_getFromResourceID(resourceID);
+int Sound_getFromResourceID(int resourceID);
 void Sound_updateVolume(Sound_t* sound);
 int Sound_minusVolume(Sound_t* sound, int volume);
 int Sound_addVolume(Sound_t* sound, int volume);

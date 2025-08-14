@@ -1,6 +1,12 @@
-
+#ifdef __3DS__
+#include <3ds/types.h>
+#include <3ds/services/gspgpu.h>
+#include <SDL/SDL.h>
+//#include <SDL/SDL_mixer.h>
+#else
 #include <SDL.h>
 #include <SDL_mixer.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -121,8 +127,8 @@ DoomCanvas_t* DoomCanvas_init(DoomCanvas_t* doomCanvas, DoomRPG_t* doomRpg) // 0
 	doomCanvas->st_count = 0;
 	doomCanvas->clipRect.x = 0;
 	doomCanvas->clipRect.y = 0;
-	doomCanvas->clipRect.w = sdlVideo.rendererW;
-	doomCanvas->clipRect.h = sdlVideo.rendererH;
+	doomCanvas->clipRect.w = sdlVideo.screenW;
+	doomCanvas->clipRect.h = sdlVideo.screenH;
 	//printf("clipRect W(%d) H(%d)\n", doomCanvas->clipRect.w, doomCanvas->clipRect.h);
 
 	//From J2ME Version
@@ -232,7 +238,6 @@ void DoomCanvas_setupmenu(DoomCanvas_t* doomCanvas, boolean notdrawLoading)
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
 		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		DoomCanvas_drawString1(doomCanvas, "Loading...", doomCanvas->SCR_CX, doomCanvas->SCR_CY + -0x18, 0x11);
-		DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 
 	Player_reset(doomCanvas->player);
@@ -340,6 +345,8 @@ void DoomCanvas_closeDialog(DoomCanvas_t* doomCanvas)
 	doomCanvas->hud->isUpdate = true;
 	doomCanvas->staleView = true;
 	doomCanvas->isUpdateView = true;
+
+	DoomCanvas_invalidateRectAndUpdateView(doomCanvas);
 }
 
 void DoomCanvas_combatState(DoomCanvas_t* doomCanvas)
@@ -368,7 +375,7 @@ void DoomCanvas_combatState(DoomCanvas_t* doomCanvas)
 		DoomCanvas_drawRGB(doomCanvas);
 	}
 
-	// En el c�digo original esta funci�n est� en la funci�n "Hud_drawEffects", pero decid� moverla aqu�, 
+	// En el c�digo original esta funci�n est� en la funci�n "Hud_drawEffects", pero decid� moverla aqu�, 
 	// esto evita que se superponga a otros objetos dibujados previamente.
 	// 
 	// In the original code this function is in the "Hud_drawEffects" function, but I decided to move it here, 
@@ -427,7 +434,7 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 	DoomCanvas_updateView(doomCanvas);
 	DoomCanvas_drawRGB(doomCanvas);
 
-	// En el c�digo original esta funci�n est� en la funci�n "Hud_drawEffects", pero decid� moverla aqu�, 
+	// En el c�digo original esta funci�n est� en la funci�n "Hud_drawEffects", pero decid� moverla aqu�, 
 	// esto evita que se superponga a otros objetos dibujados previamente.
 	// 
 	// In the original code this function is in the "Hud_drawEffects" function, but I decided to move it here, 
@@ -495,7 +502,10 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 				doomCanvas->strPassCode[strLen] = '_';
 			}
 			else {
+#ifdef __3DS__
+#else
 				doomCanvas->strPassCode[strLen] = sdlController.gGameController ? doomCanvas->passInput : ' ';
+#endif
 			}
 		}
 	}
@@ -1214,7 +1224,7 @@ void DoomCanvas_drawStory(DoomCanvas_t* doomCanvas)
 void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 {
 	// Port:
-	// aplicar esta funci�n antes de actualizar el framebuffer
+	// aplicar esta funci�n antes de actualizar el framebuffer
 	// apply this function before updating the framebuffer
 	//if (doomCanvas->doomRpg->player->berserkerTics) {
 		//Render_setBerserkColor(doomCanvas->doomRpg->render);
@@ -1245,93 +1255,116 @@ void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 
 	renderQuad.x = doomCanvas->render->screenX;
 	renderQuad.y = doomCanvas->render->screenY;
-	renderQuad.w = sdlVideo.rendererW;
-	renderQuad.h = sdlVideo.rendererH;
+	renderQuad.w = sdlVideo.screenW;
+	renderQuad.h = sdlVideo.screenH;
 	if (clip.w <= renderQuad.w) {
 		renderQuad.w = clip.w;
 	}
 	if (clip.h <= renderQuad.h) {
 		renderQuad.h = clip.h;
 	}
-
+#ifdef __3DS__
+	memcpy(doomCanvas->render->piDIB->pixels,
+	   doomCanvas->render->framebuffer,
+	   sdlVideo.screenW * sdlVideo.screenH * 2);
+	//gspWaitForVBlank();
+	SDL_BlitSurface(doomCanvas->render->piDIB, &clip, SDL_GetVideoSurface(), &renderQuad);
+	//SDL_Flip(SDL_GetVideoSurface());
+#else
 	SDL_UpdateTexture(doomCanvas->render->piDIB, NULL, doomCanvas->render->framebuffer, sdlVideo.rendererW * 2);
 	SDL_RenderCopy(sdlVideo.renderer, doomCanvas->render->piDIB, &clip, &renderQuad);
-
+#endif
 	//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 }
 
 void DoomCanvas_drawImageSpecial(DoomCanvas_t* doomCanvas, Image_t* img, int xSrc, int ySrc, int width, int height, int param_7, int xDst, int yDst, int flags)
 {
-	SDL_Rect renderQuad, clip;
+    // Проверка на случай, если картинка не загрузилась
+    if (img == NULL || img->imgBitmap == NULL) {
+        return;
+    }
 
-	if (width == 0) {
-		width = img->width;
-	}
-	if (height == 0) {
-		height = img->height;
-	}
+    // Если передана нулевая ширина/высота, используем размер картинки
+    if (width == 0) {
+        width = img->width;
+    }
+    if (height == 0) {
+        height = img->height;
+    }
 
-	if ((flags & 16) == 0) {
-		if ((flags & 8) != 0) {
-			xDst = xDst - width;
-		}
-	}
-	else {
-		xDst = xDst - ((unsigned int)width >> 1);
-	}
-	if ((flags & 32) == 0) {
-		if ((flags & 2) != 0) {
-			yDst = yDst - height;
-		}
-	}
-	else {
-		yDst = yDst - ((unsigned int)height >> 1);
-	}
+    // Обработка флагов выравнивания
+    if ((flags & 16) == 0) {
+        if ((flags & 8) != 0) xDst -= width;
+    } else {
+        xDst -= (width >> 1);
+    }
+    if ((flags & 32) == 0) {
+        if ((flags & 2) != 0) yDst -= height;
+    } else {
+        yDst -= (height >> 1);
+    }
 
-	renderQuad.w = img->width;
-	renderQuad.h = img->height;
+    int current_y = yDst;
+    int remaining_h = height;
 
-	if (img->imgBitmap) {
+    // Внешний цикл по вертикали
+    while (remaining_h > 0)
+    {
+        int current_x = xDst;
+        int remaining_w = width;
 
-		int uVar3 = width;
-		int iVar4 = xDst;
+        // Внутренний цикл по горизонтали
+        while (remaining_w > 0)
+        {
+            SDL_Rect src_rect; // Прямоугольник-источник (откуда из img читать)
+            SDL_Rect dst_rect; // Прямоугольник-приемник (куда на экран рисовать)
 
-		do {
-			do {
-				clip.x = xSrc;
-				clip.y = ySrc;
-				clip.w = uVar3;
-				clip.h = height;
+            // Устанавливаем источник
+            src_rect.x = xSrc;
+            src_rect.y = ySrc;
 
-				renderQuad.x = doomCanvas->displayRect.x + iVar4;
-				renderQuad.y = doomCanvas->displayRect.y + yDst;
-				if (clip.w <= renderQuad.w) {
-					renderQuad.w = clip.w;
-				}
-				if (clip.h <= renderQuad.h) {
-					renderQuad.h = clip.h;
-				}
+            // --- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ ---
+            // Определяем, сколько пикселей рисовать на этой итерации
+            int blit_w = (remaining_w > img->width) ? img->width : remaining_w;
+            int blit_h = (remaining_h > img->height) ? img->height : remaining_h;
 
-				if (flags & 64) { // New flag Scale
-					// calculate new x and y
-					renderQuad.x = (renderQuad.x + renderQuad.w / 2) - (((renderQuad.w / 2) * 3) / 2);
-					renderQuad.y = (renderQuad.y + renderQuad.h / 2) - (((renderQuad.h / 2) * 3) / 2);
+            // Ограничиваем прямоугольник-источник реальными размерами
+            src_rect.w = blit_w;
+            src_rect.h = blit_h;
 
-					renderQuad.w = (renderQuad.w * 3) / 2;
-					renderQuad.h = (renderQuad.h * 3) / 2;
-				}
+            // Устанавливаем приемник
+            if (doomCanvas) {
+            	dst_rect.x = doomCanvas->displayRect.x + current_x;
+            	dst_rect.y = doomCanvas->displayRect.y + current_y;
+            }
+        	else {
+        	}
+            dst_rect.w = blit_w;
+            dst_rect.h = blit_h;
 
-				SDL_RenderCopy(sdlVideo.renderer, img->imgBitmap, &clip, &renderQuad);
+            // Обработка флага масштабирования (если нужно)
+            if (flags & 64) {
+                 dst_rect.x = (dst_rect.x + dst_rect.w / 2) - (((dst_rect.w / 2) * 3) / 2);
+                 dst_rect.y = (dst_rect.y + dst_rect.h / 2) - (((dst_rect.h / 2) * 3) / 2);
+                 dst_rect.w = (dst_rect.w * 3) / 2;
+                 dst_rect.h = (dst_rect.h * 3) / 2;
+            }
 
-				uVar3 = uVar3 - img->width;
-				iVar4 = img->width + iVar4;
-			} while (0 < (int)uVar3);
-			height = height - img->height;
-			yDst = img->height + yDst;
-			uVar3 = width;
-			iVar4 = xDst;
-		} while (0 < height);
-	}
+            // Рисуем на экране
+#ifdef __3DS__
+            SDL_BlitSurface(img->imgBitmap, &src_rect, sdlVideo.screenSurface, &dst_rect);
+#else
+            SDL_RenderCopy(sdlVideo.renderer, img->imgBitmap, &src_rect, &dst_rect);
+#endif
+
+            // Обновляем позицию для следующего тайла
+            current_x += blit_w;
+            remaining_w -= blit_w;
+        }
+
+        current_y += img->height; // Всегда сдвигаемся на полную высоту тайла
+        remaining_h -= img->height;
+    }
 }
 
 void DoomCanvas_drawScrollBar(DoomCanvas_t* doomCanvas, int y, int totalHeight, int i3, int i4, int i5)
@@ -1434,87 +1467,139 @@ void DoomCanvas_drawString2(DoomCanvas_t* doomCanvas, char* text, int x, int y, 
 {
 	DoomCanvas_drawFont(doomCanvas, text, x, y, flags, 0, (doomCanvas->time - param_6) / 25, 0);
 }
+void SDL_SurfaceColorMod(SDL_Surface *surface, Uint8 r, Uint8 g, Uint8 b)
+{
+	if (SDL_MUSTLOCK(surface)) SDL_LockSurface(surface);
 
+	Uint32 *pixels = (Uint32 *)surface->pixels;
+	int count = (surface->pitch / 4) * surface->h;
+
+	for (int i = 0; i < count; i++)
+	{
+		Uint8 R, G, B, A;
+		SDL_GetRGBA(pixels[i], surface->format, &R, &G, &B, &A);
+		R = (R * r) / 255;
+		G = (G * g) / 255;
+		B = (B * b) / 255;
+		pixels[i] = SDL_MapRGBA(surface->format, R, G, B, A);
+	}
+
+	if (SDL_MUSTLOCK(surface)) SDL_UnlockSurface(surface);
+}
 void DoomCanvas_drawFont(DoomCanvas_t* doomCanvas, char* text, int x, int y, int flags, int strBeg, int strEnd, boolean isLargerFont)
 {
-	Image_t* imgFont;
-	int iVar4, width, height, len, xpos, i;
-	unsigned int c;
+    Image_t* imgFont;
+    int charCellWidth, charCellHeight, charAdvanceWidth;
+    int len, i;
+    unsigned char c;
 
-	if (strEnd == 0) {
-		return;
-	}
+    if (strEnd == 0) return;
 
-	if (isLargerFont == 0) {
-		imgFont = &doomCanvas->imgFont;
-		iVar4 = 7;
-		width = 9;
-		height = 12;
-	}
-	else {
-		imgFont = &doomCanvas->imgLargerFont;
-		iVar4 = 10;
-		width = 13;
-		height = 17;
-	}
+    // Select font size and parameters
+    if (isLargerFont == 0) {
+        imgFont = &doomCanvas->imgFont;
+        charAdvanceWidth = 7;
+        charCellWidth = 9;
+        charCellHeight = 12;
+    } else {
+        imgFont = &doomCanvas->imgLargerFont;
+        charAdvanceWidth = 10;
+        charCellWidth = 13;
+        charCellHeight = 17;
+    }
 
-	// New, only port
-	{
-		byte r, g, b;
+    // Calculate string length
+    len = SDL_strlen(text) - strBeg;
+    if ((len > strEnd) && (strEnd >= 0)) {
+        len = strEnd;
+    }
+    len += strBeg;
 
-		r = (doomCanvas->fontColor & 0x00FF0000) >> 16;
-		g = (doomCanvas->fontColor & 0x0000FF00) >> 8;
-		b = (doomCanvas->fontColor & 0x000000FF);
+    // Horizontal alignment
+    if (flags & 8) {       // right aligned
+        x -= (len - strBeg) * charAdvanceWidth;
+    } else if (flags & 16) {  // center aligned
+        x -= ((len - strBeg) * charAdvanceWidth) / 2;
+    }
 
-		SDL_SetTextureColorMod(imgFont->imgBitmap, r, g, b);
-	}
+    // Vertical alignment
+    if (flags & 2) {          // bottom aligned
+        y -= charCellHeight;
+    } else if (flags & 32) {  // center aligned
+        y -= charCellHeight / 2;
+    }
 
-	len = SDL_strlen(text) - strBeg;
+    // Temporary surface for rendering the whole string block (estimate height with '\n')
+    int lineCount = 1;
+    for (i = strBeg; i < len; ++i) {
+        if (text[i] == '\n') lineCount++;
+    }
 
-	if ((len > strEnd) && (strEnd >= 0)) {
-		len = strEnd;
-	}
+    SDL_Surface* fontSurface = SDL_CreateRGBSurface(
+        SDL_SWSURFACE,
+        charAdvanceWidth * (len - strBeg), // width is maximum possible without breaking lines
+        charCellHeight * lineCount,
+        32,
+        0x00FF0000, // red mask (32-bit)
+        0x0000FF00, // green mask
+        0x000000FF, // blue mask
+        0xFF000000  // alpha mask
+    );
 
-	if (flags & 8) {
-		x -= len * iVar4;
-	}
-	else if (flags & 16) {
-		x -= (iVar4 * ((len << FRACBITS) / 512)) >> 8;
-	}
+    if (!fontSurface) {
+        printf("Failed to create font surface: %s\n", SDL_GetError());
+        return;
+    }
 
-	if (flags & 2) {
-		y -= height;
-	}
-	else if (flags & 32) {
-		y -= (height >> 1);
-	}
+    int xpos = 0; // horizontal offset on fontSurface
+    int ypos = 0; // vertical offset for new lines
 
-	len += strBeg;
-	xpos = x;
-	for (i = strBeg; i < len; ++i)
-	{
-		c = text[i];
-		if (c == 10) {
-			y += height;
-			xpos = x;
-		}
-		else {
-			if (c != ' ') {
-				DoomCanvas_drawImageSpecial(doomCanvas,
-					imgFont,
-					width * ((c - 33) & 0xf),
-					height * ((unsigned int)((c - 33) << 24) >> 28),
-					width,
-					height,
-					0,
-					xpos,
-					y,
-					0);
-			}
-			xpos += iVar4;
-		}
-	}
+    // Render characters one by one
+    for (i = strBeg; i < len; ++i) {
+        c = (unsigned char)text[i];
+
+        if (c == '\n') {
+            // Move to next line
+            xpos = 0;
+            ypos += charCellHeight;
+            continue;
+        }
+        else if (c == ' ') {
+            // Space character: advance cursor
+            xpos += charAdvanceWidth;
+            continue;
+        }
+
+        int charIndex = c - 33;
+        if (charIndex < 0) continue;
+
+        SDL_Rect srcRect = {
+            (charIndex % 16) * charCellWidth,
+            (charIndex / 16) * charCellHeight,
+            charCellWidth,
+            charCellHeight
+        };
+
+        SDL_Rect dstRect = {
+            xpos,
+            ypos,
+            charCellWidth,
+            charCellHeight
+        };
+
+        SDL_BlitSurface(imgFont->imgBitmap, &srcRect, fontSurface, &dstRect);
+
+        xpos += charAdvanceWidth;
+    }
+
+    // Blit the entire rendered block onto the main screen
+    SDL_Rect destRect = { x, y, fontSurface->w, fontSurface->h };
+    SDL_BlitSurface(fontSurface, NULL, sdlVideo.screenSurface, &destRect);
+
+    SDL_FreeSurface(fontSurface);
 }
+
+
 
 
 void DoomCanvas_dyingState(DoomCanvas_t* doomCanvas)
@@ -1828,7 +1913,7 @@ void DoomCanvas_handlePasswordEvents(DoomCanvas_t* doomCanvas, int i)
 				z = true;
 			}
 		}
-		else if (sdlController.gGameController && (key == TURNRIGHT || key == SELECT)) {
+		else if ((key == TURNRIGHT || key == SELECT)) {
 			doomCanvas->passCode[len1] = doomCanvas->passInput;
 			doomCanvas->passCode[len1 + 1] = '\0';
 			doomCanvas->passInput = '0';
@@ -1838,13 +1923,13 @@ void DoomCanvas_handlePasswordEvents(DoomCanvas_t* doomCanvas, int i)
 				z = true;
 			}
 		}
-		else if (sdlController.gGameController && key == MOVEFORWARD) {
+		else if (key == MOVEFORWARD) {
 			doomCanvas->passInput++;
 			if (doomCanvas->passInput > '9') {
 				doomCanvas->passInput = '0';
 			}
 		}
-		else if (sdlController.gGameController && key == MOVEBACK) {
+		else if (key == MOVEBACK) {
 			doomCanvas->passInput--;
 			if (doomCanvas->passInput < '0') {
 				doomCanvas->passInput = '9';
@@ -2251,7 +2336,6 @@ void DoomCanvas_loadPrologueText(DoomCanvas_t* doomCanvas)
 	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 	DoomCanvas_drawString1(doomCanvas, "Loading...", doomCanvas->SCR_CX, doomCanvas->SCR_CY, 17);
 
-	DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	Sound_playSound(doomCanvas->doomRpg->sound, 5039, SND_FLG_LOOP | SND_FLG_STOPSOUNDS | SND_FLG_ISMUSIC, 5);
 
 	textLen = SDL_strlen(storyTextA);
@@ -2278,7 +2362,6 @@ void DoomCanvas_loadPrologueText(DoomCanvas_t* doomCanvas)
 
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
 	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
-	DoomRPG_flushGraphics(doomCanvas->doomRpg);
 }
 
 void DoomCanvas_keyPressed(DoomCanvas_t* doomCanvas, int keyCode)
@@ -2339,7 +2422,7 @@ boolean DoomCanvas_loadMedia(DoomCanvas_t* doomCanvas)
 			DoomCanvas_drawString1(doomCanvas, "Game Loaded", doomCanvas->SCR_CX, doomCanvas->displayRect.h, 18);
 		}
 
-		DoomRPG_flushGraphics(doomCanvas->doomRpg);
+		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 
 		if (Render_beginLoadMapData(doomCanvas->render))
 		{
@@ -2566,7 +2649,7 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 
 			DoomCanvas_updateView(doomCanvas);
 			applyBerserk = true;
-		} // <- Agregu� el corchete aqu�, ya que necesito que los gr�ficos se actualicen siempre en cada cuadro, 
+		} // <- Agregu� el corchete aqu�, ya que necesito que los gr�ficos se actualicen siempre en cada cuadro, 
 		  //    sin que intervengan las actualizaciones del movimiento del jugador.
 		  // <- I added the bracket here as I need the graphics to always update on every frame, 
 		  //    without player movement updates intervening.
@@ -2585,7 +2668,7 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 
 			DoomCanvas_drawRGB(doomCanvas);
 
-			// En el c�digo original esta funci�n est� en la funci�n "Hud_drawEffects", pero decid� moverla aqu�, 
+			// En el c�digo original esta funci�n est� en la funci�n "Hud_drawEffects", pero decid� moverla aqu�, 
 			// esto evita que se superponga a otros objetos dibujados previamente.
 			// 
 			// In the original code this function is in the "Hud_drawEffects" function, but I decided to move it here, 
@@ -2798,16 +2881,21 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 
 	// New Code Lines
 	//{
-	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_clearGraphics(doomCanvas->doomRpg);
+	//DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+	//DoomRPG_clearGraphics(doomCanvas->doomRpg);
 	//}
 
 	//DoomCanvas_updateLoadingBar(doomCanvas);
 
 	doomCanvas->oldState = doomCanvas->state;
 	DoomRPG_setRand(&doomCanvas->doomRpg->random);
+	if (!doomCanvas || !doomCanvas->doomRpg || !doomCanvas->doomRpg->sound) {
+		printf("Sound struct not initialized!\n");
+	}
+	else {
+		doomCanvas->doomRpg->sound->nextplay = 0;
+	}
 
-	doomCanvas->doomRpg->sound->nextplay = 0;
 	if (doomCanvas->doomRpg->graphSetCliping != 0) {
 		DoomRPG_setClipFalse(doomCanvas->doomRpg);
 	}
@@ -3067,7 +3155,7 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 	//{
 	if (doomCanvas->renderOnly && (doomCanvas->state == ST_PLAYING)) {
 		if (doomCanvas->lastFrameTime == doomCanvas->time) {
-			DoomRPG_flushGraphics(doomCanvas->doomRpg);
+			//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 		}
 	}
 	else {
@@ -3200,7 +3288,7 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 		DoomCanvas_drawString1(doomCanvas, justAMoment, doomCanvas->SCR_CX, doomCanvas->SCR_CY, 0x11);
 		DoomCanvas_drawSoftKeys(doomCanvas, NULL, NULL);
 
-		DoomRPG_flushGraphics(doomCanvas->doomRpg);
+		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 	else if (stateNum == ST_PARTICLE)
 	{
@@ -3320,6 +3408,8 @@ void DoomCanvas_vibrate(DoomCanvas_t* doomCanvas, int i)
 	}
 
 	// Use game controller
+#ifdef __3DS__
+#else
 	if (sdlController.gGameController) {
 		SDL_GameControllerRumble(sdlController.gGameController, 0, 0, 1); // Stop
 		SDL_GameControllerRumble(sdlController.gGameController, 0xFFFF, 0xFFFF, i);
@@ -3329,8 +3419,9 @@ void DoomCanvas_vibrate(DoomCanvas_t* doomCanvas, int i)
 		SDL_HapticRumbleStop(sdlController.gJoyHaptic);
 		SDL_HapticRumblePlay(sdlController.gJoyHaptic, 1.0, i);
 	}
+#endif
 }
-
+static int already_started = 0;
 void DoomCanvas_startup(DoomCanvas_t* doomCanvas)
 {
 	//Customs
@@ -3353,8 +3444,8 @@ void DoomCanvas_startup(DoomCanvas_t* doomCanvas)
 	doomCanvas->menuSystem = doomRpg->menuSystem;
 	doomCanvas->particleSystem = doomRpg->particleSystem;
 
-	doomCanvas->displayRect.w = 0;
-	doomCanvas->displayRect.h = 0;
+	//doomCanvas->displayRect.w = 0;
+	//doomCanvas->displayRect.h = 0;
 
 	width = doomCanvas->clipRect.w;
 
@@ -3389,6 +3480,8 @@ void DoomCanvas_startup(DoomCanvas_t* doomCanvas)
 
 	height = (displayH - (doomRpg->hud->statusBarHeight) - (doomRpg->hud->statusTopBarHeight));
 
+#ifdef __3DS__
+#else
 	if (sdlVideo.displaySoftKeys) { // <- New line Code
 		if (clipH >= 148) {
 			deltaH = clipH - displayH;
@@ -3398,6 +3491,7 @@ void DoomCanvas_startup(DoomCanvas_t* doomCanvas)
 			doomCanvas->displaySoftKeys = true;
 		}
 	}
+#endif
 
 	if (height & 1) {
 		--height;
@@ -3555,8 +3649,8 @@ void DoomCanvas_updateLoadingBar(DoomCanvas_t* doomCanvas)
 
 		//int i = doomCanvas->SCR_CX - 17;
 		//int i2 = doomCanvas->SCR_CY - 4;
-		x = (sdlVideo.rendererW / 2) - 17;
-		y = (sdlVideo.rendererH / 2) - 4;
+		x = (sdlVideo.screenW / 2) - 17;
+		y = (sdlVideo.screenH / 2) - 4;
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
 		DoomRPG_clearGraphics(doomCanvas->doomRpg);
@@ -3573,7 +3667,6 @@ void DoomCanvas_updateLoadingBar(DoomCanvas_t* doomCanvas)
 			x += 7;
 		}
 		doomCanvas->fillRectIndex = (doomCanvas->fillRectIndex + 1) % 5;
-		DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 }
 

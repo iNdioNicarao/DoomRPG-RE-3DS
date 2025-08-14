@@ -1,7 +1,14 @@
 
 //Using SDL and standard IO
+#ifdef __3DS__
+#include <3ds.h>
+#include <SDL/SDL.h>
+#include <SDL/SDL_video.h>
+#else
 #include <SDL.h>
+#endif
 #include <stdio.h>
+
 
 #include "Z_Zone.h"
 #include "DoomRPG.h"
@@ -25,67 +32,124 @@ DoomRPG_t* doomRpg = NULL;
 keyMapping_t keyMapping[12];
 keyMapping_t keyMappingTemp[12];
 keyMapping_t keyMappingDefault[12] = {
-	{AVK_UP | AVK_MENU_UP,				{SDL_SCANCODE_UP,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Move forward
-	{AVK_DOWN | AVK_MENU_DOWN,			{SDL_SCANCODE_DOWN,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Move backward
-	{AVK_LEFT | AVK_MENU_PAGE_UP,		{SDL_SCANCODE_LEFT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Turn left/page up
-	{AVK_RIGHT | AVK_MENU_PAGE_DOWN,	{SDL_SCANCODE_RIGHT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Turn right/page down
-	{AVK_MOVELEFT,						{SDL_SCANCODE_A,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Move left
-	{AVK_MOVERIGHT,						{SDL_SCANCODE_D,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Move right
-	{AVK_NEXTWEAPON,					{SDL_SCANCODE_Z,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Next weapon
-	{AVK_PREVWEAPON,					{SDL_SCANCODE_X,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Prev weapon
-	{AVK_SELECT | AVK_MENU_SELECT,		{SDL_SCANCODE_RETURN,-1,-1,-1,-1,-1,-1,-1,-1,-1}},// Attack/Talk/Use
-	{AVK_PASSTURN,						{SDL_SCANCODE_C,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Pass Turn
-	{AVK_AUTOMAP,						{SDL_SCANCODE_TAB,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Automap
-	{AVK_MENUOPEN | AVK_MENU_OPEN,		{SDL_SCANCODE_ESCAPE,-1,-1,-1,-1,-1,-1,-1,-1,-1}}	// Open menu/back
+	{AVK_UP | AVK_MENU_UP,				{KEY_DUP,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Move forward
+	{AVK_DOWN | AVK_MENU_DOWN,			{KEY_DDOWN,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Move backward
+	{AVK_LEFT | AVK_MENU_PAGE_UP,		{KEY_DLEFT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Turn left/page up
+	{AVK_RIGHT | AVK_MENU_PAGE_DOWN,	{KEY_DRIGHT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Turn right/page down
+	{AVK_MOVELEFT,						{KEY_LEFT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Move left
+	{AVK_MOVERIGHT,					{KEY_RIGHT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Move right
+	{AVK_NEXTWEAPON,					{KEY_R,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Next weapon
+	{AVK_PREVWEAPON,					{KEY_L,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Prev weapon
+	{AVK_SELECT | AVK_MENU_SELECT,		{KEY_A,-1,-1,-1,-1,-1,-1,-1,-1,-1}},// Attack/Talk/Use
+	{AVK_PASSTURN,						{KEY_B,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Pass Turn
+	{AVK_AUTOMAP,						{KEY_SELECT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Automap
+	{AVK_MENUOPEN | AVK_MENU_OPEN,		{KEY_START,-1,-1,-1,-1,-1,-1,-1,-1,-1}}	// Open menu/back
 };
 
 #include <stdarg.h> //va_list|va_start|va_end
 
-void DoomRPG_Error(const char* fmt, ...) // 0x1C648
+// Необходимо подключить заголовочные файлы для работы с графикой и вводом на 3DS
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <stdlib.h>
+#include <time.h> // Для добавления времени в лог
+
+#ifdef __3DS__
+#include <3ds.h>
+#endif
+
+void DoomRPG_Error(const char* fmt, ...)
 {
 	char errMsg[256];
 	va_list ap;
+
+	// 1. Формируем сообщение об ошибке
 	va_start(ap, fmt);
 	vsnprintf(errMsg, sizeof(errMsg), fmt, ap);
 	va_end(ap);
 
-	printf("%s", errMsg);
+	// 2. Выводим в стандартный поток (полезно для gdb)
+	printf("FATAL ERROR: %s\n", errMsg);
 
+#ifdef __3DS__
+	// 3. Срём в лог-файл на SD-карте
+	FILE* logFile = fopen("/doomrpg_error.log", "a"); // "a" - дописывать в конец файла
+	if (logFile)
+	{
+		time_t now = time(NULL);
+		char timeStr[64];
+		strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", localtime(&now));
+		fprintf(logFile, "[%s] FATAL ERROR: %s\n", timeStr, errMsg);
+		fclose(logFile);
+	}
+
+	// 4. Отображаем ошибку на экране
+	// Инициализируем графику только для экрана ошибки.
+	// В идеале gfxInitDefault() должен быть в main(), но это "защита от дурака",
+	// если вдруг графика не была включена.
+	gfxInitDefault();
+	consoleInit(GFX_TOP, NULL);
+
+	consoleClear(); // <<<<<<< ВОТ ЭТО ВАЖНО! Очищаем экран от мусора.
+
+	// Рисуем красивую красную рамку (чисто для стиля)
+	printf("\x1b[31;1m"); // Включить ярко-красный цвет
+	printf("\x1b[1;1H**************************************************");
+	for (int i = 2; i < 29; i++) {
+		printf("\x1b[%d;1H*", i);
+		printf("\x1b[%d;50H*", i);
+	}
+	printf("\x1b[29;1H**************************************************");
+	printf("\x1b[0m"); // Сброс цвета
+
+	// Выводим саму ошибку
+	printf("\x1b[3;15H--== DoomRPG Error ==--");
+	printf("\x1b[6;3H%s", errMsg); // Вывод отформатированного сообщения
+	printf("\x1b[27;10HPress START button to exit");
+
+	// Простой цикл ожидания, чтобы не засирать главный цикл приложения
+	while (true)
+	{
+		hidScanInput();
+		if (hidKeysDown() & KEY_START)
+		{
+			break; // Выход по кнопке START
+		}
+
+		// Обновление экрана
+		gfxFlushBuffers();
+		gfxSwapBuffers();
+		gspWaitForVBlank();
+	}
+
+	// Выход из графического режима ошибки
+	gfxExit();
+
+#else
+	// Код для ПК (SDL) остается без изменений
 	const SDL_MessageBoxButtonData buttons[] = {
-		{ /* .flags, .buttonid, .text */        0, 0, "Ok" },
+		{ 0, 0, "Ok" },
 	};
 	const SDL_MessageBoxColorScheme colorScheme = {
 		{ /* .colors (.r, .g, .b) */
-			/* [SDL_MESSAGEBOX_COLOR_BACKGROUND] */
-			{ 255,   0,   0 },
-			/* [SDL_MESSAGEBOX_COLOR_TEXT] */
-			{   0, 255,   0 },
-			/* [SDL_MESSAGEBOX_COLOR_BUTTON_BORDER] */
-			{ 255, 255,   0 },
-			/* [SDL_MESSAGEBOX_COLOR_BUTTON_BACKGROUND] */
-			{   0,   0, 255 },
-			/* [SDL_MESSAGEBOX_COLOR_BUTTON_SELECTED] */
-			{ 255,   0, 255 }
+			{ 255, 0, 0 }, { 0, 255, 0 }, { 255, 255, 0 },
+			{ 0, 0, 255 }, { 255, 0, 255 }
 		}
 	};
 	const SDL_MessageBoxData messageboxdata = {
-		SDL_MESSAGEBOX_ERROR, /* .flags */
-		NULL, /* .window */
-		"DoomRPG Error", /* .title */
-		errMsg, /* .message */
-		SDL_arraysize(buttons), /* .numbuttons */
-		buttons, /* .buttons */
-		&colorScheme /* .colorScheme */
+		SDL_MESSAGEBOX_ERROR, NULL, "DoomRPG Error", errMsg,
+		SDL_arraysize(buttons), buttons, &colorScheme
 	};
-	
 	SDL_ShowMessageBox(&messageboxdata, NULL);
-	closeZipFile(&zipFile);
-	DoomRPG_FreeAppData(doomRpg);
-	SDL_CloseAudio();
-	SDL_Close();
-	exit(0);
+#endif
 
-	//while (1) {} // draw and display forever
+	// 5. Освобождаем ресурсы и выходим
+	// Этот код теперь выполнится после нажатия START на 3DS
+	// closeZipFile(&zipFile); // Убедись что zipFile это глобальная переменная или передается
+	// DoomRPG_FreeAppData(doomRpg); // То же самое для doomRpg
+	// SDL_CloseAudio();
+	// SDL_Close();
 }
 
 //
@@ -149,7 +213,6 @@ unsigned int DoomRPG_GetTimeMS(void)
 	return ticks;
 }
 
-
 //
 // Get time in milliseconds
 //
@@ -168,6 +231,35 @@ int DoomRPG_freeMemory(void) { // 0x1EBFC
 }
 
 // New Function
+#ifdef __3DS__
+int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
+
+    int key = AVK_UNDEFINED;
+    int i, j;
+
+    int buttonID = hidKeysDown();
+
+    if (buttonID != -1)
+    {
+        int bindCode = buttonID;
+
+        for (i = 0; i < (sizeof(keyMapping) / sizeof(keyMapping_t)); ++i) {
+            for (j = 0; j < KEYBINDS_MAX; j++) {
+                if ((keyMapping[i].keyBinds[j]))
+                {
+                    if (keyMapping[i].keyBinds[j] == bindCode) {
+                        key = keyMapping[i].avk_action;
+                        goto found_key; // Нашли бинд, переходим к концу
+                    }
+                }
+            }
+        }
+    }
+
+found_key:
+    return key;
+}
+#else
 int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
 
 	int i, j, key, num, buttomID;
@@ -176,6 +268,8 @@ int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
 
 	// KeyBoard
 	{
+#ifdef __3DS__
+#else
 		for (i = SDL_SCANCODE_1; i <= SDL_SCANCODE_0; ++i) {
 			if (state[i]) {
 				num = ((i - SDL_SCANCODE_0) + 10) % 10;
@@ -241,6 +335,7 @@ int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
 		if (state[SDL_SCANCODE_RIGHT]) {
 			key |= AVK_MENU_PAGE_DOWN;
 		}
+#endif
 
 		if (key) {
 			return key;
@@ -303,12 +398,15 @@ int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
 
 	// GameController/Joystick
 	{
+#ifdef __3DS__
+#else
 		if (sdlController.gGameController) {
 			buttomID = SDL_GameControllerGetButtonID();
 		}
 		else {
 			buttomID = SDL_JoystickGetButtonID();
 		}
+#endif
 
 		if (buttomID != -1) {
 			for (i = 0; i < (sizeof(keyMapping) / sizeof(keyMapping_t)); ++i) {
@@ -367,7 +465,7 @@ int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
 
 	return key;
 }
-
+#endif
 // New Function
 void DoomRPG_setDefaultBinds(DoomRPG_t* doomrpg)
 {
@@ -400,7 +498,7 @@ static void setBind(int* keyBinds, int keycode)
 {
 	int i;
 
-	// Examina si existe anteriormente, si es as�, se desvincular� de la lista
+	// Examina si existe anteriormente, si es as�, se desvincular� de la lista
 	// Examines whether it exists previously, if so, it will be unbind from the list
 	for (i = 0; i < KEYBINDS_MAX; i++) {
 		if (keyBinds[i] == keycode) {
@@ -425,6 +523,25 @@ void DoomRPG_setBind(DoomRPG_t* doomrpg, int mouse_Button, const Uint8* state) {
 
 	// KeyBoard
 	{
+#ifdef __3DS__
+		int buttonID = SDL_JoystickGetButtonID();
+		if (buttonID != -1)
+		{
+			// Кнопка найдена! Привязываем ее к действию.
+			int keyMapId = doomrpg->menuSystem->items[doomrpg->menuSystem->selectedIndex].action;
+
+			// ВАЖНО: Мы добавляем смещение, чтобы игра могла отличить
+			// кнопку геймпада от клавиши клавиатуры. 512 - безопасное число,
+			// так как кодов клавиш меньше.
+			const int CONTROLLER_BIND_OFFSET = 512;
+			setBind(keyMappingTemp[keyMapId].keyBinds, buttonID + CONTROLLER_BIND_OFFSET);
+
+			// Сбрасываем флаги и выходим
+			doomrpg->menuSystem->setBind = false;
+			doomrpg->menuSystem->paintMenu = true;
+			return;
+		}
+#else
 		for (i = 0; i < SDL_NUM_SCANCODES; ++i) {
 			if (state[i]) {
 				keyMapId = doomrpg->menuSystem->items[doomrpg->menuSystem->selectedIndex].action;
@@ -434,6 +551,7 @@ void DoomRPG_setBind(DoomRPG_t* doomrpg, int mouse_Button, const Uint8* state) {
 				return;
 			}
 		}
+#endif
 	}
 
 	// Mouse
@@ -448,6 +566,12 @@ void DoomRPG_setBind(DoomRPG_t* doomrpg, int mouse_Button, const Uint8* state) {
 	// GameController/Joystick
 	{
 		for (i = 0; i < SDL_NumJoysticks(); ++i) {
+#ifdef __3DS__
+			buttomID = SDL_JoystickGetButtonID();
+			if (buttomID != -1) {
+				break; // Если нашли нажатие, выходим из цикла (хотя на 3DS итерация всего одна)
+			}
+#else
 			if (SDL_IsGameController(i))
 			{
 				buttomID = SDL_GameControllerGetButtonID();
@@ -462,6 +586,7 @@ void DoomRPG_setBind(DoomRPG_t* doomrpg, int mouse_Button, const Uint8* state) {
 					break;
 				}
 			}
+#endif
 		}
 
 		if (buttomID != -1) {
@@ -472,7 +597,6 @@ void DoomRPG_setBind(DoomRPG_t* doomrpg, int mouse_Button, const Uint8* state) {
 		}
 	}
 }
-
 int DoomRPG_Init(void) // 0x3141C
 {
 	int mem;
@@ -606,6 +730,76 @@ int DoomRPG_Init(void) // 0x3141C
 
 	return 0;
 }
+boolean DoomRPG_ReinitCanvasAndRenderer(DoomRPG_t* doomRpg)
+{
+    printf("DoomRPG_ReinitCanvasAndRenderer\n");
+    if (!doomRpg) {
+        printf("FATAL: Попытка переинициализации с NULL doomRpg!\n");
+        return false;
+    }
+
+    // --- ШАГ 1: УНИЧТОЖАЕМ СТАРЫЕ ГРАФИЧЕСКИЕ СИСТЕМЫ ---
+    // Важно делать это, чтобы не было утечек памяти.
+
+    // HUD зависит от размеров Canvas, уничтожаем его первым.
+    if (doomRpg->hud) {
+        //Hud_free(doomRpg->hud, true);
+        doomRpg->hud = NULL;
+    }
+    // Render рисует на Canvas, уничтожаем его вторым.
+    if (doomRpg->render) {
+        //Render_free(doomRpg->render, true);
+        doomRpg->render = NULL;
+    }
+    // Canvas - основа всего, уничтожаем его последним из графических систем.
+    if (doomRpg->doomCanvas) {
+        //DoomCanvas_free(doomRpg->doomCanvas, true);
+        doomRpg->doomCanvas = NULL;
+    }
+
+    // --- ШАГ 2: СОЗДАЕМ И НАСТРАИВАЕМ НОВЫЕ СИСТЕМЫ ---
+    // Мы не трогаем Player, Game, Sound и т.д. Они сохраняют свое состояние.
+
+    doomRpg->doomCanvas = DoomCanvas_init(NULL, doomRpg);
+    if (!doomRpg->doomCanvas) {
+        printf("ОШИБКА: Не удалось пересоздать DoomCanvas!\n");
+        return false;
+    }
+
+    doomRpg->render = Render_init(NULL, doomRpg);
+    if (!doomRpg->render) {
+        printf("ОШИБКА: Не удалось пересоздать Render!\n");
+        return false;
+    }
+
+    doomRpg->hud = Hud_init(NULL, doomRpg);
+    if (!doomRpg->hud) {
+        printf("ОШИБКА: Не удалось пересоздать HUD!\n");
+        return false;
+    }
+
+    // --- ШАГ 3: ЗАПУСКАЕМ STARTUP ДЛЯ НОВЫХ СИСТЕМ ---
+    // Это настроит их с новыми параметрами (например, новым размером экрана).
+    DoomCanvas_startup(doomRpg->doomCanvas);
+
+    if (!Render_startup(doomRpg->render)) {
+        printf("ОШИБКА: Не удалось запустить Render startup!\n");
+        return false;
+    }
+	if (!Combat_init(doomRpg->combat, doomRpg)) {
+		printf("ОШИБКА: Не удалось запустить Render startup!\n");
+		return false;
+	}
+	if (!EntityDef_init(doomRpg->entityDef, doomRpg)) {
+		printf("ОШИБКА: Не удалось запустить Render startup!\n");
+		return false;
+	}
+
+    // Hud_startup вызывается внутри DoomCanvas_startup, так что отдельный вызов не нужен.
+
+    printf("Переинициализация графических систем успешно завершена.\n");
+    return true;
+}
 
 void DoomRPG_FreeAppData(DoomRPG_t* doomrpg)
 {
@@ -675,95 +869,69 @@ void DoomRPG_FreeAppData(DoomRPG_t* doomrpg)
 
 void DoomRPG_createImage(DoomRPG_t* doomrpg, const char* resourceName, boolean isTransparentMask, Image_t* img)
 {
-	SDL_RWops* rw;
-	SDL_Texture* newTexture = NULL;
-	SDL_Surface* loadedSurface = NULL;
+	SDL_RWops* rw = NULL;
+	SDL_Surface* tempSurface = NULL;      // Временная поверхность для загрузки
+	//SDL_Surface* optimizedSurface = NULL; // Финальная, оптимизированная поверхность
 	char fileName[64];
 	int mem;
-	int r, g, b;
-
-	//sprintf_s(fileName, 64, "BarData/%s", resourceName);
 
 	mem = DoomRPG_freeMemory();
-
-	// Load image file
-	//loadedSurface = SDL_LoadBMP(fileName);
-
 	snprintf(fileName, sizeof(fileName), "%s", resourceName);
 
 	byte* fdata;
 	int fSize;
 	fdata = readZipFileEntry(fileName, &zipFile, &fSize);
+	if (!fdata) {
+		DoomRPG_Error("Failed to read file %s from zip.", fileName);
+		return;
+	}
 
 	rw = SDL_RWFromMem(fdata, fSize);
 	if (!rw) {
 		DoomRPG_Error("Error with SDL_RWFromMem: %s\n", SDL_GetError());
+		SDL_free(fdata);
+		return;
 	}
 
-	loadedSurface = SDL_LoadBMP_RW(rw, SDL_TRUE);
-
-	if (loadedSurface == NULL) {
+	// 1. Загружаем BMP из памяти во временную поверхность
+	tempSurface = SDL_LoadBMP_RW(rw, SDL_TRUE); // SDL_TRUE автоматически закроет rw
+	if (!tempSurface) {
 		DoomRPG_Error("Unable to load image %s! SDL Error: %s\n", fileName, SDL_GetError());
+		SDL_free(fdata);
+		return;
+	}
+
+	// 4. Если нужно, устанавливаем прозрачность НА ОПТИМИЗИРОВАННОЙ ПОВЕРХНОСТИ.
+	if (isTransparentMask) {
+		Uint32 colorKey = SDL_MapRGB(tempSurface->format, 255, 0, 255);
+
+		SDL_SetColorKey(tempSurface, SDL_SRCCOLORKEY, colorKey);
 	}
 
 	img->isTransparentMask = isTransparentMask;
-	if (isTransparentMask) {
-		//Color key image
-		Uint32 colorKey = SDL_MapRGB(loadedSurface->format, 255, 0, 255);
-		SDL_SetColorKey(loadedSurface, SDL_TRUE, colorKey);
-	}
-
-	SDL_PixelFormat* fmt = loadedSurface->format;
-
-	// Convierte a RGB565 y de nuevo a RGB888
-	for (int i = 0; i < fmt->palette->ncolors; i++) {
-
-		int color = ((fmt->palette->colors[i].r >> 3) << 11) | ((fmt->palette->colors[i].g >> 2) << 5) | (fmt->palette->colors[i].b >> 3);
-
-		r = (color >> 11) & 0x1f;
-		g = (color >> 5) & 0x3f;
-		b = (color & 0x1f);
-
-		fmt->palette->colors[i].r = (r << 3) | (r >> 2);
-		fmt->palette->colors[i].g = (g << 2) | (g >> 4);
-		fmt->palette->colors[i].b = (b << 3) | (b >> 2);
-	}
-
-	//Create texture from surface pixels
-	newTexture = SDL_CreateTextureFromSurface(sdlVideo.renderer, loadedSurface);
-	if (newTexture == NULL) {
-		DoomRPG_Error("Unable to create texture from %s! SDL Error: %s\n", fileName, SDL_GetError());
-	}
-
-	// Get image dimensions
-	img->width = loadedSurface->w;
-	img->height = loadedSurface->h;
-	img->imgBitmap = newTexture;
-
-	//Get rid of old loaded surface
-	SDL_FreeSurface(loadedSurface);
+	img->width = tempSurface->w;
+	img->height = tempSurface->h;
+	img->imgBitmap = tempSurface; // `imgBitmap` теперь хранит идеальную, готовую к бою поверхность
 
 	SDL_free(fdata);
-
-	doomrpg->imageMemory += (DoomRPG_freeMemory() - mem);
 }
+
 
 
 void DoomRPG_createImageBerserkColor(DoomRPG_t* doomrpg, const char* resourceName, boolean isTransparentMask, Image_t* img)
 {
-	SDL_RWops* rw;
+	SDL_RWops* rw = NULL;
+#ifdef __3DS__
+	SDL_Surface* loadedSurface = NULL;
+#else
 	SDL_Texture* newTexture = NULL;
 	SDL_Surface* loadedSurface = NULL;
+#endif
 	char fileName[64];
 	int mem;
 	int r, g, b;
 
-	//sprintf_s(fileName, 64, "BarData/%s", resourceName);
-
 	mem = DoomRPG_freeMemory();
-
-	// Load image file
-	//loadedSurface = SDL_LoadBMP(fileName);
 
 	snprintf(fileName, sizeof(fileName), "%s", resourceName);
 
@@ -776,75 +944,111 @@ void DoomRPG_createImageBerserkColor(DoomRPG_t* doomrpg, const char* resourceNam
 		DoomRPG_Error("Error with SDL_RWFromMem: %s\n", SDL_GetError());
 	}
 
+#ifdef __3DS__
 	loadedSurface = SDL_LoadBMP_RW(rw, SDL_TRUE);
-
-	if (loadedSurface == NULL) {
+	if (!loadedSurface) {
 		DoomRPG_Error("Unable to load image %s! SDL Error: %s\n", fileName, SDL_GetError());
 	}
 
-	img->isTransparentMask = isTransparentMask;
 	if (isTransparentMask) {
-		//Color key image
+		Uint32 colorKey = SDL_MapRGB(loadedSurface->format, 255, 0, 255);
+		SDL_SetColorKey(loadedSurface, SDL_SRCCOLORKEY | SDL_RLEACCEL, colorKey);
+	}
+
+	SDL_PixelFormat* fmt = loadedSurface->format;
+	if (fmt && fmt->palette) {
+		for (int i = 0; i < fmt->palette->ncolors; i++) {
+			int color = ((fmt->palette->colors[i].r >> 3) << 11) | ((fmt->palette->colors[i].g >> 2) << 5) | (fmt->palette->colors[i].b >> 3);
+
+			r = ((color >> 11) & 0x1f) + 8;
+			if (r > 31) r = 31;
+
+			color = ((color & 0xfffff7df) >> 1) & 0x7ff | (r << 11);
+
+			r = (color >> 11) & 0x1f;
+			g = (color >> 5) & 0x3f;
+			b = (color & 0x1f);
+
+			fmt->palette->colors[i].r = (r << 3) | (r >> 2);
+			fmt->palette->colors[i].g = (g << 2) | (g >> 4);
+			fmt->palette->colors[i].b = (b << 3) | (b >> 2);
+		}
+	}
+
+	img->isTransparentMask = isTransparentMask;
+	img->width = loadedSurface->w;
+	img->height = loadedSurface->h;
+	img->imgBitmap = loadedSurface;
+
+#else
+	loadedSurface = SDL_LoadBMP_RW(rw, SDL_TRUE);
+	if (!loadedSurface) {
+		DoomRPG_Error("Unable to load image %s! SDL Error: %s\n", fileName, SDL_GetError());
+	}
+
+	if (isTransparentMask) {
 		Uint32 colorKey = SDL_MapRGB(loadedSurface->format, 255, 0, 255);
 		SDL_SetColorKey(loadedSurface, SDL_TRUE, colorKey);
 	}
 
 	SDL_PixelFormat* fmt = loadedSurface->format;
+	if (fmt && fmt->palette) {
+		for (int i = 0; i < fmt->palette->ncolors; i++) {
+			int color = ((fmt->palette->colors[i].r >> 3) << 11) | ((fmt->palette->colors[i].g >> 2) << 5) | (fmt->palette->colors[i].b >> 3);
 
-	// Convierte a RGB565 y de nuevo a RGB888
-	for (int i = 0; i < fmt->palette->ncolors; i++) {
+			r = ((color >> 11) & 0x1f) + 8;
+			if (r > 31) r = 31;
 
-		int color = ((fmt->palette->colors[i].r >> 3) << 11) | ((fmt->palette->colors[i].g >> 2) << 5) | (fmt->palette->colors[i].b >> 3);
+			color = ((color & 0xfffff7df) >> 1) & 0x7ff | (r << 11);
 
-		// Apply Berserk Color
-		r = ((color >> 11) & 0x1f) + 8;
-		if (r > 31) {
-			r = 31;
+			r = (color >> 11) & 0x1f;
+			g = (color >> 5) & 0x3f;
+			b = (color & 0x1f);
+
+			fmt->palette->colors[i].r = (r << 3) | (r >> 2);
+			fmt->palette->colors[i].g = (g << 2) | (g >> 4);
+			fmt->palette->colors[i].b = (b << 3) | (b >> 2);
 		}
-
-		color = ((color & 0xfffff7df) >> 1) & 0x7ff | (r << 11);
-
-		r = (color >> 11) & 0x1f;
-		g = (color >> 5) & 0x3f;
-		b = (color & 0x1f);
-
-		fmt->palette->colors[i].r = (r << 3) | (r >> 2);
-		fmt->palette->colors[i].g = (g << 2) | (g >> 4);
-		fmt->palette->colors[i].b = (b << 3) | (b >> 2);
 	}
 
-	//Create texture from surface pixels
 	newTexture = SDL_CreateTextureFromSurface(sdlVideo.renderer, loadedSurface);
-	if (newTexture == NULL) {
+	if (!newTexture) {
 		DoomRPG_Error("Unable to create texture from %s! SDL Error: %s\n", fileName, SDL_GetError());
 	}
 
-	// Get image dimensions
+	img->isTransparentMask = isTransparentMask;
 	img->width = loadedSurface->w;
 	img->height = loadedSurface->h;
 	img->imgBitmap = newTexture;
 
-	//Get rid of old loaded surface
 	SDL_FreeSurface(loadedSurface);
+#endif
 
 	SDL_free(fdata);
-
 	doomrpg->imageMemory += (DoomRPG_freeMemory() - mem);
 }
 
 void DoomRPG_freeImage(DoomRPG_t* doomrpg, Image_t* image)
 {
 	int mem = DoomRPG_freeMemory();
+#ifdef __3DS__
 	if (image->imgBitmap) {
-		SDL_DestroyTexture(image->imgBitmap);
+		SDL_FreeSurface((SDL_Surface*)image->imgBitmap);
 		image->imgBitmap = NULL;
 	}
+#else
+	if (image->imgBitmap) {
+		SDL_DestroyTexture((SDL_Texture*)image->imgBitmap);
+		image->imgBitmap = NULL;
+	}
+#endif
 	doomrpg->imageMemory -= (mem - DoomRPG_freeMemory());
 }
 
+
 byte *DoomRPG_fileOpenRead(DoomRPG_t* doomrpg, const char* resourceName)
 {
-	//SDL_RWops* rw;
+	SDL_RWops* rw;
 	byte *fdata;
 	int fSize;
 	char fileName[64];
@@ -926,92 +1130,89 @@ short DoomRPG_shiftCoordAt(byte* data, int* posData)
 	*posData = pos;
 	return DoomRPG_byteAt(data, pos - 1) << 3;
 }
-
 void DoomRPG_setClipFalse(DoomRPG_t* doomrpg)
 {
-	SDL_RenderSetClipRect(sdlVideo.renderer, NULL);
-	doomrpg->graphSetCliping = false;
+    SDL_RenderSetClipRect(sdlVideo.screenSurface, NULL);
+    doomrpg->graphSetCliping = false;
 }
 
 void DoomRPG_setClipTrue(DoomRPG_t* doomrpg, int x, int y, int w, int h)
 {
-	SDL_Rect clip;
+    SDL_Rect clip;
 
-	clip.x = doomrpg->doomCanvas->displayRect.x + x;
-	clip.y = doomrpg->doomCanvas->displayRect.y + y;
-	clip.w = w;
-	clip.h = h;
+    clip.x = doomrpg->doomCanvas->displayRect.x + x;
+    clip.y = doomrpg->doomCanvas->displayRect.y + y;
+    clip.w = w;
+    clip.h = h;
 
-	SDL_RenderSetClipRect(sdlVideo.renderer, &clip);
-	doomrpg->graphSetCliping = true;
+    SDL_RenderSetClipRect(sdlVideo.screenSurface, &clip);
+    doomrpg->graphSetCliping = true;
 }
 
 void DoomRPG_setColor(DoomRPG_t* doomrpg, int color)
 {
-	byte a, r, g, b;
+    byte a = (color & 0xFF000000) >> 24;
+    byte r = (color & 0x00FF0000) >> 16;
+    byte g = (color & 0x0000FF00) >> 8;
+    byte b = (color & 0x000000FF);
 
-	a = (color & 0xFF000000) >> 24;
-	r = (color & 0x00FF0000) >> 16;
-	g = (color & 0x0000FF00) >> 8;
-	b = (color & 0x000000FF);
-
-	SDL_SetRenderDrawColor(sdlVideo.renderer, r, g, b, a);
+    SDL_SetRenderDrawColor(sdlVideo.screenSurface, r, g, b, a);
 }
 
-void DoomRPG_flushGraphics(DoomRPG_t* doomrpg)
+void DoomRPG_flushGraphics(...)
 {
-	SDL_RenderPresent(sdlVideo.renderer);
+    SDL_RenderPresent(sdlVideo.screenSurface);
 }
 
 void DoomRPG_clearGraphics(DoomRPG_t* doomrpg)
 {
-	SDL_RenderClear(sdlVideo.renderer);
+    SDL_RenderClear(sdlVideo.screenSurface);
 }
 
 void DoomRPG_drawRect(DoomRPG_t* doomrpg, int x, int y, int w, int h)
 {
-	SDL_Rect rect;
+    SDL_Rect rect;
 
-	rect.x = doomrpg->doomCanvas->displayRect.x + x;
-	rect.y = doomrpg->doomCanvas->displayRect.y + y;
-	rect.w = w + 1;
-	rect.h = h + 1;
-	SDL_RenderDrawRect(sdlVideo.renderer, &rect);
+    rect.x = doomrpg->doomCanvas->displayRect.x + x;
+    rect.y = doomrpg->doomCanvas->displayRect.y + y;
+    rect.w = w + 1;
+    rect.h = h + 1;
+    SDL_RenderDrawRect(sdlVideo.screenSurface, &rect);
 }
 
 void DoomRPG_fillRect(DoomRPG_t* doomrpg, int x, int y, int w, int h)
 {
-	SDL_Rect rect;
+    SDL_Rect rect;
 
-	rect.x = doomrpg->doomCanvas->displayRect.x + x;
-	rect.y = doomrpg->doomCanvas->displayRect.y + y;
-	rect.w = w;
-	rect.h = h;
-	SDL_RenderFillRect(sdlVideo.renderer, &rect);
+    rect.x = doomrpg->doomCanvas->displayRect.x + x;
+    rect.y = doomrpg->doomCanvas->displayRect.y + y;
+    rect.w = w;
+    rect.h = h;
+    SDL_RenderFillRect(sdlVideo.screenSurface, &rect);
 }
 
 void DoomRPG_drawCircle(DoomRPG_t* doomrpg, int x, int y, int r)
 {
-	int cx = doomrpg->doomCanvas->displayRect.x + x;
-	int cy = doomrpg->doomCanvas->displayRect.y + y;
-	SDL_RenderDrawCircle(sdlVideo.renderer, cx, cy, r);
+    int cx = doomrpg->doomCanvas->displayRect.x + x;
+    int cy = doomrpg->doomCanvas->displayRect.y + y;
+    SDL_RenderDrawCircle(sdlVideo.screenSurface, cx, cy, r);
 }
 
 void DoomRPG_fillCircle(DoomRPG_t* doomrpg, int x, int y, int r)
 {
-	int cx = doomrpg->doomCanvas->displayRect.x + x;
-	int cy = doomrpg->doomCanvas->displayRect.y + y;
-	SDL_RenderDrawFillCircle(sdlVideo.renderer, cx, cy, r);
+    int cx = doomrpg->doomCanvas->displayRect.x + x;
+    int cy = doomrpg->doomCanvas->displayRect.y + y;
+    SDL_RenderDrawFillCircle(sdlVideo.screenSurface, cx, cy, r);
 }
 
 void DoomRPG_drawLine(DoomRPG_t* doomrpg, int x1, int y1, int x2, int y2)
 {
-	int sx = doomrpg->doomCanvas->displayRect.x + x1;
-	int sy = doomrpg->doomCanvas->displayRect.y + y1;
-	int ex = doomrpg->doomCanvas->displayRect.x + x2;
-	int ey = doomrpg->doomCanvas->displayRect.y + y2;
+    int sx = doomrpg->doomCanvas->displayRect.x + x1;
+    int sy = doomrpg->doomCanvas->displayRect.y + y1;
+    int ex = doomrpg->doomCanvas->displayRect.x + x2;
+    int ey = doomrpg->doomCanvas->displayRect.y + y2;
 
-	SDL_RenderDrawLine(sdlVideo.renderer, sx, sy, ex, ey);
+    SDL_RenderDrawLine(sdlVideo.screenSurface, sx, sy, ex, ey);
 }
 
 void DoomRPG_setFontColor(DoomRPG_t* doomrpg, int color)

@@ -1,5 +1,10 @@
-
+#ifdef __3DS__
+#include <3ds/types.h>
+#include <3ds/services/gspgpu.h>
+#include <SDL/SDL.h>
+#else
 #include <SDL.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -161,12 +166,13 @@ void Render_free(Render_t* render, boolean freePtr)
 
 	SDL_free(render->framebuffer);
 	render->framebuffer = NULL;
-
+#ifdef __3DS__
+#else
 	if (render->piDIB) {
 		SDL_DestroyTexture(render->piDIB);
 		render->piDIB = NULL;
 	}
-
+#endif
 	//resourceAsStream.Free(&render->mapFile, 0);
 	if (freePtr) {
 		SDL_free(render);
@@ -191,12 +197,36 @@ int Render_startup(Render_t* render)
 	render->clipRect.w = render->doomRpg->doomCanvas->displayRect.w;
 	render->clipRect.h = render->doomRpg->doomCanvas->displayRect.h;
 
+#ifdef __3DS__
+	w = sdlVideo.screenW;
+	h = sdlVideo.screenH;
+#else
 	w = sdlVideo.rendererW;
 	h = sdlVideo.rendererH;
+#endif
+#ifdef __3DS__
+	render->piDIB = SDL_CreateRGBSurface(
+	SDL_SWSURFACE | SDL_DOUBLEBUF,
+	w,
+	h,
+	16,
+	0xF800,
+	0x07E0,
+	0x001F,
+	0);
+	if (render->piDIB) {
+		render->pitch = render->piDIB->pitch;
+	} else {
+		// Важно обработать ошибку, если поверхность не создалась
+		fprintf(stderr, "Не удалось создать поверхность: %s\n", SDL_GetError());
+		render->pitch = 0; // или другая обработка
+	}
+#else
 	render->piDIB = SDL_CreateTexture(sdlVideo.renderer,
 		SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, w, h);
 
 	render->pitch = (((w * SDL_BYTESPERPIXEL(SDL_PIXELFORMAT_RGB565)) + 3) & ~3);
+#endif
 	render->framebuffer = SDL_calloc(1, render->pitch * h);
 
 	memset(render->framebuffer, 0xff, render->pitch * h);// test
@@ -1155,10 +1185,10 @@ void Render_relinkSprite(Render_t* render, Sprite_t* sprite)
 
 void Render_addMapTextures(Render_t* render, int textureId)
 {
-	// Nuevo: esto evita desbordamientos de b�fer
+	// Nuevo: esto evita desbordamientos de b�fer
 	// Esto sucede en el archivo level05.bsp, ya que al leer los datos (floorTex) tiene un valor de 153(0x99) 
-	// lo que supera el l�mite de memoria inicializado de mediaTexturesIds que es 152, 
-	// creando as� el desbordamiento, esto tambi�n sucede en dispositivos m�viles BREW
+	// lo que supera el l�mite de memoria inicializado de mediaTexturesIds que es 152, 
+	// creando as� el desbordamiento, esto tambi�n sucede en dispositivos m�viles BREW
 	//
 	// New: this prevents buffer overflows
 	// This happens in the level05.bsp file, since when reading the data (floorTex) it has a value of 153(0x99)
@@ -1190,7 +1220,7 @@ void Render_addMapTexture(Render_t* render, int textureIndex)
 
 void Render_addMapSprites(Render_t* render, int spriteId)
 {
-	// Nuevo: esto evita desbordamientos de b�fer
+	// Nuevo: esto evita desbordamientos de b�fer
 	// New avoid buffer overflows
 	if (spriteId >= render->spriteCnt) {
 		spriteId = (render->spriteCnt - 1);
@@ -2814,7 +2844,7 @@ void Render_draw2DSprite(Render_t* render, int weaponFrame, int flashFrame, int 
 
 
 			// Port:
-			// corregir p�xeles vac�os en la parte inferior del gr�fico
+			// corregir p�xeles vac�os en la parte inferior del gr�fico
 			// fix empty pixels at bottom of graph
 			{
 				//i21 += 1;
@@ -2909,17 +2939,30 @@ void Render_setBerserkColor(Render_t* render) {
 
 	renderQuad.x = render->screenX;
 	renderQuad.y = render->screenY;
+#ifdef __3DS__
+	renderQuad.w = sdlVideo.screenW;
+	renderQuad.h = sdlVideo.screenH;
+#else
 	renderQuad.w = sdlVideo.rendererW;
 	renderQuad.h = sdlVideo.rendererH;
+#endif
 	if (clip.w <= renderQuad.w) {
 		renderQuad.w = clip.w;
 	}
 	if (clip.h <= renderQuad.h) {
 		renderQuad.h = clip.h;
 	}
-
+#ifdef __3DS__
+	memcpy(render->piDIB->pixels,
+	   render->framebuffer,
+	   sdlVideo.screenW * sdlVideo.screenH * 2);
+	//gspWaitForVBlank();
+	SDL_BlitSurface(render->piDIB, &clip, SDL_GetVideoSurface(), &renderQuad);
+	//SDL_Flip(SDL_GetVideoSurface());
+#else
 	SDL_UpdateTexture(render->piDIB, NULL, render->framebuffer, sdlVideo.rendererW * 2);
 	SDL_RenderCopy(sdlVideo.renderer, render->piDIB, &clip, &renderQuad);
+#endif
 }
 
 int Render_findEventIndex(Render_t* render, int i)

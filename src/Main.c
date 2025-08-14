@@ -1,6 +1,12 @@
 //Using SDL and standard IO
+#ifdef __3DS__
+#include <3ds.h>
+#include <SDL/SDL.h>
+#include <SDL/SDL_mixer.h>
+#else
 #include <SDL.h>
 #include <SDL_mixer.h>
+#endif
 #include <stdio.h>
 #include <zlib.h>
 
@@ -12,10 +18,15 @@
 #include "MenuSystem.h"
 #include "SDL_Video.h"
 #include "Z_Zip.h"
-
+#ifdef __3DS__
+#endif
 extern DoomRPG_t* doomRpg;
 int main(int argc, char* args[])
 {
+#ifdef __3DS__
+	gfxInitDefault();
+	hidInit();
+#endif
 	SDL_Event ev;
 	int		UpTime = 0;
 	int		mouseTime = 0;
@@ -24,7 +35,6 @@ int main(int argc, char* args[])
 	Z_Init();
 	SDL_InitVideo();
 	SDL_InitAudio();
-
 	openZipFile("DoomRPG.zip", &zipFile);
 
 	/*int size;
@@ -46,12 +56,16 @@ int main(int argc, char* args[])
 
 	//Hud_addMessage(doomRpg->hud, "Bienvenido a Doom RPG por GEC...");
 
+#ifdef __3DS__
+	const Uint8* state = SDL_GetKeyState(NULL);
+#else
 	const Uint8* state = SDL_GetKeyboardState(NULL);
+#endif
 
 	key = 0;
 	oldKey = -1;
-	
-	
+
+
 	while (doomRpg->closeApplet != true)
 	{
 
@@ -88,6 +102,8 @@ int main(int argc, char* args[])
 					break;
 				}
 
+#ifdef __3DS__
+#else
 				case SDL_MOUSEWHEEL:
 				{
 					if (currentTimeMillis > mouseTime) {
@@ -101,6 +117,7 @@ int main(int argc, char* args[])
 					}
 					break;
 				}
+#endif
 
 				case SDL_MOUSEMOTION:
 				{
@@ -131,7 +148,9 @@ int main(int argc, char* args[])
 					}
 					break;
 				}
-				
+
+#ifdef __3DS__
+#else
 				case SDL_WINDOWEVENT:
 				{
 					if (ev.window.event == SDL_WINDOWEVENT_RESIZED) {
@@ -160,6 +179,7 @@ int main(int argc, char* args[])
 					}
 					break;
 				}
+#endif
 
 				case SDL_QUIT:
 				{
@@ -189,7 +209,24 @@ int main(int argc, char* args[])
 				}
 			}
 		}
-		
+		key = DoomRPG_getEventKey(mouse_Button, state);
+		if (key != oldKey) {
+			//printf("oldKey %d\n", oldKey);
+			//printf("key %d\n", key);
+
+			oldKey = key;
+			if (!doomRpg->menuSystem->setBind) {
+				DoomCanvas_keyPressed(doomRpg->doomCanvas, key);
+			}
+			else {
+				goto setBind;
+			}
+		}
+		else if (key == 0) {
+				if (doomRpg->menuSystem->setBind) {
+					DoomRPG_setBind(doomRpg, mouse_Button, state);
+				}
+		}
 		if (currentTimeMillis > UpTime) {
 			UpTime = currentTimeMillis + 15;
 			DoomRPG_loopGame(doomRpg);
@@ -200,6 +237,10 @@ int main(int argc, char* args[])
 	DoomRPG_FreeAppData(doomRpg);
 	SDL_CloseAudio();
 	SDL_Close();
+#ifdef __3DS__
+	hidExit();
+	gfxExit();
+#endif
 
 	return 0;
 }

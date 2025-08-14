@@ -1,6 +1,11 @@
 
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#include <SDL/SDL_mixer.h>
+#else
 #include <SDL.h>
 #include <SDL_mixer.h>
+#endif
 #include <stdio.h>
 
 #include "DoomRPG.h"
@@ -11,9 +16,9 @@
 #include "SDL_Video.h"
 #include "Z_Zip.h"
 
-#define INIT_ALLSOUNDS	1
+#define INIT_ALLSOUNDS	0
 
-static soundTable[MAX_AUDIOFILES] = {
+static int soundTable[MAX_AUDIOFILES] = {
 	5039, 5040, 5042, 5043, 5044, 5045, 5046, 5047, 5048, 5049, 5050,
 	5051, 5052, 5053, 5054, 5055, 5057, 5058, 5059, 5060, 5061, 5062,
 	5063, 5064, 5065, 5066, 5067, 5068, 5069, 5070, 5071, 5072, 5073,
@@ -25,6 +30,7 @@ static soundTable[MAX_AUDIOFILES] = {
 	5130, 5131, 5133, 5134, 5136, 5137, 5138
 };
 
+#ifndef __3DS__
 Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
 {
 	int i;
@@ -107,7 +113,6 @@ Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
 		}
 	}
 #endif
-
 	return sound;
 }
 
@@ -215,7 +220,6 @@ int Sound_getState(Sound_t* sound, int resourceID)
 }
 
 int Sound_getFreeChanel(Sound_t* sound) {
-
 	int chan = 0;
 	int play = -1;
 	do {
@@ -365,7 +369,7 @@ void Sound_playSound(Sound_t* sound, int resourceID, byte flags, int priority)
 
 					Sound_loadSound(sound, sound->channel, resourceID);
 					Sound_readySound(sound, sound->channel);
-					
+
 					sound->priority = priority;
 					if (flags & SND_FLG_ISMUSIC) {
 						//Mix_PlayMusic(sound->soundChannel[sound->channel].mediaAudioMusic, (flags & SND_FLG_LOOP) ? -1 : 0);
@@ -392,15 +396,14 @@ void Sound_freeSounds(Sound_t* sound)
 	} while (++chan < (MAX_SOUNDCHANNELS + 1));
 }
 
-int Sound_getFromResourceID(resourceID)
+int Sound_getFromResourceID(int resourceID)
 {
 	for (int i = 0; i < MAX_AUDIOFILES; i++) {
 		if (soundTable[i] == resourceID) {
 			return i;
 		}
 	}
-
-	return -1;
+	return 0;
 }
 
 void Sound_updateVolume(Sound_t* sound)
@@ -411,7 +414,6 @@ void Sound_updateVolume(Sound_t* sound)
 			/*if (Mix_PlayingMusic()) {
 				Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
 			}*/
-
 			if (fluid_player_get_status(sound->soundChannel[chan].mediaAudioMusic) == FLUID_PLAYER_PLAYING) {
 				// Allowed range of synth.gain is 0.0 to 10.0
 				fluid_settings_setnum(fluidSynth.settings, "synth.gain", 1.0 * ((sound->volume * MIX_MAX_VOLUME) / 100) / 128.0);
@@ -450,3 +452,424 @@ int Sound_addVolume(Sound_t* sound, int volume)
 	Sound_updateVolume(sound);
 	return sound->volume;
 }
+#else
+	Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
+{
+    int i;
+    SoundChannel_t* chan;
+
+    printf("Sound_init\n");
+
+    if (sound == NULL)
+    {
+        sound = SDL_malloc(sizeof(Sound_t));
+        if (sound == NULL) {
+            return NULL;
+        }
+    }
+    SDL_memset(sound, 0, sizeof(Sound_t));
+
+    sound->soundEnabled = 1; // Предполагаем, что звук включен по умолчанию
+    sound->priority = 3;
+    sound->channel = 0;
+    sound->volume = 100;
+
+    i = 0;
+    do {
+        chan = &sound->soundChannel[i];
+        chan->mediaAudioSound = NULL;
+        chan->mediaAudioMusic = NULL;
+        chan->size = 0;
+        chan->flags = 0;
+    } while (++i < (MAX_SOUNDCHANNELS + 1));
+
+    sound->doomRpg = doomRpg;
+
+    Mix_AllocateChannels(MAX_SOUNDCHANNELS);
+    Mix_Volume(-1, (sound->volume * MIX_MAX_VOLUME) / 100);
+    Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
+
+
+#if INIT_ALLSOUNDS
+    sound->audioFiles = SDL_malloc(sizeof(AudioFile_t) * MAX_AUDIOFILES);
+
+    for (i = 0; i < MAX_AUDIOFILES; i++)
+    {
+        char fileName[128];
+        byte* fdata;
+        int fSize;
+        SDL_RWops* rw;
+    	snprintf(fileName, sizeof(fileName), "%d.wav", soundTable[i]);
+    	fdata = readZipFileEntry(fileName, &zipFile, &fSize);
+    	if(fdata) {
+    		rw = SDL_RWFromMem(fdata, fSize);
+    		if (!rw) {
+    			DoomRPG_Error("Error with SDL_RWFromMem: %s\n", SDL_GetError());
+    		}
+    		sound->audioFiles[i].ptr = Mix_LoadWAV_RW(rw, SDL_TRUE); // SDL_TRUE освобождает rwops
+    		SDL_free(fdata);
+    	}
+    }
+#endif
+    return sound;
+}
+
+void Sound_free(Sound_t* sound, boolean freePtr)
+{
+    // Sound_freeSounds(sound) вызывается извне, если нужно.
+    // Остановим все звуки перед освобождением
+    Mix_HaltChannel(-1);
+    Mix_HaltMusic();
+
+#if INIT_ALLSOUNDS
+    if (sound->audioFiles) {
+        for (int i = 0; i < MAX_AUDIOFILES; i++) {
+            if (sound->audioFiles[i].ptr) {
+            	Mix_FreeChunk((Mix_Chunk*)sound->audioFiles[i].ptr); Mix_FreeChunk((Mix_Chunk*)sound->audioFiles[i].ptr);
+            }
+        }
+        SDL_free(sound->audioFiles);
+        sound->audioFiles = NULL;
+    }
+#endif
+
+    if (freePtr) {
+        SDL_free(sound);
+    }
+}
+
+void Sound_stopSounds(Sound_t* sound)
+{
+    // Просто останавливаем все каналы и музыку
+    Mix_HaltChannel(-1);
+    Mix_HaltMusic();
+
+    // Сбрасываем флаги для всех каналов
+    for (int chan = 0; chan < (MAX_SOUNDCHANNELS + 1); ++chan) {
+        sound->soundChannel[chan].flags = 0;
+    }
+
+    sound->priority = 0;
+}
+
+void Sound_freeSound(Sound_t* sound, int chan)
+{
+    if (chan < 0 || chan > MAX_SOUNDCHANNELS) return;
+
+    SoundChannel_t* sChannel = &sound->soundChannel[chan];
+
+    if (sChannel->flags & SND_FLG_ISMUSIC) {
+        // Музыка обрабатывается глобально, а не по каналам
+        if (Mix_PlayingMusic()) {
+            Mix_HaltMusic();
+        }
+#if !INIT_ALLSOUNDS
+        if (sChannel->mediaAudioMusic) {
+            Mix_FreeMusic(sChannel->mediaAudioMusic);
+        }
+#endif
+        sChannel->mediaAudioMusic = NULL;
+    } else {
+        if (Mix_Playing(chan)) {
+            Mix_HaltChannel(chan);
+        }
+#if !INIT_ALLSOUNDS
+        if (sChannel->mediaAudioSound) {
+            Mix_FreeChunk(sChannel->mediaAudioSound);
+        }
+#endif
+        sChannel->mediaAudioSound = NULL;
+    }
+
+    sChannel->flags = 0;
+}
+
+void Sound_freeSounds(Sound_t* sound)
+{
+    for (int chan = 0; chan < (MAX_SOUNDCHANNELS + 1); ++chan) {
+        Sound_freeSound(sound, chan);
+    }
+}
+
+int Sound_getState(Sound_t* sound, int resourceID)
+{
+    int playing_count = 0;
+    for (int i = 0; i < MAX_SOUNDCHANNELS; ++i) {
+        if (Mix_Playing(i)) {
+            playing_count++;
+        }
+    }
+    if (Mix_PlayingMusic()) {
+        playing_count++;
+    }
+    return playing_count;
+}
+
+int Sound_getFreeChanel(Sound_t* sound) {
+    for (int chan = 0; chan < MAX_SOUNDCHANNELS; ++chan) {
+        if (!Mix_Playing(chan)) {
+            Sound_freeSound(sound, chan);
+            return chan;
+        }
+    }
+    return -1; // Нет свободных каналов
+}
+/**
+ * @brief Загружает звук или музыку в указанный канал/слот.
+ *
+ * Эта функция определяет, является ли ресурс музыкой (по флагу SND_FLG_ISMUSIC),
+ * и использует соответствующую функцию SDL_Mixer для загрузки:
+ * - Mix_LoadMUS_RW для музыки (MP3, MID, OGG и т.д.), которая проигрывается потоково.
+ * - Mix_LoadWAV_RW для звуковых эффектов (WAV), которые загружаются в память целиком.
+ *
+ * @param sound Указатель на главную структуру звука.
+ * @param chan Целевой канал (для звуков) или слот для музыки (MAX_SOUNDCHANNELS).
+ * @param resourceID ID ресурса, который нужно загрузить.
+ */
+void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
+{
+    // Проверка корректности канала
+    if (chan < 0 || chan > MAX_SOUNDCHANNELS) {
+        return;
+    }
+
+    SoundChannel_t* sChannel = &sound->soundChannel[chan];
+    byte saved_flags = sChannel->flags; // Сохраняем флаги, так как freeSound их сбрасывает
+
+    // Освобождаем любой предыдущий звук/музыку на этом канале/слоте
+    Sound_freeSound(sound, chan);
+    sChannel->flags = saved_flags; // Восстанавливаем оригинальные флаги
+
+#if INIT_ALLSOUNDS
+    // --- ЛОГИКА ДЛЯ ПРЕДЗАГРУЖЕННЫХ ЗВУКОВ ---
+    // Этот блок нужно будет адаптировать, если вы используете предзагрузку.
+    // Главное - правильно присвоить указатель из sound->audioFiles.
+
+    int id = Sound_getFromResourceID(resourceID);
+    if (id == -1) {
+        printf("Error: Resource ID %d not found in soundTable.\n", resourceID);
+        return;
+    }
+
+    if (sChannel->flags & SND_FLG_ISMUSIC) {
+        sChannel->mediaAudioMusic = (Mix_Music*)sound->audioFiles[id].ptr;
+    } else {
+        sChannel->mediaAudioSound = (Mix_Chunk*)sound->audioFiles[id].ptr;
+    }
+
+#else
+    // --- ЛОГИКА ДЛЯ ДИНАМИЧЕСКОЙ ЗАГРУЗКИ (ВАШ СЛУЧАЙ) ---
+    char fileName[128];
+    byte* fdata = NULL;
+    int fSize = 0;
+    SDL_RWops* rw;
+
+    // Проверяем флаг, чтобы понять, что загружать: музыку или звук
+    if (sChannel->flags & SND_FLG_ISMUSIC) {
+        /***** ЭТО МУЗЫКА *****/
+
+        // Определяем, какой файл нужен: mp3 или mid
+        if (resourceID == 5039 || resourceID == 5040 || resourceID == 5043) {
+            snprintf(fileName, sizeof(fileName), "%d.mp3", resourceID);
+        } else {
+            // По умолчанию считаем, что остальная музыка в формате MIDI
+            snprintf(fileName, sizeof(fileName), "%d.mid", resourceID);
+        }
+
+        // Читаем файл
+        fdata = readZipFileEntry(fileName, &zipFile, &fSize);
+        if (fdata) {
+            rw = SDL_RWFromMem(fdata, fSize);
+            // ИСПОЛЬЗУЕМ ПРАВИЛЬНУЮ ФУНКЦИЮ: Mix_LoadMUS_RW
+            // И ЗАПИСЫВАЕМ В ПРАВИЛЬНЫЙ УКАЗАТЕЛЬ: mediaAudioMusic
+            sChannel->mediaAudioMusic = Mix_LoadMUS_RW(rw);
+            SDL_free(fdata);
+
+            // Проверка на случай ошибки загрузки
+            if (!sChannel->mediaAudioMusic) {
+                printf("Error loading music '%s': %s\n", fileName, Mix_GetError());
+            }
+        } else {
+             printf("Error reading file data for music '%s'\n", fileName);
+        }
+
+    } else {
+        /***** ЭТО ЗВУКОВОЙ ЭФФЕКТ *****/
+
+        // Все звуковые эффекты - это .wav файлы
+        snprintf(fileName, sizeof(fileName), "%d.wav", resourceID);
+
+        // Читаем файл
+        fdata = readZipFileEntry(fileName, &zipFile, &fSize);
+        if (fdata) {
+            rw = SDL_RWFromMem(fdata, fSize);
+            // ИСПОЛЬЗУЕМ ПРАВИЛЬНУЮ ФУНКЦИЮ: Mix_LoadWAV_RW
+            // И ЗАПИСЫВАЕМ В ПРАВИЛЬНЫЙ УКАЗАТЕЛЬ: mediaAudioSound
+            sChannel->mediaAudioSound = Mix_LoadWAV_RW(rw, SDL_TRUE);
+            SDL_free(fdata);
+
+            // Проверка на случай ошибки загрузки
+            if (!sChannel->mediaAudioSound) {
+                printf("Error loading sound '%s': %s\n", fileName, Mix_GetError());
+            }
+        } else {
+            printf("Error reading file data for sound '%s'\n", fileName);
+        }
+    }
+#endif
+}
+void Sound_readySound(Sound_t* sound, int chan)
+{
+    if (chan < 0 || chan > MAX_SOUNDCHANNELS) return;
+
+    SoundChannel_t* sChannel = &sound->soundChannel[chan];
+
+    if (sChannel->flags & SND_FLG_ISMUSIC) {
+        // Громкость музыки устанавливается глобально
+        Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
+    } else {
+        // Устанавливаем громкость для конкретного чанка
+        if (sChannel->mediaAudioSound) {
+            Mix_VolumeChunk(sChannel->mediaAudioSound, (sound->volume * MIX_MAX_VOLUME) / 100);
+        }
+    }
+}
+
+void Sound_playSound(Sound_t* sound, int resourceID, byte flags, int priority)
+{
+    // boolean sndPriority = sound->doomRpg->doomCanvas->sndPriority;
+    boolean sndPriority = 1; // Заглушка для примера
+
+    if (sound->soundEnabled == 0) return;
+
+    int id = Sound_getFromResourceID(resourceID);
+    if (id < 0) return; // Ресурс не найден
+
+    boolean isMusic = (flags & SND_FLG_ISMUSIC);
+
+    // --- НАЧАЛО ИЗМЕНЕНИЙ ---
+    // Принудительно считаем эти ID музыкой, чтобы они проигрывались потоково как MP3
+    if (resourceID == 5039 || resourceID == 5040 || resourceID == 5043) {
+        isMusic = 1; // 1 = true
+    }
+    // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+
+    if (sndPriority && !isMusic && (priority < sound->priority) && (Sound_getState(sound, resourceID) > 0)) {
+        printf("Sound: Dynamic playback of %d prevented by priority (%d < %d)\n", resourceID, priority, sound->priority);
+        return;
+    }
+
+    if (flags & SND_FLG_STOPSOUNDS) {
+        Sound_stopSounds(sound);
+    }
+
+    int target_channel;
+    if (isMusic) {
+        // Музыка использует специальный "канал" в SDL_Mixer, но мы сохраним информацию в нашем слоте
+        target_channel = MAX_SOUNDCHANNELS;
+    } else {
+        target_channel = Sound_getFreeChanel(sound);
+    }
+
+    if (target_channel < 0) {
+        // Нет свободных каналов
+        return;
+    }
+
+    sound->channel = target_channel; // Сохраняем последний использованный канал
+    sound->soundChannel[target_channel].flags = flags;
+
+    if (isMusic) {
+        sound->soundChannel[target_channel].flags |= SND_FLG_ISMUSIC;
+    }
+
+
+    Sound_loadSound(sound, target_channel, resourceID);
+    Sound_readySound(sound, target_channel);
+
+    sound->priority = priority;
+
+    if (isMusic) {
+        if (sound->soundChannel[target_channel].mediaAudioMusic) {
+            Mix_PlayMusic(sound->soundChannel[target_channel].mediaAudioMusic, (flags & SND_FLG_LOOP) ? -1 : 1);
+        }
+    } else {
+        if (sound->soundChannel[target_channel].mediaAudioSound) {
+            Mix_PlayChannel(target_channel, sound->soundChannel[target_channel].mediaAudioSound, (flags & SND_FLG_LOOP) ? -1 : 0);
+        }
+    }
+}
+
+int Sound_getFromResourceID(int resourceID)
+{
+    for (int i = 0; i < MAX_AUDIOFILES; i++) {
+        if (soundTable[i] == resourceID) {
+            return i;
+        }
+    }
+    // Возвращаем -1, если не найдено, чтобы избежать ошибок
+    return -1;
+}
+
+void Sound_updateVolume(Sound_t* sound)
+{
+    int new_volume = (sound->volume * MIX_MAX_VOLUME) / 100;
+
+    // Устанавливаем громкость для музыки
+    Mix_VolumeMusic(new_volume);
+
+    // Устанавливаем громкость для всех каналов эффектов
+    Mix_Volume(-1, new_volume);
+
+    // Если нужно обновить громкость для уже загруженных чанков (на случай, если Mix_Volume не влияет на них)
+    for (int chan = 0; chan < MAX_SOUNDCHANNELS; ++chan) {
+        if (sound->soundChannel[chan].mediaAudioSound) {
+            Mix_VolumeChunk(sound->soundChannel[chan].mediaAudioSound, new_volume);
+        }
+    }
+
+    /*
+    // Старая логика обновления громкости только для играющих каналов
+    int chan = 0;
+    do {
+        if (sound->soundChannel[chan].flags & SND_FLG_ISMUSIC) {
+            if (Mix_PlayingMusic()) {
+                Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
+            }
+        } else {
+            if (Mix_Playing(chan) && sound->soundChannel[chan].mediaAudioSound) {
+                Mix_VolumeChunk(sound->soundChannel[chan].mediaAudioSound, (sound->volume * MIX_MAX_VOLUME) / 100);
+            }
+        }
+    } while (++chan < (MAX_SOUNDCHANNELS + 1));
+    */
+
+    // Обновление текста в меню (если нужно)
+    /*
+    int menu = sound->doomRpg->menuSystem->menu;
+    if (menu == MENU_SOUND || menu == MENU_INGAME_SOUND) {
+        Menu_textVolume(sound->doomRpg->menu, sound->volume);
+    }
+    */
+}
+
+int Sound_minusVolume(Sound_t* sound, int volume)
+{
+    sound->volume -= volume;
+    if (sound->volume < 0) {
+        sound->volume = 0;
+    }
+    Sound_updateVolume(sound);
+    return sound->volume;
+}
+
+int Sound_addVolume(Sound_t* sound, int volume)
+{
+    sound->volume += volume;
+    if (sound->volume > 100) {
+        sound->volume = 100;
+    }
+    Sound_updateVolume(sound);
+    return sound->volume;
+}
+	#endif

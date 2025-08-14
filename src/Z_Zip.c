@@ -9,10 +9,16 @@
 // https://github.com/svkaiser/Doom64EX/blob/master/src/engine/zone/z_zone.cc
 //-----------------------------------------------------------------------------
 
+#ifdef __3DS__
+#include <SDL/SDL.h>
+#include <SDL/SDL_mixer.h>
+#else
 #include <SDL.h>
+#include <SDL_mixer.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h>
+//#include <malloc.h>
 #include <zlib.h>
 
 #include "DoomRPG.h"
@@ -101,7 +107,15 @@ void openZipFile(const char* name, zip_file_t* zipFile)
 		DoomRPG_Error("openZipFile: cannot open file %s\n", name);
 	}
 
+#ifdef __3DS__
+	int current_pos = SDL_RWtell(zipFile->file);
+
+	filesize = SDL_RWseek(zipFile->file, 0, SEEK_END);
+
+	SDL_RWseek(zipFile->file, current_pos, SEEK_SET);
+#else
 	filesize = (int)SDL_RWsize(zipFile->file);
+#endif
 
 	maxback = MIN(filesize, 0xFFFF + sizeof(buf));
 	back = MIN(maxback, sizeof(buf));
@@ -133,7 +147,7 @@ void closeZipFile(zip_file_t* zipFile)
 		SDL_RWclose(zipFile->file);
 	}
 }
-
+#ifndef __3DS__
 unsigned char* readZipFileEntry(const char* name, zip_file_t* zipFile, int* sizep)
 {
 	zip_entry_t* entry = NULL;
@@ -229,3 +243,69 @@ unsigned char* readZipFileEntry(const char* name, zip_file_t* zipFile, int* size
 
 	return NULL;
 }
+#else
+unsigned char* readZipFileEntry(const char* name, zip_file_t* zipFile, int* sizep)
+{
+	// Аргумент zipFile намеренно игнорируется, так как мы читаем с диска.
+	(void)zipFile;
+
+	// Укажите здесь путь к вашей директории с игровыми данными.
+	const char* base_path = "DoomRPG/";
+	char full_path[128];
+
+	// Формируем полный путь к файлу.
+	// snprintf безопаснее, чем sprintf.
+	snprintf(full_path, sizeof(full_path), "%s%s", base_path, name);
+
+	// Инициализируем выходной размер на случай ошибки.
+	if (sizep != NULL) {
+		*sizep = 0;
+	}
+
+	// Открываем файл для бинарного чтения с помощью SDL_RWops.
+	SDL_RWops* rw = SDL_RWFromFile(full_path, "rb");
+	if (rw == NULL) {
+		DoomRPG_Error("Не удалось открыть файл '%s': %s", full_path, SDL_GetError());
+		return NULL;
+	}
+
+	// Определяем размер файла.
+	int current_pos = SDL_RWtell(rw);
+
+	Sint64 file_size = SDL_RWseek(rw, 0, SEEK_END);
+
+	SDL_RWseek(rw, current_pos, SEEK_SET);
+	if (file_size < 0) {
+		DoomRPG_Error("Не удалось определить размер файла '%s': %s", full_path, SDL_GetError());
+		SDL_RWclose(rw);
+		return NULL;
+	}
+
+	// Выделяем память под содержимое файла.
+	unsigned char* buffer = (unsigned char*)SDL_malloc(file_size);
+	if (buffer == NULL) {
+		DoomRPG_Error("Не удалось выделить %lld байт памяти для файла '%s'", (long long)file_size, full_path);
+		SDL_RWclose(rw);
+		return NULL;
+	}
+
+	// Читаем весь файл в буфер.
+	size_t bytes_read = SDL_RWread(rw, buffer, 1, file_size);
+	if (bytes_read != (size_t)file_size) {
+		DoomRPG_Error("Ошибка чтения файла '%s'. Ожидалось %lld, прочитано %zu.", full_path, (long long)file_size, bytes_read);
+		SDL_free(buffer);
+		SDL_RWclose(rw);
+		return NULL;
+	}
+
+	// Файл больше не нужен, закрываем его.
+	SDL_RWclose(rw);
+
+	// Устанавливаем выходной размер и возвращаем буфер.
+	if (sizep != NULL) {
+		*sizep = (int)file_size;
+	}
+
+	return buffer;
+}
+#endif
