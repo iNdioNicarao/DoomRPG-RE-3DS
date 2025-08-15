@@ -418,9 +418,9 @@ void DoomCanvas_combatState(DoomCanvas_t* doomCanvas)
 		doomCanvas->doomRpg->hud->isUpdate = true;
 	}
 
-	Hud_drawEffects(doomCanvas->doomRpg->hud);
-	Hud_drawTopBar(doomCanvas->doomRpg->hud);
-	Hud_drawBottomBar(doomCanvas->doomRpg->hud);
+	Hud_drawEffects(doomCanvas);
+	Hud_drawTopBar(doomCanvas);
+	Hud_drawBottomBar(doomCanvas);
 }
 
 void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
@@ -446,9 +446,9 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 	}
 
 	ParticleSystem_render(doomCanvas->particleSystem, true);
-	Hud_drawTopBar(doomCanvas->hud);
-	Hud_drawBottomBar(doomCanvas->hud);
-	Hud_drawEffects(doomCanvas->hud);
+	Hud_drawTopBar(doomCanvas);
+	Hud_drawBottomBar(doomCanvas);
+	Hud_drawEffects(doomCanvas);
 
 	if (doomCanvas->doomRpg->player->berserkerTics) {
 		// Bloqueo esta linea ya que hace que el color del berserk sea el doble de intenso, esto no sucede en la version J2ME
@@ -601,7 +601,7 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
 	if (z)
 	{
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		DoomRPG_setClipTrue(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 
 
@@ -1405,7 +1405,7 @@ void DoomCanvas_drawSoftKeys(DoomCanvas_t* doomCanvas, char* softKeyLeft, char* 
 		x1 = x = -doomCanvas->displayRect.x;
 		y1 = y = doomCanvas->softKeyY - (int)(doomCanvas->displayRect).y;
 
-		Hud_drawBarTiles(doomCanvas->doomRpg->hud, x, y, doomCanvas->clipRect.w, false);
+		Hud_drawBarTiles(doomCanvas, x, y, doomCanvas->clipRect.w, false);
 		if (softKeyLeft == NULL) {
 			doomCanvas->softKeyLeft[0] = '\0';
 		}
@@ -1606,8 +1606,8 @@ void DoomCanvas_dyingState(DoomCanvas_t* doomCanvas)
 {
 	// New Code Lines
 	{
-		Hud_drawTopBar(doomCanvas->hud);
-		Hud_drawBottomBar(doomCanvas->hud);
+		Hud_drawTopBar(doomCanvas);
+		Hud_drawBottomBar(doomCanvas);
 	}
 
 	if (doomCanvas->time < doomCanvas->deathTime + 750) {
@@ -2154,53 +2154,49 @@ void DoomCanvas_handlePlayingEvents(DoomCanvas_t* doomCanvas, int i)
 					fireWpn = false;
 					++i;
 				}
-				else {
-					if (traceEnt->def->eType == 2) { // Humans
-						break;
-					}
-					else if (traceEnt->def->eType == 12) { // Destructible Object
-						if ((1 << doomCanvas->player->weapon & traceEnt->def->parm)) {
-							ent = traceEnt;
-							fireWpn = true;
-						}
-						break;
-					}
-					else if (traceEnt->def->eType == 10) { // Fire
-						if (doomCanvas->player->weapon == 1) {
-							ent = traceEnt;
-							fireWpn = true;
-						}
-						break;
-					}
-					else if (traceEnt->def->eType == 1) { // Enemy
+				else if (traceEnt->def->eType == 12) { // Destructible Object
+					if ((1 << doomCanvas->player->weapon & traceEnt->def->parm)) {
 						ent = traceEnt;
 						fireWpn = true;
-						break;
 					}
-					else if (traceEnt->def->eType != 0) {
-						fireWpn = false;
-						break;
-					}
-					else {
-						Entity_t* v3;
-						for (j = i + 1; j < doomCanvas->game->numTraceEntities && ((v3 = doomCanvas->game->traceEntities[j])->def->eType != 1 || v3->linkIndex != traceEnt->linkIndex); ++j) {}
-
-						if (j == doomCanvas->game->numTraceEntities) {
-							break;
-						}
-
-						ent = doomCanvas->game->traceEntities[j];
-						fireWpn = true;
-						break;
-					}
+					break;
 				}
+				else if (traceEnt->def->eType == 10) { // Fire
+					if (doomCanvas->player->weapon == 1) {
+						ent = traceEnt;
+						fireWpn = true;
+					}
+					break;
+				}
+				else if (traceEnt->def->eType == 1) { // Enemy
+					ent = traceEnt;
+					fireWpn = true;
+					break;
+				}
+				else if (traceEnt->def->eType != 0) {
+					fireWpn = false;
+					break;
+				}
+				else {
+					Entity_t* v3;
+					for (j = i + 1; j < doomCanvas->game->numTraceEntities && ((v3 = doomCanvas->game->traceEntities[j])->def->eType != 1 || v3->linkIndex != traceEnt->linkIndex); ++j) {}
+
+					if (j == doomCanvas->game->numTraceEntities) {
+						break;
+					}
+
+					ent = doomCanvas->game->traceEntities[j];
+					fireWpn = true;
+					break;
+				}
+
 			}
 
 			if (fireWpn) {
 				Player_fireWeapon(doomCanvas->doomRpg->player, ent);
 			}
 			else {
-				Hud_addMessage(doomCanvas->hud, "Nothing to use");
+				Hud_addMessage(doomCanvas, "Nothing to use");
 				Sound_playSound(doomCanvas->doomRpg->sound, 5065, 0, 2);
 			}
 		}
@@ -2212,7 +2208,7 @@ void DoomCanvas_handlePlayingEvents(DoomCanvas_t* doomCanvas, int i)
 	}
 
 	case PASSTURN: {
-		Hud_addMessage(doomCanvas->hud, "Turn passed.");
+		Hud_addMessage(doomCanvas, "Turn passed.");
 		Game_touchTile(doomCanvas->game, doomCanvas->destX, doomCanvas->destY, false);
 		Game_advanceTurn(doomCanvas->game);
 		break;
@@ -2562,8 +2558,8 @@ void DoomCanvas_legalsState(DoomCanvas_t* doomCanvas) {
 void DoomCanvas_menuState(DoomCanvas_t* doomCanvas)
 {
 	if (doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME) {
-		Hud_drawTopBar(doomCanvas->hud);
-		Hud_drawBottomBar(doomCanvas->hud);
+		Hud_drawTopBar(doomCanvas);
+		Hud_drawBottomBar(doomCanvas);
 	}
 	MenuSystem_paint(doomCanvas->doomRpg->menuSystem);
 
@@ -2683,9 +2679,9 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 				ParticleSystem_render(doomCanvas->particleSystem, true);
 			}
 
-			Hud_drawTopBar(doomCanvas->hud);
-			Hud_drawBottomBar(doomCanvas->hud);
-			Hud_drawEffects(doomCanvas->hud);
+			Hud_drawTopBar(doomCanvas);
+			Hud_drawBottomBar(doomCanvas);
+			Hud_drawEffects(doomCanvas);
 
 			activeMonsters = doomCanvas->game->activeMonsters;
 			if (activeMonsters && (doomCanvas->time > doomCanvas->idleTime))
@@ -2972,7 +2968,7 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 			}
 			else {
 				Game_loadState(doomCanvas->doomRpg->game, doomCanvas->loadType);
-				Hud_addMessage(doomCanvas->doomRpg->hud, "Game Loaded");
+				Hud_addMessage(doomCanvas, "Game Loaded");
 				doomCanvas->loadType = 0;
 			}
 			break;
@@ -2989,11 +2985,11 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 			if (doomCanvas->passwordTime != 0 && doomCanvas->time > doomCanvas->passwordTime) {
 				DoomCanvas_closeDialog(doomCanvas);
 				if (SDL_strcmp(doomCanvas->passCode, doomCanvas->game->passCode) == 0) {
-					Hud_addMessageForce(doomCanvas->hud, "Correct code!", true);
+					Hud_addMessageForce(doomCanvas, "Correct code!", true);
 					Game_runEvent(doomCanvas->game, doomCanvas->game->tileEvent, doomCanvas->game->tileEventIndex + 1, doomCanvas->game->tileEventFlags);
 				}
 				else if (doomCanvas->passCode[0] != '\0') {
-					Hud_addMessageForce(doomCanvas->hud, "Invalid code!", true);
+					Hud_addMessageForce(doomCanvas, "Invalid code!", true);
 				}
 			}
 
@@ -3061,7 +3057,7 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 		case ST_SAVING: {
 			if (doomCanvas->saveType & 4) {
 				Game_saveState(doomCanvas->doomRpg->game, MAP_JUNCTION, (51 * 32), (41 * 32), 0, false);
-				Hud_addMessage(doomCanvas->doomRpg->hud, "Game Saved");
+				Hud_addMessage(doomCanvas, "Game Saved");
 			}
 			else {
 				int v14 = (doomCanvas->saveType & 2) == 0;
@@ -3069,7 +3065,7 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 					v14 = (doomCanvas->saveType & 1) == 0;
 				if (!v14) {
 					Game_saveState(doomCanvas->doomRpg->game, doomCanvas->loadMapID, doomCanvas->destX, doomCanvas->destY, doomCanvas->destAngle, (doomCanvas->saveType & 2));
-					Hud_addMessage(doomCanvas->doomRpg->hud, "Game Saved");
+					Hud_addMessage(doomCanvas, "Game Saved");
 				}
 
 			}
@@ -3107,8 +3103,8 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 		}
 
 		if (doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME) {
-			Hud_drawTopBar(doomCanvas->hud);
-			Hud_drawBottomBar(doomCanvas->hud);
+			Hud_drawTopBar(doomCanvas);
+			Hud_drawBottomBar(doomCanvas);
 			DoomCanvas_restoreSoftKeys(doomCanvas);
 		}
 	}
@@ -3118,8 +3114,8 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 			DoomRPG_setClipFalse(doomCanvas->doomRpg);
 		}
 
-		Hud_drawTopBar(doomCanvas->hud);
-		Hud_drawBottomBar(doomCanvas->hud);
+		Hud_drawTopBar(doomCanvas);
+		Hud_drawBottomBar(doomCanvas);
 		DoomCanvas_restoreSoftKeys(doomCanvas);
 	}
 
@@ -3203,8 +3199,8 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 			doomCanvas->render->skipStretch = false;
 			DoomCanvas_renderScene(doomCanvas, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewAngle);
 			doomCanvas->doomRpg->hud->isUpdate = true;
-			Hud_drawTopBar(doomCanvas->doomRpg->hud);
-			Hud_drawBottomBar(doomCanvas->doomRpg->hud);
+			Hud_drawTopBar(doomCanvas);
+			Hud_drawBottomBar(doomCanvas);
 		}
 	}
 	else if (doomCanvas->state == ST_MENU) {
@@ -3253,7 +3249,7 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 		doomCanvas->deathTime = doomCanvas->time;
 		doomCanvas->player->weapon = 0;
 		doomCanvas->player->weapons = 0;
-		Hud_drawBottomBar(doomCanvas->hud);
+		Hud_drawBottomBar(doomCanvas);
 		return;
 	}
 	else if (stateNum == ST_EPILOGUE) {
@@ -3758,7 +3754,7 @@ boolean DoomCanvas_updatePlayerAnimDoors(DoomCanvas_t* doomCanvas)
 	}
 
 	if (foundSecret) {
-		Hud_addMessage(doomCanvas->hud, "Found Secret!");
+		Hud_addMessage(doomCanvas, "Found Secret!");
 		Player_addXP(doomCanvas->player, 5);
 		Sound_playSound(doomCanvas->doomRpg->sound, 5133, 0, 3);
 	}

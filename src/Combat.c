@@ -527,9 +527,9 @@ int Combat_monsterSeq(Combat_t* combat)
 			combat->hitType = 0;
 			combat->f342d = 0;
 			combat->gotCrit = false;
-			msgBuff = Hud_getMessageBuffer(hud);
+			msgBuff = Hud_getMessageBuffer(doomCanvas);
 			SDL_snprintf(msgBuff, MS_PER_CHAR, (combat->attackerWeaponId == 18) ? "%s casts raise%c" : "%s attacks%c", combat->curAttacker->def->name, 0x7f);
-			Hud_finishMessageBuffer(hud);
+			Hud_finishMessageBuffer(doomCanvas);
 			break;
 		case 1:
 			if ((combat->nextStageTime != 0) && (combat->numActiveMissiles == 0)) {
@@ -632,7 +632,7 @@ int Combat_monsterSeq(Combat_t* combat)
 
 			if (combat->curTarget == NULL) {
 				if (combat->totalDamage + combat->totalArmorDamage == 0) {
-					Hud_addMessage(hud, "Dodged!");
+					Hud_addMessage(doomCanvas, "Dodged!");
 				}
 				else {
 					Player_pain(player, combat->totalDamage, combat->totalArmorDamage);
@@ -650,14 +650,14 @@ int Combat_monsterSeq(Combat_t* combat)
 					Game_activate(combat->doomRpg->game, combat->curTarget);
 					Game_linkEntity(combat->doomRpg->game, combat->curTarget, combat->curTarget->linkIndex % 32, combat->curTarget->linkIndex / 32);
 					
-					msgBuff = Hud_getMessageBuffer(hud);
+					msgBuff = Hud_getMessageBuffer(doomCanvas);
 					SDL_snprintf(msgBuff, MS_PER_CHAR, "%s is revived!", combat->curTarget->def->name);
-					Hud_finishMessageBuffer(hud);
+					Hud_finishMessageBuffer(doomCanvas);
 
 					DoomCanvas_checkFacingEntity(doomCanvas);
 				}
 				else {
-					Hud_addMessage(hud, "Raise failed!");
+					Hud_addMessage(doomCanvas, "Raise failed!");
 				}
 			}
 			else {
@@ -757,7 +757,7 @@ boolean Combat_playerSeq(Combat_t* combat)
 		wpn = &combat->weaponInfo[combat->attackerWeaponId];
 		if (combat->curTarget->def->eType == 1) {
 
-			msgBuff = Hud_getMessageBuffer(hud);
+			msgBuff = Hud_getMessageBuffer(doomCanvas);
 			if (wpn->ammoUsage) {
 				byte b = player->ammo[wpn->ammoType];
 				if (b < wpn->ammoUsage) {
@@ -773,7 +773,7 @@ boolean Combat_playerSeq(Combat_t* combat)
 					SDL_snprintf(msgBuff, MS_PER_CHAR, "Attacking%c %s", 0x7f, "(3 shots left!)");
 				}
 			}
-			Hud_finishMessageBuffer(hud);
+			Hud_finishMessageBuffer(doomCanvas);
 
 			if (combat->curTarget->def->eSubType == 6 && combat->curTarget->def->parm == 467) {
 				combat->bloodColor = 0x0000BB;
@@ -788,16 +788,16 @@ boolean Combat_playerSeq(Combat_t* combat)
 		else if (wpn->ammoUsage) {
 			byte b = player->ammo[wpn->ammoType];
 			if (b < wpn->ammoUsage) {
-				Hud_addMessage(hud, "Last shot!");
+				Hud_addMessage(doomCanvas, "Last shot!");
 			}
 			else if (b < wpn->ammoUsage * 2) {
-				Hud_addMessage(hud, "1 shot left!");
+				Hud_addMessage(doomCanvas, "1 shot left!");
 			}
 			else if (b < wpn->ammoUsage * 3) {
-				Hud_addMessage(hud, "2 shots left!");
+				Hud_addMessage(doomCanvas, "2 shots left!");
 			}
 			else if (b < wpn->ammoUsage * 4) {
-				Hud_addMessage(hud, "3 shots left!");
+				Hud_addMessage(doomCanvas, "3 shots left!");
 			}
 		}
 	}
@@ -1002,19 +1002,19 @@ boolean Combat_playerSeq(Combat_t* combat)
 			if (combat->totalDamage + combat->totalArmorDamage == 0) {
 				if (combat->curTarget->def->eType == 1 && player->weapon != 1) {
 					if (combat->kronosTeleporter != 0) {
-						Hud_addMessage(hud, "Kronos Teleported!");
+						Hud_addMessage(doomCanvas, "Kronos Teleported!");
 					}
 					else {
-						Hud_addMessage(hud, "Missed!");
+						Hud_addMessage(doomCanvas, "Missed!");
 					}
 				}
 				else {
-					Hud_addMessage(hud, "No effect!");
+					Hud_addMessage(doomCanvas, "No effect!");
 				}
 			}
 			else {
 				if (combat->curTarget->def->eType == 1) {
-					msgBuff = Hud_getMessageBuffer(hud);
+					msgBuff = Hud_getMessageBuffer(doomCanvas);
 					SDL_snprintf(msgBuff, MS_PER_CHAR, "%s%d damage!", combat->gotCrit ? "Crit! " : "", combat->totalDamage + combat->totalArmorDamage);
 
 					Entity_pain(combat->curTarget, combat->totalDamage, combat->totalArmorDamage);
@@ -1022,11 +1022,11 @@ boolean Combat_playerSeq(Combat_t* combat)
 					if (CombatEntity_getHealth(&combat->curTarget->monster->ce) <= 0) {
 						msgLen = SDL_strlen(msgBuff);
 						SDL_snprintf(msgBuff + msgLen, MS_PER_CHAR - msgLen, " %s died!", combat->curTarget->def->name);
-						Hud_finishMessageBuffer(hud);
+						Hud_finishMessageBuffer(doomCanvas);
 						Entity_died(combat->curTarget);
 					}
 					else {
-						Hud_finishMessageBuffer(hud);
+						Hud_finishMessageBuffer(doomCanvas);
 
 						// Pain Sound 
 						snd = EntityMonster_getSoundRnd(combat->curTarget->monster, 6);
@@ -1037,7 +1037,7 @@ boolean Combat_playerSeq(Combat_t* combat)
 				}
 				else if (combat->hitType != 0) {
 					if (combat->curTarget->def->eSubType == 4) {
-						msgBuff = Hud_getMessageBuffer(hud);
+						msgBuff = Hud_getMessageBuffer(doomCanvas);
 						int n3 = ((combat->curTarget->info & 0x400000) != 0x0) ? 1 : 0;
 
 						if (combat->doomRpg->game->powerCouplingHealth[n3] > combat->totalDamage + combat->totalArmorDamage) {
@@ -1047,7 +1047,7 @@ boolean Combat_playerSeq(Combat_t* combat)
 							SDL_snprintf(msgBuff, MS_PER_CHAR, "%s destroyed!", combat->curTarget->def->name);
 						}
 
-						Hud_finishMessageBuffer(hud);
+						Hud_finishMessageBuffer(doomCanvas);
 
 						combat->doomRpg->game->powerCouplingHealth[n3] -= combat->totalDamage + combat->totalArmorDamage;
 						if (combat->doomRpg->game->powerCouplingHealth[n3] <= 0) {
@@ -1059,10 +1059,10 @@ boolean Combat_playerSeq(Combat_t* combat)
 					}
 				}
 				else if (combat->attackerWeaponId == 1) {
-					Hud_addMessage(hud, "No effect!");
+					Hud_addMessage(doomCanvas, "No effect!");
 				}
 				else {
-					Hud_addMessage(hud, "Missed!");
+					Hud_addMessage(doomCanvas, "Missed!");
 				}
 
 				if (combat->hitType != 0 && (combat->curTarget->info & 0x200000) == 0x0) {

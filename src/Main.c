@@ -35,7 +35,7 @@ int main(int argc, char* args[])
 	Z_Init();
 	SDL_InitVideo();
 	SDL_InitAudio();
-	openZipFile("DoomRPG.zip", &zipFile);
+	//openZipFile("DoomRPG.zip", &zipFile);
 
 	/*int size;
 	byte* data;
@@ -240,6 +240,7 @@ int main(int argc, char* args[])
 #ifdef __3DS__
 	hidExit();
 	gfxExit();
+	exit(0);
 #endif
 
 	return 0;

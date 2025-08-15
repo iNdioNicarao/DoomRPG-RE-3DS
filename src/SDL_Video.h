@@ -5,12 +5,13 @@ typedef struct SDLVideo_s
 {
 #ifdef __3DS__
 	SDL_Surface* screenSurface;
-	SDL_Surface* backbuffer;
+	SDL_Surface* downScreen;
 	int screenW;
 	int screenH;
 #else
 	SDL_Window* window;
 	SDL_Renderer* renderer;
+#endif
 	int rendererW;
 	int rendererH;
 	boolean fullScreen;
@@ -18,7 +19,6 @@ typedef struct SDLVideo_s
 	boolean integerScaling;
 	boolean displaySoftKeys;
 	int resolutionIndex;
-#endif
 } SDLVideo_t;
 
 

@@ -1,7 +1,7 @@
 
 #ifdef __3DS__
 #include <SDL/SDL.h>
-#define skipNullptr 1
+#define skipNullptr 0
 #else
 #include <SDL.h>
 #endif
@@ -52,12 +52,12 @@ void Hud_free(Hud_t* hud, boolean freePtr)
     }
 }
 
-void Hud_addMessage(Hud_t* hud, char* str)
+void Hud_addMessage(DoomCanvas_t* doomCanvas, char* str)
 {
-    Hud_addMessageForce(hud, str, false);
+    Hud_addMessageForce(doomCanvas, str, false);
 }
 
-void Hud_addMessageForce(Hud_t* hud, char* str, boolean force)
+void Hud_addMessageForce(DoomCanvas_t* doomCanvas, char* str, boolean force)
 {
 #if skipNullptr
     if (!hud->doomRpg->doomCanvas) {
@@ -65,6 +65,7 @@ void Hud_addMessageForce(Hud_t* hud, char* str, boolean force)
         return;
     }
 #endif
+    Hud_t* hud = doomCanvas->hud;
     if (str) {
         if (force) {
             hud->msgCount = 0;
@@ -72,13 +73,13 @@ void Hud_addMessageForce(Hud_t* hud, char* str, boolean force)
 
         if ((hud->msgCount <= 0) || strcmp(str, hud->messages[hud->msgCount + -1])) {
             if (hud->msgCount == MAX_MESSAGES) {
-                Hud_shiftMsgs(hud);
+                Hud_shiftMsgs(doomCanvas);
             }
             strncpy(hud->messages[hud->msgCount], str, MS_PER_CHAR);
             hud->msgCount++;
 
             if (hud->msgCount == 1) {
-                Hud_calcMsgTime(hud);
+                Hud_calcMsgTime(doomCanvas);
                 if (force) {
                     hud->msgDuration *= 2;
                 }
@@ -87,7 +88,7 @@ void Hud_addMessageForce(Hud_t* hud, char* str, boolean force)
     }
 }
 
-void Hud_calcMsgTime(Hud_t* hud)
+void Hud_calcMsgTime(DoomCanvas_t* doomCanvas)
 {
 #if skipNullptr
     if (!hud->doomRpg->doomCanvas) {
@@ -95,12 +96,13 @@ void Hud_calcMsgTime(Hud_t* hud)
         return;
     }
 #endif
+    Hud_t* hud = doomCanvas->hud;
     int len;
-    if (!hud->doomRpg->doomCanvas->time) {
+    if (!doomCanvas->time) {
         hud->msgTime = 0;
     }
     else
-        hud->msgTime = hud->doomRpg->doomCanvas->time;
+        hud->msgTime = doomCanvas->time;
     len = strlen(hud->messages[0]);
 
     if (len <= hud->msgMaxChars) {
@@ -111,7 +113,7 @@ void Hud_calcMsgTime(Hud_t* hud)
     }
 }
 
-void Hud_drawBarTiles(Hud_t* hud, int x, int y, int width, boolean isLargerStatusBar)
+void Hud_drawBarTiles(DoomCanvas_t* doomCanvas, int x, int y, int width, boolean isLargerStatusBar)
 {
 #if skipNullptr
     if (!hud->doomRpg->doomCanvas) {
@@ -123,18 +125,18 @@ void Hud_drawBarTiles(Hud_t* hud, int x, int y, int width, boolean isLargerStatu
     int height;
 
     if (isLargerStatusBar == false) {
-        height = hud->imgStatusBar.height;
-        img = &hud->imgStatusBar;
+        height = doomCanvas->hud->imgStatusBar.height;
+        img = &doomCanvas->hud->imgStatusBar;
     }
     else {
-        height = hud->imgStatusBarLarge.height;
-        img = &hud->imgStatusBarLarge;
+        height = doomCanvas->hud->imgStatusBarLarge.height;
+        img = &doomCanvas->hud->imgStatusBarLarge;
     }
 
-    DoomCanvas_drawImageSpecial(hud->doomRpg->doomCanvas, img, 0, 0, width, height, 0, x, y, 0);
+    DoomCanvas_drawImageSpecial(doomCanvas, img, 0, 0, width, height, 0, x, y, 0);
 }
 
-void Hud_drawBottomBar(Hud_t* hud)
+void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
 {
 #if skipNullptr
     if (!hud->doomRpg->doomCanvas) {
@@ -143,7 +145,6 @@ void Hud_drawBottomBar(Hud_t* hud)
     }
 #endif
     Image_t* img;
-    DoomCanvas_t* doomCanvas;
     CombatEntity_t* ce;
     Combat_t* combat;
     int dispW, dispH, stbH;
@@ -153,15 +154,14 @@ void Hud_drawBottomBar(Hud_t* hud)
     int faceState, faceX;
     int weapon;
     char dir[2];
-    ce = &hud->doomRpg->player->ce;
-    doomCanvas = hud->doomRpg->doomCanvas;
+    ce = &doomCanvas->player->ce;
     dispW = 400;
     dispH = 240;
-    stbH = hud->statusBarHeight;
+    stbH = doomCanvas->hud->statusBarHeight;
     cx = doomCanvas->SCR_CX;
     y = dispH - (stbH >> 1);
 
-    if (hud->largeHud) {
+    if (doomCanvas->hud->largeHud) {
         cx -= 88;
         y -= 8;
         x = 10;
@@ -172,38 +172,38 @@ void Hud_drawBottomBar(Hud_t* hud)
         x = 7;
     }
 
-    Hud_drawBarTiles(hud, 0, dispH - stbH, 400, hud->largeHud);
+    Hud_drawBarTiles(doomCanvas, 0, dispH - stbH, 400, doomCanvas->hud->largeHud);
 
     // draw vertical gray lines
-    lx1 = hud->statusLine1Xpos + cx;
-    lx2 = hud->statusLine2Xpos + cx;
-    DoomRPG_setColor(hud->doomRpg, 0x313131);
-    DoomRPG_drawLine(hud->doomRpg, lx1, dispH - stbH, lx1, dispH - 1);
-    DoomRPG_drawLine(hud->doomRpg, lx2, dispH - stbH, lx2, dispH - 1);
-    DoomRPG_setColor(hud->doomRpg, 0x808591);
-    DoomRPG_drawLine(hud->doomRpg, lx1 + 1, dispH - stbH, lx1 + 1, dispH - 1);
-    DoomRPG_drawLine(hud->doomRpg, lx2 + 1, dispH - stbH, lx2 + 1, dispH - 1);
+    lx1 = doomCanvas->hud->statusLine1Xpos + cx;
+    lx2 = doomCanvas->hud->statusLine2Xpos + cx;
+    DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+    DoomRPG_drawLine(doomCanvas->doomRpg, lx1, dispH - stbH, lx1, dispH - 1);
+    DoomRPG_drawLine(doomCanvas->doomRpg, lx2, dispH - stbH, lx2, dispH - 1);
+    DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+    DoomRPG_drawLine(doomCanvas->doomRpg, lx1 + 1, dispH - stbH, lx1 + 1, dispH - 1);
+    DoomRPG_drawLine(doomCanvas->doomRpg, lx2 + 1, dispH - stbH, lx2 + 1, dispH - 1);
 
-    img = &hud->imgIconSheet;
+    img = &doomCanvas->hud->imgIconSheet;
     dy = dispH - (stbH >> 1);
 
     // draw health
-    DoomCanvas_drawImageSpecial(doomCanvas, img, 0, 0, hud->iconSheetWidth, hud->iconSheetHeight, 0, hud->statusHealthXpos + cx, dy, 0x24);
-    SDL_snprintf(hud->healthNum, 4, "%d", CombatEntity_getHealth(ce));
-    DoomCanvas_drawFont(doomCanvas, hud->healthNum, hud->statusHealthXpos + cx + x * 2 + hud->iconSheetWidth + 1, y, 9, 0, 3, hud->largeHud);
+    DoomCanvas_drawImageSpecial(doomCanvas, img, 0, 0, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusHealthXpos + cx, dy, 0x24);
+    SDL_snprintf(doomCanvas->hud->healthNum, 4, "%d", CombatEntity_getHealth(ce));
+    DoomCanvas_drawFont(doomCanvas, doomCanvas->hud->healthNum, doomCanvas->hud->statusHealthXpos + cx + x * 2 + doomCanvas->hud->iconSheetWidth + 1, y, 9, 0, 3, doomCanvas->hud->largeHud);
 
     // draw armmor
-    DoomCanvas_drawImageSpecial(doomCanvas, img, 0, hud->iconSheetHeight, hud->iconSheetWidth, hud->iconSheetHeight, 0, hud->statusArmorXpos + cx, dy, 0x24);
-    SDL_snprintf(hud->armorNum, 4, "%d", CombatEntity_getArmor(ce));
-    DoomCanvas_drawFont(doomCanvas, hud->armorNum, hud->statusArmorXpos + cx + x * 2 + hud->iconSheetWidth, y, 9, 0, 3, hud->largeHud);
+    DoomCanvas_drawImageSpecial(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusArmorXpos + cx, dy, 0x24);
+    SDL_snprintf(doomCanvas->hud->armorNum, 4, "%d", CombatEntity_getArmor(ce));
+    DoomCanvas_drawFont(doomCanvas, doomCanvas->hud->armorNum, doomCanvas->hud->statusArmorXpos + cx + x * 2 + doomCanvas->hud->iconSheetWidth, y, 9, 0, 3, doomCanvas->hud->largeHud);
 
     // draw face
     health = CombatEntity_getHealth(ce);
 
-    if (health > 0 && doomCanvas->time - hud->gotFaceTime < 500) {
+    if (health > 0 && doomCanvas->time - doomCanvas->hud->gotFaceTime < 500) {
         faceState = 8;
     }
-    else if (health <= 0 || doomCanvas->time >= hud->damageTime) {
+    else if (health <= 0 || doomCanvas->time >= doomCanvas->hud->damageTime) {
         maxHealth = CombatEntity_getMaxHealth(ce);
 
         if (health <= maxHealth / 4) {
@@ -220,7 +220,7 @@ void Hud_drawBottomBar(Hud_t* hud)
         }
     }
     else {
-        switch (hud->damageDir)
+        switch (doomCanvas->hud->damageDir)
         {
         case 2:
             faceState = 7;
@@ -237,28 +237,28 @@ void Hud_drawBottomBar(Hud_t* hud)
         }
     }
 
-    faceX = hud->statusHudFacesXpos + cx;
-    DoomRPG_setColor(hud->doomRpg, 0x323232);
-    DoomRPG_drawLine(hud->doomRpg, faceX - 1, dispH - hud->statusBarHeight, faceX - 1, dispH -1);
-    DoomCanvas_drawImageSpecial(doomCanvas, &hud->imgHudFaces, 0, faceState * hud->hudFaceHeight, hud->hudFaceWidth, hud->hudFaceHeight, 0, faceX, dy, 0x24);
-    DoomRPG_setColor(hud->doomRpg, 0x828282);
-    DoomRPG_drawLine(hud->doomRpg, faceX + hud->hudFaceWidth, dispH - hud->statusBarHeight, faceX + hud->hudFaceWidth, dispH + -1);
+    faceX = doomCanvas->hud->statusHudFacesXpos + cx;
+    DoomRPG_setColor(doomCanvas->doomRpg, 0x323232);
+    DoomRPG_drawLine(doomCanvas->doomRpg, faceX - 1, dispH - doomCanvas->hud->statusBarHeight, faceX - 1, dispH -1);
+    DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->hud->imgHudFaces, 0, faceState * doomCanvas->hud->hudFaceHeight, doomCanvas->hud->hudFaceWidth, doomCanvas->hud->hudFaceHeight, 0, faceX, dy, 0x24);
+    DoomRPG_setColor(doomCanvas->doomRpg, 0x828282);
+    DoomRPG_drawLine(doomCanvas->doomRpg, faceX + doomCanvas->hud->hudFaceWidth, dispH - doomCanvas->hud->statusBarHeight, faceX + doomCanvas->hud->hudFaceWidth, dispH + -1);
 
     // draw weapon and ammo
-    if (hud->doomRpg->player->weapons) {
-        weapon = hud->doomRpg->player->weapon;
+    if (doomCanvas->player->weapons) {
+        weapon = doomCanvas->player->weapon;
 
         if (weapon == 0) {
-            DoomCanvas_drawImageSpecial(doomCanvas, img, 0, hud->iconSheetHeight << 1, hud->iconSheetWidth, hud->iconSheetHeight, 0, hud->statusAmmoXpos + cx, dy, 0x24);
-            strncpy(hud->ammoNum, "--", 4);
+            DoomCanvas_drawImageSpecial(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight << 1, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusAmmoXpos + cx, dy, 0x24);
+            strncpy(doomCanvas->hud->ammoNum, "--", 4);
         }
         else {
-            combat = hud->doomRpg->combat;
-            DoomCanvas_drawImageSpecial(doomCanvas, img, 0, hud->iconSheetHeight * (combat->weaponInfo[weapon].ammoType + 3), hud->iconSheetWidth, hud->iconSheetHeight, 0, hud->statusAmmoXpos + cx, dy, 0x24);
-            SDL_snprintf(hud->ammoNum, 3, "%d", hud->doomRpg->player->ammo[combat->weaponInfo[weapon].ammoType]);
+            combat = doomCanvas->doomRpg->combat;
+            DoomCanvas_drawImageSpecial(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight * (combat->weaponInfo[weapon].ammoType + 3), doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusAmmoXpos + cx, dy, 0x24);
+            SDL_snprintf(doomCanvas->hud->ammoNum, 3, "%d", doomCanvas->player->ammo[combat->weaponInfo[weapon].ammoType]);
         }
 
-        DoomCanvas_drawFont(doomCanvas, hud->ammoNum, hud->statusAmmoXpos + cx + hud->iconSheetWidth + x * 2, y, 9, 0, 2, hud->largeHud);
+        DoomCanvas_drawFont(doomCanvas, doomCanvas->hud->ammoNum, doomCanvas->hud->statusAmmoXpos + cx + doomCanvas->hud->iconSheetWidth + x * 2, y, 9, 0, 2, doomCanvas->hud->largeHud);
     }
 
     // draw orientation text
@@ -277,11 +277,11 @@ void Hud_drawBottomBar(Hud_t* hud)
         break;
     }
 
-    DoomCanvas_drawImage(doomCanvas, &hud->imgStatusArrow, hud->statusOrientationArrowXpos + cx, y - 3, 9);
-    DoomCanvas_drawFont(doomCanvas, dir, hud->statusOrientationXpos + cx, y + 2, 9, 0, 1, hud->largeHud);
+    DoomCanvas_drawImage(doomCanvas, &doomCanvas->hud->imgStatusArrow, doomCanvas->hud->statusOrientationArrowXpos + cx, y - 3, 9);
+    DoomCanvas_drawFont(doomCanvas, dir, doomCanvas->hud->statusOrientationXpos + cx, y + 2, 9, 0, 1, doomCanvas->hud->largeHud);
 }
 
-void Hud_drawEffects(Hud_t* hud)
+void Hud_drawEffects(DoomCanvas_t* doomCanvas)
 {
 #if skipNullptr
     if (!hud->doomRpg->doomCanvas) {
@@ -289,16 +289,10 @@ void Hud_drawEffects(Hud_t* hud)
         return;
     }
 #endif
-    DoomRPG_t* doomRpg;
-    DoomCanvas_t* doomCanvas;
+    DoomRPG_t* doomRpg = doomCanvas->doomRpg;
     char str[8];
     int x, y, srcY;
-    doomRpg = hud->doomRpg;
-    doomCanvas = doomRpg->doomCanvas;
-    if (doomCanvas->time == (int)NULL)
-        doomCanvas->time=0;
-    if (!hud->damageTime)
-        hud->damageTime = 0;
+    Hud_t* hud = doomCanvas->hud;
     if (doomCanvas->time < hud->damageTime) {
         if (hud->damageCount > 0) {
             DoomRPG_setColor(doomRpg, 0xBB0000);
@@ -344,13 +338,12 @@ void Hud_drawEffects(Hud_t* hud)
         //    Render_setBerserkColor(doomRpg->render);
         //}
 
-        SDL_snprintf(str, sizeof(str), "%d", hud->doomRpg->player->berserkerTics);
-        doomCanvas = hud->doomRpg->doomCanvas;
-        DoomCanvas_drawString1(doomCanvas, str, 400 - 2, hud->doomRpg->hud->statusTopBarHeight + 2, 9);
+        SDL_snprintf(str, sizeof(str), "%d", doomCanvas->player->berserkerTics);
+        DoomCanvas_drawString1(doomCanvas, str, 400 - 2, hud->statusTopBarHeight + 2, 9);
     }
 }
 
-void Hud_drawTopBar(Hud_t* hud)
+void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
 {
 #if skipNullptr
     if (!hud->doomRpg->doomCanvas) {
@@ -358,15 +351,12 @@ void Hud_drawTopBar(Hud_t* hud)
         return;
     }
 #endif
-    DoomCanvas_t* doomCanvas;
     char* text;
     int len;
     int time, w;
     int strBeg, strEnd;
     boolean updateTime;
-
-    doomCanvas = hud->doomRpg->doomCanvas;
-    Hud_drawBarTiles(hud, 0, 0, 400, false);
+    Hud_drawBarTiles(doomCanvas, 0, 0, 400, false);
 
     updateTime = true;
     // New Code Lines
@@ -378,24 +368,24 @@ void Hud_drawTopBar(Hud_t* hud)
     }
 
     if (updateTime) {
-        if ((hud->msgCount > 0) && ((doomCanvas->time - hud->msgTime) > (hud->msgDuration + 150))) {
-            Hud_shiftMsgs(hud);
+        if ((doomCanvas->hud->msgCount > 0) && ((doomCanvas->time - doomCanvas->hud->msgTime) > (doomCanvas->hud->msgDuration + 150))) {
+            Hud_shiftMsgs(doomCanvas);
         }
     }
 
     strBeg = 0;
-    if (hud->msgCount > 0)
+    if (doomCanvas->hud->msgCount > 0)
     {
-        text = hud->messages[0];
+        text = doomCanvas->hud->messages[0];
         if (updateTime) {
-            if (hud->msgDuration < (hud->doomRpg->doomCanvas->time - hud->msgTime)) {
+            if (doomCanvas->hud->msgDuration < (doomCanvas->time - doomCanvas->hud->msgTime)) {
                 return;
             }
         
-            len = SDL_strlen(text) - hud->msgMaxChars;
+            len = SDL_strlen(text) - doomCanvas->hud->msgMaxChars;
 
             if (len > 0) {
-                time = (doomCanvas->time - hud->msgTime);
+                time = (doomCanvas->time - doomCanvas->hud->msgTime);
                 if (time > SCROLL_START_DELAY)
                 {
                     strBeg = ((unsigned int)((time - SCROLL_START_DELAY) / 100));
@@ -406,14 +396,14 @@ void Hud_drawTopBar(Hud_t* hud)
             }
         }
     }
-    else if (hud->statBarMessage != NULL) {
-        text = hud->statBarMessage;
+    else if (doomCanvas->hud->statBarMessage != NULL) {
+        text = doomCanvas->hud->statBarMessage;
     }
-    else if (hud->logMessage[0] != '\0') {
-        text = hud->logMessage;
+    else if (doomCanvas->hud->logMessage[0] != '\0') {
+        text = doomCanvas->hud->logMessage;
     }
-    else if ((doomCanvas->state == ST_PLAYING) && (hud->doomRpg->player->facingEntity) && (hud->doomRpg->player->facingEntity->def->eType != 9)) {
-        text = hud->doomRpg->player->facingEntity->def->name;
+    else if ((doomCanvas->state == ST_PLAYING) && (doomCanvas->player->facingEntity) && (doomCanvas->player->facingEntity->def->eType != 9)) {
+        text = doomCanvas->player->facingEntity->def->name;
     }
     else {
         return;
@@ -425,44 +415,47 @@ void Hud_drawTopBar(Hud_t* hud)
         strEnd = ((unsigned int)((w - 1) / 7)) - 1;
     }
 
-    DoomCanvas_drawFont(doomCanvas, text, 1, (hud->statusTopBarHeight >> 1) - 5, 0, strBeg, strEnd, false);
+    DoomCanvas_drawFont(doomCanvas, text, 1, (doomCanvas->hud->statusTopBarHeight >> 1) - 5, 0, strBeg, strEnd, false);
 }
 
-void Hud_finishMessageBufferForce(Hud_t* hud, boolean force)
+void Hud_finishMessageBufferForce(DoomCanvas_t* doomCanvas, boolean force)
 {
+    Hud_t* hud = doomCanvas->hud;
     hud->msgCount++;
     if (hud->msgCount == 1) {
-        Hud_calcMsgTime(hud);
+        Hud_calcMsgTime(doomCanvas);
         if (force) {
             hud->msgDuration *= 2;
         }
     }
 }
 
-void Hud_finishMessageBuffer(Hud_t* hud)
+void Hud_finishMessageBuffer(DoomCanvas_t* doomCanvas)
 {
-    Hud_finishMessageBufferForce(hud, false);
+    Hud_finishMessageBufferForce(doomCanvas, false);
 }
 
-char* Hud_getMessageBufferForce(Hud_t* hud, boolean force)
+char* Hud_getMessageBufferForce(DoomCanvas_t* doomCanvas, boolean force)
 {
+    Hud_t* hud = doomCanvas->hud;
     if (force) {
         hud->msgCount = 0;
     }
     if (hud->msgCount == MAX_MESSAGES) {
-        Hud_shiftMsgs(hud);
+        Hud_shiftMsgs(doomCanvas);
     }
     hud->messages[hud->msgCount][0] = '\0';
     return hud->messages[hud->msgCount];
 }
 
-char* Hud_getMessageBuffer(Hud_t* hud)
+char* Hud_getMessageBuffer(DoomCanvas_t* doomCanvas)
 {
-    return Hud_getMessageBufferForce(hud, false);
+    return Hud_getMessageBufferForce(doomCanvas, false);
 }
 
-void Hud_shiftMsgs(Hud_t* hud)
+void Hud_shiftMsgs(DoomCanvas_t* doomCanvas)
 {
+    Hud_t* hud = doomCanvas->hud;
     int i;
 
     for (i = 0; i < (hud->msgCount - 1); i++) {
@@ -472,7 +465,7 @@ void Hud_shiftMsgs(Hud_t* hud)
     hud->msgCount--;
     hud->messages[hud->msgCount][0] = '\0';
     if (hud->msgCount > 0) {
-        Hud_calcMsgTime(hud);
+        Hud_calcMsgTime(doomCanvas);
     }
 }
 

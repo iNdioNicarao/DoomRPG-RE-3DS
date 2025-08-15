@@ -167,7 +167,7 @@ boolean MenuSystem_enterDigit(MenuSystem_t* menuSystem, int n)
 	else if (menuSystem->cheatCombo == 92634) {
 		menuSystem->cheatCombo = 0;
 		menuSystem->digitCount = 0;
-		Hud_addMessage(menuSystem->doomRpg->hud, "Health & Armor!");
+		Hud_addMessage(menuSystem->doomRpg->doomCanvas, "Health & Armor!");
 		CombatEntity_setMaxHealth(&menuSystem->doomRpg->player->ce, 99);
 		CombatEntity_setHealth(&menuSystem->doomRpg->player->ce, 99);
 		CombatEntity_setMaxArmor(&menuSystem->doomRpg->player->ce, 99);
@@ -177,7 +177,7 @@ boolean MenuSystem_enterDigit(MenuSystem_t* menuSystem, int n)
 	else if (menuSystem->cheatCombo == 2334) {
 		menuSystem->cheatCombo = 0;
 		menuSystem->digitCount = 0;
-		Hud_addMessage(menuSystem->doomRpg->hud, "Weapons & Ammo!");
+		Hud_addMessage(menuSystem->doomRpg->doomCanvas, "Weapons & Ammo!");
 		menuSystem->doomRpg->player->weapons = 2559;
 		for (i = 0; i < 6; i++) {
 			Player_addAmmo(menuSystem->doomRpg->player, i, 99);

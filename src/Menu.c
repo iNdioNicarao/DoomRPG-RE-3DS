@@ -185,7 +185,7 @@ void Menu_textVolume(Menu_t* menu, int volume)
 {
 	int itemId;
 
-	//itemId = (menu->doomRpg->doomCanvas->sndFXOnly) ? 2 : 3; // Old
+	//itemId = (doomCanvas->sndFXOnly) ? 2 : 3; // Old
 	itemId = (menu->doomRpg->doomCanvas->sndFXOnly) ? 1 : 2;
 
 	SDL_snprintf(menu->doomRpg->menuSystem->items[itemId].textField2, 
@@ -426,9 +426,9 @@ void Menu_initMenu(Menu_t* menu, int i)
 
 
 #if 0 // Original Code
-			if (menu->doomRpg->doomCanvas->sndFXOnly == false) {
+			if (doomCanvas->sndFXOnly == false) {
 				MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Vibrate:",
-					menu->doomRpg->doomCanvas->vibrateEnabled ? "on" : "off", 0, 0);
+					doomCanvas->vibrateEnabled ? "on" : "off", 0, 0);
 
 				MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Sound:",
 					menu->doomRpg->sound->soundEnabled ? "on" : "off", 0, 0);
@@ -436,7 +436,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 			else {
 				MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "FX:",
 					menu->doomRpg->sound->soundEnabled ? "Sound" :
-					menu->doomRpg->doomCanvas->vibrateEnabled ? "Vibrate" : "None", 0, 0);
+					doomCanvas->vibrateEnabled ? "Vibrate" : "None", 0, 0);
 			}
 
 			if (menu->doomRpg->sound->soundEnabled) {
@@ -1242,24 +1242,18 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 		}
 
 		case MENU_MAIN: {
-			if (itemId == 0) { // Start Game
-				if (Game_checkConfigVersion(menu->doomRpg->game)) {
-					return MENU_MAIN_CONTINUE;
-				}
-				Menu_startGame(menu, 1);
-				return MENU_NONE;
-			}
-			else if (itemId == 1) {
-				return MENU_MAIN_OPTIONS; // Options
-			}
-			else if (itemId == 2) {
-				return MENU_MAIN_HELP_ABOUT; // Help/About
-			}
-			else if (itemId == 3) {
-				return MENU_MAIN_EXIT; // Exit
-			}
-			else {
-				return MENU_NONE;
+			switch (itemId) {
+				case 0:
+					if (Game_checkConfigVersion(menu->doomRpg->game)) {
+						return MENU_MAIN_CONTINUE;
+					}
+					Menu_startGame(menu, 1);
+					return MENU_NONE;
+				case 1:	return MENU_MAIN_OPTIONS; // Options
+				case 2: return MENU_MAIN_HELP_ABOUT;
+				case 3: return MENU_MAIN_EXIT;
+				default: return MENU_NONE;
+
 			}
 			break;
 		}
@@ -1270,85 +1264,80 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 		}
 
 		case MENU_MAIN_EXIT: {
-			if (itemId == 2) {
-				DoomRPG_notifyDestroyed(menu->doomRpg);
-				return MENU_MAIN_EXIT;
-			}
-			else if (itemId == 3) {
-				return MENU_MAIN;
+			switch (itemId) {
+				case 2:
+					DoomRPG_notifyDestroyed(menu->doomRpg);
+					return MENU_MAIN_EXIT;
+				case 3:
+					return MENU_MAIN;
 			}
 			break;
 		}
 
 		case MENU_MAIN_ERASE: {
-			if (itemId == 2) { // Yes
-				return MENU_MAIN_SURE;
-			}
-			else if (itemId == 3) { // No
-				return MENU_MAIN;
+			switch (itemId) {
+				case 2: return MENU_MAIN_SURE;
+				case 3: return MENU_MAIN;
 			}
 			break;
 		}
 
 		case MENU_MAIN_SURE: {
-			if (itemId == 2) { // Yes
-				Game_deleteSaveFiles(menu->doomRpg->game);
-				Menu_startGame(menu, 1);
-			}
-			else if (itemId == 3) { // No
-				return MENU_MAIN;
+			switch (itemId) {
+				case 2: Game_deleteSaveFiles(menu->doomRpg->game);
+					Menu_startGame(menu, 1);
+					break;
+				case 3: return MENU_MAIN;
 			}
 			break;
 		}
 
 		case MENU_MAIN_CONTINUE: {
-			if (itemId == 0) {
-				Menu_startGame(menu, 0);
-			}
-			else if (itemId == 1) {
-				if (Game_checkConfigVersion(menu->doomRpg->game)) {
-					return MENU_MAIN_ERASE;
-				}
-				Menu_startGame(menu, 1);
-			}
-			else {
-				return menu->doomRpg->menuSystem->oldMenu;
+			switch (itemId) {
+				case 0: Menu_startGame(menu, 0);
+					break;
+				case 1:
+					if (Game_checkConfigVersion(menu->doomRpg->game)) {
+						return MENU_MAIN_ERASE;
+					}
+					Menu_startGame(menu, 1);
+					break;
+				default:
+					return menu->doomRpg->menuSystem->oldMenu;
 			}
 			break;
 		}
 
 		case MENU_MAIN_OPTIONS:    // MENU_MAIN_OPTIONS
 		case MENU_INGAME_OPTIONS: { // MENU_INGAME_OPTIONS
-
-
-
-				if (itemId == 0) {
+			switch (itemId) {
+				case 0:
 					return menuSystem->oldMenu;
-				}
-				else if (itemId == 1) { // New video Option
+				case 1:
 					if (menuSystem->items[itemId].action == true) {
 						return MENU_INGAME_VIDEO;
 					}
-					else{
+					else {
 						return MENU_VIDEO;
 					}
-				}
-				else if (itemId == 2) { // New Input Option
+					break;
+				case 2:
 					if (menuSystem->items[itemId].action == true) {
 						return MENU_INGAME_INPUT;
 					}
 					else {
 						return MENU_INPUT;
 					}
-				}
-				else if (itemId == 3) { // New Input Option
+					break;
+				case 3:
 					if (menuSystem->items[itemId].action == true) {
 						return MENU_INGAME_SOUND;
 					}
 					else {
 						return MENU_SOUND;
 					}
-				}
+					break;
+			}
 
 #if 0 // Original Code
 			if (doomCanvas->sndFXOnly == false) {
@@ -1485,7 +1474,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 
 		case MENU_GOTO_JUNCTION: {	// MENU_GOTO_JUNCTION
 			if (action == 0) {
-				DoomCanvas_loadMap(menu->doomRpg->doomCanvas, MAP_JUNCTION);
+				DoomCanvas_loadMap(doomCanvas, MAP_JUNCTION);
 			}
 			else if(action == 1) {
 				return MENU_QUIT_TO_MAIN_MENU;
@@ -1500,7 +1489,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			}
 
 			if (action == 0) {
-				DoomCanvas_saveState(menu->doomRpg->doomCanvas, 12, "Saving Game...");
+				DoomCanvas_saveState(doomCanvas, 12, "Saving Game...");
 				return MENU_NONE;
 			}
 			else {
@@ -1553,7 +1542,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 					DoomCanvas_saveState(doomCanvas, 11, "Saving Game...");
 				}
 				else if(action == 1) { // Don't Save
-					DoomCanvas_setupmenu(menu->doomRpg->doomCanvas, 0);
+					DoomCanvas_setupmenu(doomCanvas, 0);
 					return MENU_MAIN;
 				}
 				else if (action == 2) { // Cancel
@@ -1562,7 +1551,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			}
 			else {
 				if (action == 1) { // Yes
-					DoomCanvas_setupmenu(menu->doomRpg->doomCanvas, 0);
+					DoomCanvas_setupmenu(doomCanvas, 0);
 					return MENU_MAIN;
 				}
 				else if (action == 0) { // No
@@ -1651,7 +1640,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			if (action != 1) {
 				return MENU_INGAME_DEAD;
 			}
-			DoomCanvas_loadState(menu->doomRpg->doomCanvas, 3, "Loading Junction");
+			DoomCanvas_loadState(doomCanvas, 3, "Loading Junction");
 			break;
 		}
 
@@ -1689,49 +1678,50 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			case 2:
 				doomCanvas->speeds = !doomCanvas->speeds;
 				SDL_snprintf(text, sizeof(text), "r_speeds %s", doomCanvas->speeds ? "on" : "off");
-				Hud_addMessage(menu->doomRpg->hud, text);
+				Hud_addMessage(doomCanvas, text);
 				doomCanvas->skipCheckState = true;
 				return MENU_DEVELOPER_VARS;
 			case 3:
 				menu->doomRpg->render->skipCull = !menu->doomRpg->render->skipCull;
 				SDL_snprintf(text, sizeof(text), "r_skipCull %s", menu->doomRpg->render->skipCull ? "on" : "off");
-				Hud_addMessage(menu->doomRpg->hud, text);
+				Hud_addMessage(doomCanvas, text);
 				doomCanvas->skipCheckState = true;
 				return MENU_DEVELOPER_VARS;
 			case 4:
 				menu->doomRpg->render->skipStretch = !menu->doomRpg->render->skipStretch;
 				SDL_snprintf(text, sizeof(text), "r_skipStretch %s", menu->doomRpg->render->skipStretch ? "on" : "off");
-				Hud_addMessage(menu->doomRpg->hud, text);
+				Hud_addMessage(doomCanvas, text);
 				doomCanvas->skipCheckState = true;
 				return MENU_DEVELOPER_VARS;
 			case 5:
 				menu->doomRpg->render->skipBSP = !menu->doomRpg->render->skipBSP;
 				SDL_snprintf(text, sizeof(text), "r_skipBSP %s", menu->doomRpg->render->skipBSP ? "on" : "off");
-				Hud_addMessage(menu->doomRpg->hud, text);
+				Hud_addMessage(doomCanvas, text);
 				doomCanvas->skipCheckState = true;
 				return MENU_DEVELOPER_VARS;
 			case 6:
 				menu->doomRpg->render->skipLines = !menu->doomRpg->render->skipLines;
 				SDL_snprintf(text, sizeof(text), "r_skipLines %s", menu->doomRpg->render->skipLines ? "on" : "off");
-				Hud_addMessage(menu->doomRpg->hud, text);
+				Hud_addMessage(doomCanvas, text);
 				doomCanvas->skipCheckState = true;
 				return MENU_DEVELOPER_VARS;
 			case 7:
 				menu->doomRpg->render->skipSprites = !menu->doomRpg->render->skipSprites;
 				SDL_snprintf(text, sizeof(text), "r_skipSprites %s", menu->doomRpg->render->skipSprites ? "on" : "off");
-				Hud_addMessage(menu->doomRpg->hud, text);
+				Hud_addMessage(doomCanvas, text);
 				doomCanvas->skipCheckState = true;
 				return MENU_DEVELOPER_VARS;
 			case 8:
 				doomCanvas->renderOnly = !doomCanvas->renderOnly;
 				SDL_snprintf(text, sizeof(text), "r_onlyRender %s", doomCanvas->renderOnly ? "on" : "off");
-				Hud_addMessage(menu->doomRpg->hud, text);
+				Hud_addMessage(doomCanvas, text);
 				doomCanvas->skipCheckState = true;
 				return MENU_DEVELOPER_VARS;
 			case 9:
 				doomCanvas->s_debug = !doomCanvas->s_debug;
 				SDL_snprintf(text, sizeof(text), "s_debug %s", doomCanvas->s_debug ? "on" : "off");
-				Hud_addMessage(menu->doomRpg->hud, text);
+				Hud_addMessage(doomCanvas, text);
+					
 				return MENU_DEVELOPER_VARS;
 			}
 
@@ -1795,11 +1785,11 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 				return menuSystem->oldMenu;
 			case 1:
 				menu->doomRpg->player->noclip = !menu->doomRpg->player->noclip;
-				Hud_addMessage(menu->doomRpg->hud, menu->doomRpg->player->noclip ? "noclip on" : "noclip off");
+				Hud_addMessage(doomCanvas, menu->doomRpg->player->noclip ? "noclip on" : "noclip off");
 				break;
 			case 2:
 				menu->doomRpg->game->disableAI = !menu->doomRpg->game->disableAI;
-				Hud_addMessage(menu->doomRpg->hud, menu->doomRpg->game->disableAI ? "AI off" : "AI on");
+				Hud_addMessage(doomCanvas, menu->doomRpg->game->disableAI ? "AI off" : "AI on");
 				break;
 			case 3:
 				menu->doomRpg->player->weapons = 2559;
@@ -1811,18 +1801,18 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 					Player_addItem(menu->doomRpg->player, i7, 5);
 				}
 				Player_addCredits(menu->doomRpg->player, 20);
-				Hud_addMessage(menu->doomRpg->hud, "give all");
+				Hud_addMessage(doomCanvas, "give all");
 				break;
 			case 4:
 
 				for (int i8 = 0; i8 < 6; i8++) {
 					Player_addAmmo(menu->doomRpg->player, i8, 10);
 				}
-				Hud_addMessage(menu->doomRpg->hud, "give ammo");
+				Hud_addMessage(doomCanvas, "give ammo");
 				break;
 			case 5:
 				menu->doomRpg->player->god = !menu->doomRpg->player->god;
-				Hud_addMessage(menu->doomRpg->hud, menu->doomRpg->player->god ? "God on" : "God off");
+				Hud_addMessage(doomCanvas, menu->doomRpg->player->god ? "God on" : "God off");
 				break;
 			case 6:
 				Player_nextLevel(menu->doomRpg->player);
@@ -1941,8 +1931,8 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			if(itemId != 2) {
 				return MENU_INGAME;
 			}
-			DoomCanvas_loadState(menu->doomRpg->doomCanvas, 1, "Loading Game...");
-			Hud_addMessage(menu->doomRpg->hud, "Game Loaded");
+			DoomCanvas_loadState(doomCanvas, 1, "Loading Game...");
+			Hud_addMessage(doomCanvas, "Game Loaded");
 			break;
 
 		case MENU_INGAME_LOADNOSAVE:
@@ -1993,8 +1983,8 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			}
 			#endif
 			else if (itemId == 8) { // New display SoftKeys Option
-				menu->doomRpg->doomCanvas->renderFloorCeilingTextures ^= true;
-				strncpy(menuSystem->items[itemId].textField2, menu->doomRpg->doomCanvas->renderFloorCeilingTextures ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
+				doomCanvas->renderFloorCeilingTextures ^= true;
+				strncpy(menuSystem->items[itemId].textField2, doomCanvas->renderFloorCeilingTextures ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
 			}
 
 			Game_saveConfig(menu->doomRpg->game, 0);
@@ -2051,7 +2041,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 
 
 					MenuItem_Set2(&menuSystem->items[itemId + 2], "Priority:", "", 0, 0);
-					strncpy(menuSystem->items[itemId + 2].textField2, menu->doomRpg->doomCanvas->sndPriority ? "on" : "off", sizeof(menuSystem->items[itemId + 2].textField2));
+					strncpy(menuSystem->items[itemId + 2].textField2, doomCanvas->sndPriority ? "on" : "off", sizeof(menuSystem->items[itemId + 2].textField2));
 				}
 				else {
 					strncpy(menuSystem->items[itemId].textField2, "off", sizeof(menuSystem->items[itemId].textField2));
@@ -2072,8 +2062,8 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 				}
 			}
 			else if (itemId == 3) {
-				menu->doomRpg->doomCanvas->sndPriority ^= true;
-				strncpy(menuSystem->items[itemId].textField2, menu->doomRpg->doomCanvas->sndPriority ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
+				doomCanvas->sndPriority ^= true;
+				strncpy(menuSystem->items[itemId].textField2, doomCanvas->sndPriority ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
 			}
 
 			return menuSystem->menu;
@@ -2112,26 +2102,26 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 				return menuSystem->oldMenu;
 			}
 			else if (itemId == 1) { // Sensitivity
-				menu->doomRpg->doomCanvas->mouseSensitivity += 5;
-				if (menu->doomRpg->doomCanvas->mouseSensitivity > 100) {
-					menu->doomRpg->doomCanvas->mouseSensitivity = 0;
+				doomCanvas->mouseSensitivity += 5;
+				if (doomCanvas->mouseSensitivity > 100) {
+					doomCanvas->mouseSensitivity = 0;
 				}
 
 				SDL_snprintf(menuSystem->items[itemId].textField2,
-					sizeof(menuSystem->items[itemId].textField2), "%d%%", (menu->doomRpg->doomCanvas->mouseSensitivity * 100) / 100);
+					sizeof(menuSystem->items[itemId].textField2), "%d%%", (doomCanvas->mouseSensitivity * 100) / 100);
 			}
 			else if (itemId == 2) { // Y Movement
-				menu->doomRpg->doomCanvas->mouseYMove ^= true;
-				strncpy(menuSystem->items[itemId].textField2, menu->doomRpg->doomCanvas->mouseYMove ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
+				doomCanvas->mouseYMove ^= true;
+				strncpy(menuSystem->items[itemId].textField2, doomCanvas->mouseYMove ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
 			}
 			else if (itemId == 3) { // Reset Defaults
-				menu->doomRpg->doomCanvas->mouseSensitivity = 50;
-				menu->doomRpg->doomCanvas->mouseYMove = true;
+				doomCanvas->mouseSensitivity = 50;
+				doomCanvas->mouseYMove = true;
 
 				SDL_snprintf(menuSystem->items[itemId-2].textField2,
-					sizeof(menuSystem->items[itemId-2].textField2), "%d%%", (menu->doomRpg->doomCanvas->mouseSensitivity * 100) / 100);
+					sizeof(menuSystem->items[itemId-2].textField2), "%d%%", (doomCanvas->mouseSensitivity * 100) / 100);
 
-				strncpy(menuSystem->items[itemId-1].textField2, menu->doomRpg->doomCanvas->mouseYMove ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
+				strncpy(menuSystem->items[itemId-1].textField2, doomCanvas->mouseYMove ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
 			}
 
 			return menuSystem->menu;

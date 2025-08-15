@@ -54,18 +54,18 @@ typedef struct Hud_s
 
 Hud_t* Hud_init(Hud_t* hud, DoomRPG_t* doomRpg);
 void Hud_free(Hud_t* hud, boolean freePtr);
-void Hud_addMessage(Hud_t* hud, char* str);
-void Hud_addMessageForce(Hud_t* hud, char* str, boolean force);
-void Hud_calcMsgTime(Hud_t* hud);
-void Hud_drawBarTiles(Hud_t* hud, int x, int y, int width, boolean isLargerStatusBar);
-void Hud_drawBottomBar(Hud_t* hud);
-void Hud_drawEffects(Hud_t* hud);
-void Hud_drawTopBar(Hud_t* hud);
-void Hud_finishMessageBufferForce(Hud_t* hud, boolean force);
-void Hud_finishMessageBuffer(Hud_t* hud);
-char* Hud_getMessageBufferForce(Hud_t* hud, boolean force);
-char* Hud_getMessageBuffer(Hud_t* hud);
-void Hud_shiftMsgs(Hud_t* hud);
+void Hud_addMessage(DoomCanvas_t* doomCanvas, char* str);
+void Hud_addMessageForce(DoomCanvas_t* doomCanvas, char* str, boolean force);
+void Hud_calcMsgTime(DoomCanvas_t* doomCanvas);
+void Hud_drawBarTiles(DoomCanvas_t* doomCanvas, int x, int y, int width, boolean isLargerStatusBar);
+void Hud_drawBottomBar(DoomCanvas_t* doomcanvas);
+void Hud_drawEffects(DoomCanvas_t* doomcanvas);
+void Hud_drawTopBar(DoomCanvas_t* doomcanvas);
+void Hud_finishMessageBufferForce(DoomCanvas_t* doomCanvas, boolean force);
+void Hud_finishMessageBuffer(DoomCanvas_t* doomCanvas);
+char* Hud_getMessageBufferForce(DoomCanvas_t* doomCanvas, boolean force);
+char* Hud_getMessageBuffer(DoomCanvas_t* doomCanvas);
+void Hud_shiftMsgs(DoomCanvas_t* doomCanvas);
 void Hud_startup(Hud_t* hud, boolean largeStatus);
 
 #endif

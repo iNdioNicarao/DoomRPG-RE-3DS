@@ -87,7 +87,7 @@ void Player_addArmor(Player_t* player, int i)
 	}
 	if (CombatEntity_getArmor(ce) > armmor) {
 		SDL_snprintf(msg, sizeof(msg), "Gained %d armor", (CombatEntity_getArmor(ce) - armmor));
-		Hud_addMessage(player->doomRpg->hud, msg);
+		Hud_addMessage(player->doomRpg->doomCanvas, msg);
 	}
 }
 
@@ -120,7 +120,7 @@ void Player_addHealth(Player_t* player, int i)
 	}
 	if (CombatEntity_getHealth(ce) > health) {
 		SDL_snprintf(msg, sizeof(msg), "Gained %d health", (CombatEntity_getHealth(ce) - health));
-		Hud_addMessage(player->doomRpg->hud, msg);
+		Hud_addMessage(player->doomRpg->doomCanvas, msg);
 	}
 }
 
@@ -235,7 +235,7 @@ void Player_addXP(Player_t* player, int xp)
 	char text[64];
 
 	SDL_snprintf(text, sizeof(text), "Gained %d XP!", xp);
-	Hud_addMessage(player->doomRpg->hud, text);
+	Hud_addMessage(player->doomRpg->doomCanvas, text);
 	player->currentXP += xp;
 	player->xpGained += xp;
 	while (player->currentXP >= player->nextLevelXP) {
@@ -251,7 +251,7 @@ void Player_updateBerserkerTics(Player_t* player)
 	if (player->berserkerTics) {
 		player->berserkerTics--;
 		if (player->berserkerTics == 0) {
-			Hud_addMessageForce(player->doomRpg->hud, "Berserker expired!", true);
+			Hud_addMessageForce(player->doomRpg->doomCanvas, "Berserker expired!", true);
 			for (i = 0; i < player->doomRpg->render->screenWidth; i++) {
 				player->doomRpg->render->floorColor[i] = player->prevFloorColor;
 				player->doomRpg->render->ceilingColor[i] = player->prevCeilingColor;
@@ -375,7 +375,7 @@ boolean Player_fireWeapon(Player_t* player, Entity_t* entity)
 		return true;
 	}
 
-	Hud_addMessageForce(player->doomRpg->hud, "Not enough ammo!", true);
+	Hud_addMessageForce(player->doomRpg->doomCanvas, "Not enough ammo!", true);
 	return false;
 }
 
@@ -589,7 +589,7 @@ void Player_pain(Player_t* player, int i, int i2)
 		strncat(text, " Dog died!", sizeof(text));
 	}
 
-	Hud_addMessage(player->doomRpg->hud, text);
+	Hud_addMessage(player->doomRpg->doomCanvas, text);
 
 	if (i + i2) {
 		ce = &player->ce;
@@ -607,13 +607,13 @@ void Player_pain(Player_t* player, int i, int i2)
 		h2 = ((CombatEntity_getHealth(ce) - i) << 16) / (CombatEntity_getMaxHealth(ce) << 8);
 		if (h2 > 0) {
 			if (h1 > 26 && h2 <= 26) {
-				Hud_addMessageForce(player->doomRpg->hud, MenuSystem_buildDivider(player->doomRpg->menuSystem, "Near Death!"), true);
+				Hud_addMessageForce(player->doomRpg->doomCanvas, MenuSystem_buildDivider(player->doomRpg->menuSystem, "Near Death!"), true);
 			}
 			else if (h1 > 78 && h2 <= 78) {
-				Hud_addMessageForce(player->doomRpg->hud, MenuSystem_buildDivider(player->doomRpg->menuSystem, "Low Health!"), true);
+				Hud_addMessageForce(player->doomRpg->doomCanvas, MenuSystem_buildDivider(player->doomRpg->menuSystem, "Low Health!"), true);
 			}
 			else if (armor > 0 && CombatEntity_getArmor(ce) == 0) {
-				Hud_addMessageForce(player->doomRpg->hud, MenuSystem_buildDivider(player->doomRpg->menuSystem, "Armor Gone!"), true);
+				Hud_addMessageForce(player->doomRpg->doomCanvas, MenuSystem_buildDivider(player->doomRpg->menuSystem, "Armor Gone!"), true);
 			}
 		}
 		Player_addHealth(player, -i);
@@ -681,25 +681,25 @@ boolean Player_checkStatusItem(Player_t* player, int i, int i2)
 		if (CombatEntity_getHealth(&player->ce) >= i2) {
 			return true;
 		}
-		Hud_addMessage(player->doomRpg->hud, "Insufficient health!");
+		Hud_addMessage(player->doomRpg->doomCanvas, "Insufficient health!");
 		return false;
 	case 1:
 		if (CombatEntity_getArmor(&player->ce) >= i2) {
 			return true;
 		}
-		Hud_addMessage(player->doomRpg->hud, "Insufficient armor!");
+		Hud_addMessage(player->doomRpg->doomCanvas, "Insufficient armor!");
 		return false;
 	case 2:
 		if (player->credits >= i2) {
 			return true;
 		}
-		Hud_addMessage(player->doomRpg->hud, "Insufficient funds!");
+		Hud_addMessage(player->doomRpg->doomCanvas, "Insufficient funds!");
 		return false;
 	case 3:
 		if (player->currentXP >= i2) {
 			return true;
 		}
-		Hud_addMessage(player->doomRpg->hud, "Insufficient XP!");
+		Hud_addMessage(player->doomRpg->doomCanvas, "Insufficient XP!");
 		return false;
 	default:
 		return true;
@@ -801,13 +801,13 @@ boolean Player_useCollarItem(Player_t* player)
 		NULL, 22151);
 	
 	if (player->doomRpg->game->numTraceEntities == 0) {
-		Hud_addMessage(player->doomRpg->hud, "No dog within range");
+		Hud_addMessage(player->doomRpg->doomCanvas, "No dog within range");
 		return false;
 	}
 
 	entity = player->doomRpg->game->traceEntities[0];
 	if (entity->def->eType != 1) {
-		Hud_addMessage(player->doomRpg->hud, "Bad target for Dog Collar");
+		Hud_addMessage(player->doomRpg->doomCanvas, "Bad target for Dog Collar");
 		return false;
 	}
 	else if (entity->def->eSubType != 1) {
@@ -817,9 +817,9 @@ boolean Player_useCollarItem(Player_t* player)
 		// This text does not appear in BREW versions only in J2ME, 
 		// since it did not make the calls of the functions(Hud_getMessageBuffer, Hud_finishMessageBuffer)
 		// in this version I have repaired it
-		text = Hud_getMessageBuffer(player->doomRpg->hud);
+		text = Hud_getMessageBuffer(player->doomRpg->doomCanvas);
 		SDL_snprintf(text, MS_PER_CHAR, "Dog Collar won't fit %s%c", entity->def->name, 0x7f);
-		Hud_finishMessageBuffer(player->doomRpg->hud);
+		Hud_finishMessageBuffer(player->doomRpg->doomCanvas);
 		return false;
 	}
 	else {
@@ -858,7 +858,7 @@ void Player_useItem(Player_t* player, byte item)
 			Sound_playSound(player->doomRpg->sound, 5062, SND_FLG_NOFORCESTOP, 3);
 			break;
 		case 28:
-			Hud_addMessage(player->doomRpg->hud, "Berserker activated!");
+			Hud_addMessage(player->doomRpg->doomCanvas, "Berserker activated!");
 			if (player->berserkerTics == 0) {
 				player->prevCeilingColor = player->doomRpg->render->ceilingColor[0];
 				player->prevFloorColor = player->doomRpg->render->floorColor[0];

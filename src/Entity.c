@@ -273,7 +273,7 @@ void Entity_died(Entity_t* entity)
                 gSprite->flags |= 4;
                 gSprite->sprite->renderMode = 7;
                 Game_remove(game, entity);
-                Hud_addMessage(entity->doomRpg->hud, "Fire cleared!");
+                Hud_addMessage(doomCanvas, "Fire cleared!");
                 Player_addXP(entity->doomRpg->player, 2);
                 break;
 
@@ -288,7 +288,7 @@ void Entity_died(Entity_t* entity)
                         rnd = DoomRPG_randNextByte(&doomRpg->random);
                         if (rnd < 2) {
                             Game_gsprite_allocAnim(game, 1, sprite->x, sprite->y);
-                            Hud_addMessage(entity->doomRpg->hud, "Trapped!");
+                            Hud_addMessage(doomCanvas, "Trapped!");
                             break;
                         }
                         else {
@@ -318,7 +318,7 @@ void Entity_died(Entity_t* entity)
                         }
 
                     case 3: // Jammed Door / Weak Wall
-                        Hud_addMessage(doomRpg->hud, "Door cleared!");
+                        Hud_addMessage(doomCanvas, "Door cleared!");
                         Player_addXP(entity->doomRpg->player, 1);
                         break;
 
@@ -891,7 +891,7 @@ void Entity_touched(Entity_t* entity)
                 case 22:
                 case 23: {
                     if (!Player_addCredits(player, entity->def->parm)) {
-                        Hud_addMessage(hud, "Credits at maximum");
+                        Hud_addMessage(entity->doomRpg->doomCanvas, "Credits at maximum");
                         return;
                     }
                     Player_updateDamageFaceTime(player);
@@ -900,7 +900,7 @@ void Entity_touched(Entity_t* entity)
 
                 case 21: {
                     if (CombatEntity_getArmor(&player->ce) >= CombatEntity_getMaxArmor(&player->ce)) {
-                        Hud_addMessage(hud, "Armor at maximum");
+                        Hud_addMessage(entity->doomRpg->doomCanvas, "Armor at maximum");
                         return;
                     }
                     Player_addArmor(player, entity->def->parm);
@@ -909,7 +909,7 @@ void Entity_touched(Entity_t* entity)
 
                 case 20: {
                     if (CombatEntity_getHealth(&player->ce) >= CombatEntity_getMaxHealth(&player->ce)) {
-                        Hud_addMessage(hud, "Health at maximum");
+                        Hud_addMessage(entity->doomRpg->doomCanvas, "Health at maximum");
                         return;
                     }
                     Player_addHealth(player, entity->def->parm);
@@ -926,18 +926,18 @@ void Entity_touched(Entity_t* entity)
             Sound_playSound(entity->doomRpg->sound, sound, 0, 2);
             hud->gotFaceTime = entity->doomRpg->doomCanvas->time + 500;
 
-            msg = Hud_getMessageBuffer(hud);
+            msg = Hud_getMessageBuffer(entity->doomRpg->doomCanvas);
             SDL_snprintf(msg, MS_PER_CHAR, "Got %s", entity->def->name);
-            Hud_finishMessageBuffer(hud);
+            Hud_finishMessageBuffer(entity->doomRpg->doomCanvas);
             Game_remove(entity->doomRpg->game, entity);
             break;
         }
 
         case 4: {
             if (!Player_addItem(player, entity->def->eSubType, 1)) {
-                msg = Hud_getMessageBuffer(hud);
+                msg = Hud_getMessageBuffer(entity->doomRpg->doomCanvas);
                 SDL_snprintf(msg, MS_PER_CHAR, "Can't hold more %ss", entity->def->name);
-                Hud_finishMessageBuffer(hud);
+                Hud_finishMessageBuffer(entity->doomRpg->doomCanvas);
                 return;
             }
             Player_updateDamageFaceTime(player);
@@ -948,9 +948,9 @@ void Entity_touched(Entity_t* entity)
             Sound_playSound(entity->doomRpg->sound, sound, 0, 3);
 
             hud->gotFaceTime = entity->doomRpg->doomCanvas->time + 500;
-            msg = Hud_getMessageBuffer(hud);
+            msg = Hud_getMessageBuffer(entity->doomRpg->doomCanvas);
             SDL_snprintf(msg, MS_PER_CHAR, "Got %s", entity->def->name);
-            Hud_finishMessageBuffer(hud);
+            Hud_finishMessageBuffer(entity->doomRpg->doomCanvas);
             Game_remove(entity->doomRpg->game, entity);
             break;
         }
@@ -958,14 +958,14 @@ void Entity_touched(Entity_t* entity)
         case 6:
         case 16: {
             if (!Player_addAmmo(player, entity->def->eSubType, entity->def->parm)) {
-                Hud_addMessage(hud, "Ammo at maximum");
+                Hud_addMessage(entity->doomRpg->doomCanvas, "Ammo at maximum");
                 return;
             }
             Player_updateDamageFaceTime(player);
             hud->gotFaceTime = entity->doomRpg->doomCanvas->time + 500;
-            msg = Hud_getMessageBuffer(hud);
+            msg = Hud_getMessageBuffer(entity->doomRpg->doomCanvas);
             SDL_snprintf(msg, MS_PER_CHAR, "Got %s", entity->def->name);
-            Hud_finishMessageBuffer(hud);
+            Hud_finishMessageBuffer(entity->doomRpg->doomCanvas);
 
             Sound_playSound(entity->doomRpg->sound, sound, 0, 3);
             Game_remove(entity->doomRpg->game, entity);
@@ -989,9 +989,9 @@ void Entity_touched(Entity_t* entity)
 
             //Sound.playSound(1);
             hud->gotFaceTime = entity->doomRpg->doomCanvas->time + 500;
-            msg = Hud_getMessageBuffer(hud);
+            msg = Hud_getMessageBuffer(entity->doomRpg->doomCanvas);
             SDL_snprintf(msg, MS_PER_CHAR, "Got %s", entity->def->name);
-            Hud_finishMessageBuffer(hud);
+            Hud_finishMessageBuffer(entity->doomRpg->doomCanvas);
             Game_remove(entity->doomRpg->game, entity);
 
             if (z) {
@@ -1047,14 +1047,14 @@ void Entity_touched(Entity_t* entity)
         case 10: {
             Player_painEvent(player, NULL);
             Player_pain(player, 1, 2);
-            Hud_addMessage(hud, "It burns!");
+            Hud_addMessage(entity->doomRpg->doomCanvas, "It burns!");
             break;
         }
 
         case 11: {
             Player_painEvent(player, NULL);
             Player_pain(player, 10, 10);
-            Hud_addMessage(hud, "It really burns!!");
+            Hud_addMessage(entity->doomRpg->doomCanvas, "It really burns!!");
             break;
         }
     }
