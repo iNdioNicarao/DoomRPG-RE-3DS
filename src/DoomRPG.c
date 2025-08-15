@@ -1328,103 +1328,127 @@ void DoomRPG_notifyDestroyed(DoomRPG_t* doomrpg)
 	doomRpg->closeApplet = true;
 }
 
-
 void File_writeBoolean(SDL_RWops* rw, int i)
 {
-	char boolData;
-
-	boolData = (i != 0) ? true : false;
-	if (rw) {
-		SDL_RWwrite(rw, &boolData, sizeof(byte), 1);
-	}
+    uint8_t boolData = (i != 0) ? 1u : 0u;
+    if (!rw) return;
+    size_t written = SDL_RWwrite(rw, &boolData, sizeof(uint8_t), 1);
+#ifdef DEBUG
+    if (written != 1) fprintf(stderr, "File_writeBoolean: write failed\n");
+#endif
 }
 
+/* Writes a signed byte (preserve -1 sentinel). */
 void File_writeByte(SDL_RWops* rw, int i)
 {
-	char bData;
-	bData = i;
-	if (rw) {
-		SDL_RWwrite(rw, &bData, sizeof(byte), 1);
-	}
+    int8_t bData = (int8_t)i;
+    if (!rw) return;
+    size_t written = SDL_RWwrite(rw, &bData, sizeof(int8_t), 1);
+#ifdef DEBUG
+    if (written != 1) fprintf(stderr, "File_writeByte: write failed\n");
+#endif
 }
 
+/* Writes a 16-bit short in little-endian (explicit 16-bit). */
 void File_writeShort(SDL_RWops* rw, int i)
 {
-	short sData;
-	sData = SDL_SwapLE16(i);
-	if (rw) {
-		SDL_RWwrite(rw, &sData, sizeof(short), 1);
-	}
+    if (!rw) return;
+    int16_t sData = (int16_t)i;
+    uint16_t u = SDL_SwapLE16((uint16_t)sData);
+    size_t written = SDL_RWwrite(rw, &u, sizeof(uint16_t), 1);
+#ifdef DEBUG
+    if (written != 1) fprintf(stderr, "File_writeShort: write failed\n");
+#endif
 }
 
+/* Writes a 32-bit int in little-endian (explicit 32-bit). */
 void File_writeInt(SDL_RWops* rw, int i)
 {
-	int iData;
-	iData = SDL_SwapLE32(i);
-	if (rw) {
-		SDL_RWwrite(rw, &iData, sizeof(int), 1);
-	}
+    if (!rw) return;
+    int32_t iData = (int32_t)i;
+    uint32_t u = SDL_SwapLE32((uint32_t)iData);
+    size_t written = SDL_RWwrite(rw, &u, sizeof(uint32_t), 1);
+#ifdef DEBUG
+    if (written != 1) fprintf(stderr, "File_writeInt: write failed\n");
+#endif
 }
+
+/* Writes a 32-bit "long" (keeps 32-bit semantics). Prefer File_writeInt in new code. */
 void File_writeLong(SDL_RWops* rw, int i)
 {
-	long lData;
-	lData = SDL_SwapLE32(i);
-	if (rw) {
-		SDL_RWwrite(rw, &lData, sizeof(long), 1);
-	}
+    /* On platforms where long == 4 bytes this matches the old behavior.
+       We intentionally write 32 bits to keep file portable. */
+    File_writeInt(rw, i);
 }
 
+/* ---------- Readers (robust checks, return safe defaults) ---------- */
+
+/* Read boolean (returns false on error). */
 boolean File_readBoolean(SDL_RWops* rw)
 {
-	char boolData;
-
-	if (rw) {
-		SDL_RWread(rw, &boolData, sizeof(byte), 1);
-	}
-
-	return boolData;
+    if (!rw) return 0;
+    uint8_t boolData = 0;
+    size_t read = SDL_RWread(rw, &boolData, sizeof(uint8_t), 1);
+    if (read != 1) {
+#ifdef DEBUG
+        fprintf(stderr, "File_readBoolean: read failed or EOF\n");
+#endif
+        return 0;
+    }
+    return (boolean)(boolData != 0);
 }
 
+/* Read signed byte (preserve -1 sentinel). Returns 0 on error but can return negative values if present. */
 int File_readByte(SDL_RWops* rw)
 {
-	char bData;
-
-	if (rw) {
-		SDL_RWread(rw, &bData, sizeof(byte), 1);
-	}
-
-	return (int)bData;
+    if (!rw) return 0;
+    int8_t bData = 0;
+    size_t read = SDL_RWread(rw, &bData, sizeof(int8_t), 1);
+    if (read != 1) {
+#ifdef DEBUG
+        fprintf(stderr, "File_readByte: read failed or EOF\n");
+#endif
+        return 0;
+    }
+    return (int)bData;
 }
 
+/* Read 16-bit short (returns 0 on error). */
 int File_readShort(SDL_RWops* rw)
 {
-	short sData;
-
-	if (rw) {
-		SDL_RWread(rw, &sData, sizeof(short), 1);
-	}
-
-	return (int)SDL_SwapLE16(sData);
+    if (!rw) return 0;
+    uint16_t u = 0;
+    size_t read = SDL_RWread(rw, &u, sizeof(uint16_t), 1);
+    if (read != 1) {
+#ifdef DEBUG
+        fprintf(stderr, "File_readShort: read failed or EOF\n");
+#endif
+        return 0;
+    }
+    uint16_t v = SDL_SwapLE16(u);
+    /* cast to signed 16-bit to preserve negative values if any */
+    return (int)(int16_t)v;
 }
 
+/* Read 32-bit int (returns 0 on error). */
 int File_readInt(SDL_RWops* rw)
 {
-	int iData;
-
-	if (rw) {
-		SDL_RWread(rw, &iData, sizeof(int), 1);
-	}
-
-	return (int)SDL_SwapLE32(iData);
+    if (!rw) return 0;
+    uint32_t u = 0;
+    size_t read = SDL_RWread(rw, &u, sizeof(uint32_t), 1);
+    if (read != 1) {
+#ifdef DEBUG
+        fprintf(stderr, "File_readInt: read failed or EOF\n");
+#endif
+        return 0;
+    }
+    uint32_t v = SDL_SwapLE32(u);
+    return (int)(int32_t)v;
 }
 
+/* Read 32-bit "long" (keeps 32-bit semantics). Prefer File_readInt in new code. */
 int File_readLong(SDL_RWops* rw)
 {
-	long lData;
-
-	if (rw) {
-		SDL_RWread(rw, &lData, sizeof(long), 1);
-	}
-
-	return (int)SDL_SwapLE32(lData);
+    /* Keep same behavior as File_readInt for portability. */
+    return File_readInt(rw);
 }

@@ -2425,7 +2425,7 @@ boolean DoomCanvas_loadMedia(DoomCanvas_t* doomCanvas)
 			Game_loadMapEntities(doomCanvas->game);
 
 			if ((doomCanvas->game->isLoaded) && (doomCanvas->game->activeLoadType == 1)) {
-				Game_loadWorldState(doomCanvas->game);
+				Game_loadWorldState(doomCanvas->game, doomCanvas->render);
 			}
 
 			Game_spawnPlayer(doomCanvas->game);

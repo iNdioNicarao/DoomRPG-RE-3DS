@@ -201,7 +201,7 @@ void Game_loadConfig(Game_t* game);
 void Game_loadMapEntities(Game_t* game);
 void Game_loadPlayerState(Game_t* game, char* fileName);
 void Game_loadState(Game_t* game, int i);
-void Game_loadWorldState(Game_t* game);
+void Game_loadWorldState(Game_t* game, Render_t* render);
 void Game_monsterAI(Game_t* game);
 void Game_monsterLerp(Game_t* game);
 boolean Game_performDoorEvent(Game_t* game, int codeId, int arg1, int flags);
@@ -225,4 +225,33 @@ void Game_unlinkEntity(Game_t* game, Entity_t* entity);
 void Game_unloadMapData(Game_t* game);
 boolean Game_updateMonsters(Game_t* game);
 
+static void discardBytes_for_monster(SDL_RWops* rw)
+{
+	File_readByte(rw);  /* mType */
+	File_readInt(rw);   /* param1 */
+	File_readInt(rw);   /* param2 */
+}
+
+static void discardBytes_for_drop_or_def(SDL_RWops* rw)
+{
+	File_readByte(rw); /* either -1 or eType */
+	/* If the first byte was -1 the save path didn't write a second byte,
+	   but original format wrote only one byte (-1) — to be robust we must detect that.
+	   However original save always writes exactly one byte for the drop check (either -1 or two bytes).
+	   To keep compatibility, we will read a second byte only when the first != -1 on load path.
+	   The caller implements that logic explicitly. */
+}
+
+static void discardBytes_for_sprite_tile_short(SDL_RWops* rw)
+{
+	File_readShort(rw); /* tile short */
+}
+static void discardBytes_for_line_geometry(SDL_RWops* rw)
+{
+	File_readShort(rw); /* texture */
+	File_readInt(rw);   /* vert1.x */
+	File_readInt(rw);   /* vert1.y */
+	File_readInt(rw);   /* vert2.x */
+	File_readInt(rw);   /* vert2.y */
+}
 #endif
