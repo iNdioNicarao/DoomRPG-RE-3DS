@@ -637,7 +637,7 @@ void Game_givemap(Game_t* game)
 {
 	int i, j, count;
 	Render_t* render = game->doomRpg->render;
-	
+
 	count = render->linesLength;
 	for (i = 0; i < count; i++) {
 		if ((render->lines[i].flags & 32) == 0) {
@@ -743,7 +743,7 @@ void Game_loadConfig(Game_t* game)
 	int version;
 	byte boolData;
 	int intData;
-	
+
 	printf("loadConfig\n");
 
 	rw = SDL_RWFromFile("Config", "r");
@@ -1153,7 +1153,7 @@ void Game_loadState(Game_t* game, int i)
 	game->isLoaded = true;
 }
 
-void Game_loadWorldState(Game_t* game)
+void Game_loadWorldState(Game_t* game, Render_t* render)
 {
 	SDL_RWops* rw;
 	Entity_t* entity;
@@ -1181,7 +1181,7 @@ void Game_loadWorldState(Game_t* game)
 
 			if ((entity->info & 0xffff) != 0) {
 				if ((entity->info & 0x200000) == 0) {
-					sprite = &game->doomRpg->render->mapSprites[(entity->info & 65535) - 1];
+					sprite = &render->mapSprites[(entity->info & 65535) - 1];
 
 					sprite->info = (sprite->info & 0xFFFF) | (File_readShort(rw) << 16);
 					sprite->x = File_readInt(rw);
@@ -1213,7 +1213,7 @@ void Game_loadWorldState(Game_t* game)
 						data2 = File_readByte(rw);
 						entity->def = EntityDef_find(game->doomRpg->entityDef, (byte)data, (byte)data2);
 						sprite->info = (sprite->info & 0xFFFFFE00) | entity->def->tileIndex;
-						
+
 					}
 					else {
 						sprite->info = (sprite->info & 0xFFFFFE00) | File_readShort(rw);
@@ -1228,10 +1228,10 @@ void Game_loadWorldState(Game_t* game)
 						}
 					}
 
-					Render_relinkSprite(game->doomRpg->render, sprite);
+					Render_relinkSprite(render, sprite);
 				}
 				else {
-					line = &game->doomRpg->render->lines[(entity->info & 0xffff) - 1];
+					line = &render->lines[(entity->info & 0xffff) - 1];
 
 					line->flags = File_readInt(rw);
 					if ((line->flags & 28) != 0) {
@@ -1255,29 +1255,29 @@ void Game_loadWorldState(Game_t* game)
 				}
 			}
 		}
-		
+
 		// Map Lines
 		cnt = File_readInt(rw);
 		for (i = 0; i < cnt; i++) {
 			bData = File_readBoolean(rw);
 			if (bData) {
-				game->doomRpg->render->lines[i].flags |= 0x80;
+				render->lines[i].flags |= 0x80;
 			}
 		}
-		
+
 		// Map Sprites
 		cnt = File_readInt(rw);
 		for (i = 0; i < cnt; i++) {
 			bData = File_readBoolean(rw);
 			if (bData) {
-				game->doomRpg->render->mapSprites[i].info |= 0x10000000;
+				render->mapSprites[i].info |= 0x10000000;
 			}
 		}
 
 		// Map Flags
-		for (i = 0; i < sizeof(game->doomRpg->render->mapFlags); i++) {
+		for (i = 0; i < sizeof(render->mapFlags); i++) {
 			if (File_readBoolean(rw)) {
-				game->doomRpg->render->mapFlags[i] |= BIT_AM_VISITED;
+				render->mapFlags[i] |= BIT_AM_VISITED;
 			}
 		}
 
@@ -1309,18 +1309,18 @@ void Game_loadWorldState(Game_t* game)
 		// Map Floor/Ceiling Color
 		cColor = File_readShort(rw);
 		fColor = File_readShort(rw);
-		for (i = 0; i < game->doomRpg->render->screenWidth; i++) {
-			game->doomRpg->render->ceilingColor[i] = cColor;
-			game->doomRpg->render->floorColor[i] = fColor;
+		for (i = 0; i < render->screenWidth; i++) {
+			render->ceilingColor[i] = cColor;
+			render->floorColor[i] = fColor;
 		}
 
 		// Map Tile Events
-		for (i = 0; i < game->doomRpg->render->numTileEvents; i++) {
-			game->doomRpg->render->tileEvents[i] = (game->doomRpg->render->tileEvents[i] & 0xE1ffffff) | (File_readByte(rw) << 25);
-			int index = ((game->doomRpg->render->tileEvents[i] & 0x7FC00) >> 10) * BYTE_CODE_MAX;
+		for (i = 0; i < render->numTileEvents; i++) {
+			render->tileEvents[i] = (render->tileEvents[i] & 0xE1ffffff) | (File_readByte(rw) << 25);
+			int index = ((render->tileEvents[i] & 0x7FC00) >> 10) * BYTE_CODE_MAX;
 			int count = File_readInt(rw);
 			for (int j = 0; j < count; j++) {
-				game->doomRpg->render->mapByteCode[index + (File_readInt(rw) * BYTE_CODE_MAX) + BYTE_CODE_ARG2] = 0;
+				render->mapByteCode[index + (File_readInt(rw) * BYTE_CODE_MAX) + BYTE_CODE_ARG2] = 0;
 			}
 		}
 	}
@@ -1435,8 +1435,8 @@ void Game_remove(Game_t* game, Entity_t* entity)
 	if ((entity->info & 65535) != 0) {
 		if ((entity->info & 0x200000) != 0) {
 			line = &game->doomRpg->render->lines[(entity->info & 65535) - 1];
-			Game_executeTile(game, 
-				line->vert1.x + ((line->vert2.x - line->vert1.x) / 2), 
+			Game_executeTile(game,
+				line->vert1.x + ((line->vert2.x - line->vert1.x) / 2),
 				line->vert1.y + ((line->vert2.y - line->vert1.y) / 2), 256);
 		}
 		else {
@@ -1813,7 +1813,7 @@ boolean Game_executeEvent(Game_t* game, int event, int codeId, int arg1, int arg
 		case EV_CHECK_COMPLETED_LEVEL: { // EV_CHECK_COMPLETED_LEVEL
 			int n27;
 			for (n27 = ((arg1 & -65536) >> 16) - 1; n27 < MAP_ITEMS && (game->doomRpg->player->completedLevels & 1 << n27) == 0x0; ++n27) {}
-			
+
 			if (n27 == MAP_ITEMS) {
 				DoomCanvas_startDialog(doomCanvas, game->doomRpg->render->mapStringsIDs[arg1 & 65535], false);
 				game->saveTileEvent = true;
@@ -1839,13 +1839,13 @@ boolean Game_executeEvent(Game_t* game, int event, int codeId, int arg1, int arg
 				Hud_addMessage(doomCanvas, "Need Yellow Key");
 			}
 			else if (arg1 == 2 && (game->doomRpg->player->keys & 0x4) == 0x0) {
-				Hud_addMessage(doomCanvas, "Need Blue Key");
+				Hud_addMessage(game->doomRpg->doomCanvas, "Need Blue Key");
 			}
 			else {
 				if (arg1 != 3 || (game->doomRpg->player->keys & 0x8) != 0x0) {
 					return false;
 				}
-				Hud_addMessage(doomCanvas, "Need Red Key");
+				Hud_addMessage(game->doomRpg->doomCanvas, "Need Red Key");
 			}
 
 			Sound_playSound(game->doomRpg->sound, 5065, 0, 2);
@@ -2258,7 +2258,7 @@ void Game_saveWorldState(Game_t* game)
 
 		DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
 	}
-	
+
 
 	SDL_RWclose(rw);
 }

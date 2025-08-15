@@ -236,7 +236,7 @@ void DoomCanvas_setupmenu(DoomCanvas_t* doomCanvas, boolean notdrawLoading)
 {
 	if (notdrawLoading == false) {
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		DoomCanvas_drawString1(doomCanvas, "Loading...", doomCanvas->SCR_CX, doomCanvas->SCR_CY + -0x18, 0x11);
 	}
 
