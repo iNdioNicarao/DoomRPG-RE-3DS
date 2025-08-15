@@ -34,6 +34,7 @@ int main(int argc, char* args[])
 
 	Z_Init();
 	SDL_InitVideo();
+	SDL_ShowCursor(SDL_DISABLE);
 	SDL_InitAudio();
 	//openZipFile("DoomRPG.zip", &zipFile);
 
@@ -233,15 +234,11 @@ int main(int argc, char* args[])
 		}
 	}
 
-	closeZipFile(&zipFile);
+	//closeZipFile(&zipFile);
 	DoomRPG_FreeAppData(doomRpg);
-	SDL_CloseAudio();
-	SDL_Close();
-#ifdef __3DS__
-	hidExit();
+	SDL_Quit();
 	gfxExit();
+	hidExit();
 	exit(0);
-#endif
-
 	return 0;
 }

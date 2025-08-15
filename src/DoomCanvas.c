@@ -601,7 +601,7 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
 	if (z)
 	{
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		DoomRPG_setClipTrue(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 
 
@@ -747,7 +747,7 @@ void DoomCanvas_drawCredits(DoomCanvas_t* doomCanvas)
 		doomCanvas->creditsTextTime = doomCanvas->time;
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 
@@ -756,7 +756,7 @@ void DoomCanvas_drawCredits(DoomCanvas_t* doomCanvas)
 	}
 
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 	//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 
 	// New line From J2ME Version
@@ -793,7 +793,7 @@ void DoomCanvas_castState(DoomCanvas_t* doomCanvas)
 		else {
 			if (doomCanvas->time < doomCanvas->castTime) {
 				DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-				DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+				//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 
 				w = (13 - ((doomCanvas->castTime - doomCanvas->time) / 200)) * (doomCanvas->displayRect.w / 13);
 				h = (13 - ((doomCanvas->castTime - doomCanvas->time) / 200)) * (doomCanvas->displayRect.h / 13);
@@ -817,7 +817,7 @@ void DoomCanvas_castState(DoomCanvas_t* doomCanvas)
 			Game_unloadMapData(doomCanvas->doomRpg->game);
 			DoomCanvas_setState(doomCanvas, ST_CREDITS);
 			DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-			DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+			//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 
 		}
 		else {
@@ -2329,7 +2329,7 @@ void DoomCanvas_loadPrologueText(DoomCanvas_t* doomCanvas)
 {
 	int textLen;
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 	DoomCanvas_drawString1(doomCanvas, "Loading...", doomCanvas->SCR_CX, doomCanvas->SCR_CY, 17);
 
 	Sound_playSound(doomCanvas->doomRpg->sound, 5039, SND_FLG_LOOP | SND_FLG_STOPSOUNDS | SND_FLG_ISMUSIC, 5);
@@ -2357,7 +2357,7 @@ void DoomCanvas_loadPrologueText(DoomCanvas_t* doomCanvas)
 	doomCanvas->storyTextPage = 0;
 
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 }
 
 void DoomCanvas_keyPressed(DoomCanvas_t* doomCanvas, int keyCode)
@@ -2581,7 +2581,7 @@ void DoomCanvas_handleEpilogueInput(DoomCanvas_t* doomCanvas)
 		doomCanvas->epilogueTextPage++;
 		doomCanvas->epilogueTextTime = -1;
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 }
@@ -2589,7 +2589,7 @@ void DoomCanvas_handleEpilogueInput(DoomCanvas_t* doomCanvas)
 void DoomCanvas_handleStoryInput(DoomCanvas_t* doomCanvas)
 {
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 	DoomRPG_setColor(doomCanvas->doomRpg, 0xffffff);
 
 	if (doomCanvas->storyPage == 1) {
@@ -3151,7 +3151,7 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 	//{
 	if (doomCanvas->renderOnly && (doomCanvas->state == ST_PLAYING)) {
 		if (doomCanvas->lastFrameTime == doomCanvas->time) {
-			//DoomRPG_flushGraphics(doomCanvas->doomRpg);
+			DoomRPG_flushGraphics(doomCanvas->doomRpg);
 		}
 	}
 	else {
@@ -3192,7 +3192,7 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 		doomCanvas->isUpdateView = true;
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->clipRect.w, doomCanvas->clipRect.h);
+		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->clipRect.w, doomCanvas->clipRect.h);
 		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 
 		if (stateNum == ST_DIALOG || stateNum == ST_DIALOGPASSWORD) {
@@ -3208,7 +3208,7 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 			if (doomCanvas->doomRpg->doomCanvas->unloadMedia)
 			{
 				DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-				DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->clipRect.w, doomCanvas->clipRect.h);
+				//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->clipRect.w, doomCanvas->clipRect.h);
 				//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 			}
 		}

@@ -227,7 +227,7 @@ void Menu_fillStatus(Menu_t* menu, int i, int i2, int i3)
 	player = menu->doomRpg->player;
 
 	if (i2 != 0) {
-		textDivider = MenuSystem_buildDivider(menuSystem, "PLAYER");
+		textDivider = MenuSystem_buildDivider(menuSystem, "DoomRPG/Player");
 		MenuItem_Set(&menuSystem->items[menuSystem->numItems++], textDivider, 3, 0);
 
 		SDL_snprintf(text, sizeof(text), "%d/%d", CombatEntity_getHealth(&player->ce), CombatEntity_getMaxHealth(&player->ce));
