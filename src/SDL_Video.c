@@ -42,8 +42,7 @@ SDLVidModes_t sdlVideoModes[14] =
 	{640, 480},
 	{800, 600}
 };
-void SDL_InitVideo(void)
-{
+void SDL_InitVideo(void) {
 #ifdef __3DS__
 	putenv("SDL_N3DS_CONSOLE=");
 	SDL_memset(&sdlVideo, 0, sizeof(sdlVideo));
@@ -51,9 +50,10 @@ void SDL_InitVideo(void)
 	{
 		DoomRPG_Error("Could not initialize SDL: %s", SDL_GetError());
 	}
-	SDL_SetVideoMode(400, 240, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	SDL_SetVideoMode(400, 480, 32, SDL_HWSURFACE | SDL_DUALSCR |SDL_DOUBLEBUF
+| SDL_FULLSCREEN);
 	sdlVideo.screenSurface = SDL_GetVideoSurface();
-
+ SDL_Has3DNowExt();
 	sdlVideo.screenW = sdlVideo.screenSurface->w;
 	sdlVideo.screenH = sdlVideo.screenSurface->h;
 	printf("3DS video initialized: %dx%d\n", sdlVideo.screenW, sdlVideo.screenH);
@@ -270,7 +270,7 @@ static void put_pixel_unlocked(SDL_Surface* surface, int x, int y, Uint32 color)
 }
 void put_pixel_safe(SDL_Surface *surface, int x, int y, Uint32 color)
 {
-	if (x >= 0 && x < 400 && y >= 0 && y < 240) {
+	if (x >= 0 && x < 400 && y >= 0 && y < 480) {
 		if (surface && surface->pixels) {
 			Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * surface->format->BytesPerPixel;
 			*(Uint32 *)p = color;

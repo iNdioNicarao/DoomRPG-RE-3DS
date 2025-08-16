@@ -5,7 +5,7 @@ typedef struct SDLVideo_s
 {
 #ifdef __3DS__
 	SDL_Surface* screenSurface;
-	SDL_Surface* bottomScreen;
+	SDL_Surface* downScreen;
 	int screenW;
 	int screenH;
 #else
