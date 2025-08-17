@@ -135,7 +135,6 @@ void Hud_drawBarTiles(DoomCanvas_t* doomCanvas, int x, int y, int width, boolean
 
     DoomCanvas_drawImageSpecial(doomCanvas, img, 0, 0, width, height, 0, x, y, 0);
 }
-
 void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
 {
 #if skipNullptr
@@ -144,6 +143,7 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
         return;
     }
 #endif
+    //if (doomCanvas->menuSystem->menu)
     Image_t* img;
     CombatEntity_t* ce;
     Combat_t* combat;
@@ -188,15 +188,16 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
     dy = dispH - (stbH >> 1);
 
     // draw health
+    int healthNow = CombatEntity_getHealth(ce);
     DoomCanvas_drawImageSpecial(doomCanvas, img, 0, 0, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusHealthXpos + cx, dy, 0x24);
-    SDL_snprintf(doomCanvas->hud->healthNum, 4, "%d", CombatEntity_getHealth(ce));
+    SDL_snprintf(doomCanvas->hud->healthNum, 4, "%d", healthNow);
     DoomCanvas_drawFont(doomCanvas, doomCanvas->hud->healthNum, doomCanvas->hud->statusHealthXpos + cx + x * 2 + doomCanvas->hud->iconSheetWidth + 1, y, 9, 0, 3, doomCanvas->hud->largeHud);
 
     // draw armmor
+    int armorNow = CombatEntity_getArmor(ce);
     DoomCanvas_drawImageSpecial(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusArmorXpos + cx, dy, 0x24);
-    SDL_snprintf(doomCanvas->hud->armorNum, 4, "%d", CombatEntity_getArmor(ce));
+    SDL_snprintf(doomCanvas->hud->armorNum, 4, "%d", armorNow);
     DoomCanvas_drawFont(doomCanvas, doomCanvas->hud->armorNum, doomCanvas->hud->statusArmorXpos + cx + x * 2 + doomCanvas->hud->iconSheetWidth, y, 9, 0, 3, doomCanvas->hud->largeHud);
-
     // draw face
     health = CombatEntity_getHealth(ce);
 
@@ -254,8 +255,9 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
         }
         else {
             combat = doomCanvas->doomRpg->combat;
+            int ammoCount = doomCanvas->player->ammo[combat->weaponInfo[weapon].ammoType];
             DoomCanvas_drawImageSpecial(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight * (combat->weaponInfo[weapon].ammoType + 3), doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusAmmoXpos + cx, dy, 0x24);
-            SDL_snprintf(doomCanvas->hud->ammoNum, 3, "%d", doomCanvas->player->ammo[combat->weaponInfo[weapon].ammoType]);
+            SDL_snprintf(doomCanvas->hud->ammoNum, 3, "%d", ammoCount);
         }
 
         DoomCanvas_drawFont(doomCanvas, doomCanvas->hud->ammoNum, doomCanvas->hud->statusAmmoXpos + cx + doomCanvas->hud->iconSheetWidth + x * 2, y, 9, 0, 2, doomCanvas->hud->largeHud);

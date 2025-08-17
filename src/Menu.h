@@ -72,7 +72,7 @@ typedef struct Menu_s
 	int mArg1;
 	int mArg2;
 	short mapNameId;
-	byte f701a;
+	char f701a;
 	int f711c;
 	int f712d;
 	int f713e;

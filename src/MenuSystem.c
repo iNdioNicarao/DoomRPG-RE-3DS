@@ -238,7 +238,36 @@ void MenuSystem_moveDir(MenuSystem_t* menuSystem, int i)
 		}
 	}
 }
+static SDL_Surface* cachedMenuBg = NULL;
 
+void MenuSystem_generateBg(DoomCanvas_t* doomCanvas, Hud_t* hud) {
+	int topY = hud->statusTopBarHeight;
+	int bottomY = doomCanvas->displayRect.h - hud->statusBarHeight;
+	int w = doomCanvas->displayRect.w;
+	int h = bottomY - topY;
+
+	if (cachedMenuBg) {
+		SDL_FreeSurface(cachedMenuBg);
+	}
+
+	// creating surface
+	cachedMenuBg = SDL_CreateRGBSurface(0, w, h, 16, 0, 0, 0, 0);
+
+	// filling rect
+	SDL_FillRect(cachedMenuBg, NULL, SDL_MapRGB(cachedMenuBg->format, 0, 0, 0));
+
+	int i4 = (w % 8) >> 1;
+	for (; i4 < w; i4 += 8) {
+		SDL_Rect line = { i4, 0, 1, h };
+		SDL_FillRect(cachedMenuBg, &line, SDL_MapRGB(cachedMenuBg->format, 5, 10, 74));
+	}
+
+	int i5 = ((h % 8) >> 1);
+	for (; i5 < h; i5 += 8) {
+		SDL_Rect line = { 0, i5, w, 1 };
+		SDL_FillRect(cachedMenuBg, &line, SDL_MapRGB(cachedMenuBg->format, 5, 10, 74));
+	}
+}
 void MenuSystem_paint(MenuSystem_t* menuSystem)
 {
 	int i, i2;
@@ -263,25 +292,22 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 		i2 = 0;
 
 		if (menuSystem->menu >= MENU_INGAME) {
-			i2 = doomRpg->hud->statusTopBarHeight + ((doomCanvas->screenRect.h - (menuSystem->maxItems * 12)) / 2);
-			DoomRPG_fillRect(doomRpg, 0, doomRpg->hud->statusTopBarHeight, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+			int topY = doomRpg->hud->statusTopBarHeight;
+			int bottomY = doomCanvas->displayRect.h - doomRpg->hud->statusBarHeight;
+
+			i2 = topY + ((doomCanvas->screenRect.h - (menuSystem->maxItems * 12)) / 2);
 
 			if (!(menuSystem->menu == MENU_ITEMS_CONFIRM || menuSystem->menu == MENU_STORE_BUY)) {
-				DoomRPG_setColor(doomRpg, 0x050A4A);
-
-				int i3 = (doomCanvas->displayRect.h % 8) >> 1;
-				int i4 = (doomCanvas->displayRect.w % 8) >> 1;
-				for (i4; i4 < doomCanvas->displayRect.w; i4 += 8) {
-					DoomRPG_drawLine(doomRpg, i4, doomRpg->hud->statusTopBarHeight, i4, (doomCanvas->displayRect.h - doomRpg->hud->statusBarHeight) - 1);
+				if (cachedMenuBg) {
+					SDL_Rect dst = { 0, topY, 0, 0 };
+					SDL_BlitSurface(cachedMenuBg, NULL, sdlVideo.screenSurface, &dst);
+				} else {
+					// fallback: if no cached image then generate it
+					MenuSystem_generateBg(doomCanvas, doomRpg->hud);
 				}
-
-				int i5 = doomRpg->hud->statusTopBarHeight + i3;
-				for (i5; i5 < doomCanvas->displayRect.h - 20; i5 += 8) {
-					DoomRPG_drawLine(doomRpg, 0, i5, doomCanvas->displayRect.w, i5);
-				}
-				DoomRPG_setColor(doomRpg, 0x000000);
 			}
 		}
+
 		else {
 			//DoomRPG_fillRect(doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 
@@ -455,7 +481,7 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 
 		if (menuSystem->setBind) {
 #ifdef __3DS__
-			SDL_Surface* overlay = SDL_CreateRGBSurface(
+			/*SDL_Surface* overlay = SDL_CreateRGBSurface(
 	SDL_HWSURFACE, // Флаг для создания поверхности в оперативной памяти
 	doomCanvas->displayRect.w,
 	doomCanvas->displayRect.h,
@@ -464,9 +490,9 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 			if (overlay)
 			{
 				SDL_Rect destRect = { 0, 0, 0, 0 };
-				SDL_BlitSurface(overlay, NULL, doomCanvas->render->piDIB, &destRect);
+				SDL_BlitSurface(overlay, NULL, sdlVideo.screenSurface, &destRect);
 				SDL_FreeSurface(overlay);
-			}
+			}*/
 #else
 			SDL_SetRenderDrawBlendMode(sdlVideo.renderer, SDL_BLENDMODE_BLEND);
 			DoomRPG_setColor(menuSystem->doomRpg, 0xC0000000);

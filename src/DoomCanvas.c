@@ -1426,9 +1426,23 @@ void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 	SDL_Rect renderQuad, clip;
 
 	clip.x = doomCanvas->render->screenX;
-	clip.y = doomCanvas->render->screenY;
+	if (doomCanvas->menuSystem->menu != MENU_MAIN &&
+		doomCanvas->menuSystem->menu != MENU_MAIN_CONTINUE &&
+		doomCanvas->menuSystem->menu != MENU_MAIN_ERASE &&
+		doomCanvas->menuSystem->menu != MENU_MAIN_EXIT &&
+		doomCanvas->menuSystem->menu != MENU_MAIN_HELP_ABOUT &&
+		doomCanvas->menuSystem->menu != MENU_MAIN_OPTIONS &&
+		doomCanvas->menuSystem->menu != MENU_MAIN_SURE) {
+		clip.y = doomCanvas->hud->statusBarHeight;
+		clip.h = 240 - doomCanvas->hud->statusBarHeight;
+	}
+	else {
+		clip.y = doomCanvas->render->screenY;
+		clip.h = 240;
+	}
+		//clip.y = doomCanvas->render->screenY;
+	//clip.y = doomCanvas->hud->statusBarHeight - 10; //doomCanvas->render->screenY
 	clip.w = doomCanvas->render->screenWidth;
-	clip.h = 240;
 
 	renderQuad.x = doomCanvas->render->screenX;
 	renderQuad.y = doomCanvas->render->screenY;
@@ -1445,7 +1459,7 @@ void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 	   doomCanvas->render->framebuffer,
 	   sdlVideo.screenW * 240 * 2);
 	//gspWaitForVBlank();
-	SDL_BlitSurface(doomCanvas->render->piDIB, &clip, SDL_GetVideoSurface(), &renderQuad);
+	SDL_BlitSurface(doomCanvas->render->piDIB, &clip, sdlVideo.screenSurface, &renderQuad);
 	//SDL_Flip(SDL_GetVideoSurface());
 #else
 	SDL_UpdateTexture(doomCanvas->render->piDIB, NULL, doomCanvas->render->framebuffer, sdlVideo.rendererW * 2);
@@ -3338,7 +3352,6 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 	else {
 		DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
-	
 	//}
 }
 

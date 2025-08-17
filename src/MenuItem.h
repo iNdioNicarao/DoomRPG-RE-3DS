@@ -7,7 +7,7 @@ typedef struct MenuItem_s
 {
 	char textField[32]; // original 18
 	char textField2[16]; // original 8
-	byte flags;
+	char flags;
 	int action;
 } MenuItem_t;
 
