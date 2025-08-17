@@ -624,16 +624,16 @@ boolean Game_checkConfigVersion(Game_t* game)
 	worldFile = NULL;
 
 	rnt = false;
-	configFile = SDL_RWFromFile("Config", "r");
+	configFile = SDL_RWFromFile("DoomRPG/Saves/Config", "r");
 	if (configFile) {
-		playerFile = SDL_RWFromFile("Player", "r");
+		playerFile = SDL_RWFromFile("DoomRPG/Saves/Player", "r");
 		if (playerFile) {
-			player2File = SDL_RWFromFile("Player2", "r");
+			player2File = SDL_RWFromFile("DoomRPG/Saves/Player2", "r");
 			if (player2File) {
-				worldFile = SDL_RWFromFile("World", "r");
+				worldFile = SDL_RWFromFile("DoomRPG/Saves/World", "r");
 				if (worldFile) {
 
-					rw = SDL_RWFromFile("Config", "r");
+					rw = SDL_RWFromFile("DoomRPG/Saves/Config", "r");
 					version = File_readInt(rw);
 					if (version == CONFIG_VERSION) {
 						rnt = true;
@@ -700,7 +700,7 @@ void Game_loadConfig(Game_t* game)
 
 	printf("loadConfig\n");
 
-	rw = SDL_RWFromFile("Config", "r");
+	rw = SDL_RWFromFile("DoomRPG/Saves/Config", "r");
 	if (rw) {
 		version = File_readInt(rw);
 		if (version == CONFIG_VERSION) {
@@ -1070,8 +1070,8 @@ void Game_loadState(Game_t* game, int i)
 
 	doomCanvas = game->doomRpg->doomCanvas;
 
-	//printf("load %s\event", (codeId == 1) ? "Player2" : "Player");
-	Game_loadPlayerState(game, (i == 1) ? "Player2" : "Player");
+	//printf("load %s\event", (codeId == 1) ? "DoomRPG/Saves/Player2" : "DoomRPG/Saves/Player");
+	Game_loadPlayerState(game, (i == 1) ? "DoomRPG/Saves/Player2" : "DoomRPG/Saves/Player");
 
 	game->activeLoadType = i;
 	game->doomRpg->player->nextLevelXP = Player_calcLevelXP(game->doomRpg->player, game->doomRpg->player->level);
@@ -1188,10 +1188,10 @@ boolean Game_performDoorEvent(Game_t* game, int codeId, int arg1, int flags)
 void Game_deleteSaveFiles(Game_t* game)
 {
 	printf("Removing saved state...\n");
-	remove("Config");
-	remove("Player");
-	remove("Player2");
-	remove("World");
+	remove("DoomRPG/Saves/Config");
+	remove("DoomRPG/Saves/Player");
+	remove("DoomRPG/Saves/Player2");
+	remove("DoomRPG/Saves/World");
 }
 
 void Game_remove(Game_t* game, Entity_t* entity)
@@ -1743,7 +1743,7 @@ void Game_saveConfig(Game_t* game, int num)
 	int version;
 	//printf("saveConfig %d\event", num);
 
-	rw = SDL_RWFromFile("Config", "w");
+	rw = SDL_RWFromFile("DoomRPG/Saves/Config", "w");
 
 	version = CONFIG_VERSION;
 	File_writeInt(rw, version);
@@ -1845,18 +1845,18 @@ void Game_saveState(Game_t* game, int mapId, int x, int y, int angleDir, boolean
 	DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
 	Game_saveConfig(game, z);
 	DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
-	Game_savePlayerState(game, "Player2", game->mapFiles[mapId-1], x, y, angleDir);
+	Game_savePlayerState(game, "DoomRPG/Saves/Player2", game->mapFiles[mapId-1], x, y, angleDir);
 	DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
 	Game_saveWorldState(game);
 	if (!z) {
 		if (game->newMapName && SDL_strcmp(game->newMapName, "")) {
 			DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
-			Game_savePlayerState(game, "Player", game->newMapName, game->newDestX, game->newDestY, game->newAngle);
+			Game_savePlayerState(game, "DoomRPG/Saves/Player", game->newMapName, game->newDestX, game->newDestY, game->newAngle);
 			game->newMapName[0] = '\0';
 		}
 		else {
 			DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
-			Game_savePlayerState(game, "Player", "/junction.bsp", 0, 0, 0);
+			Game_savePlayerState(game, "DoomRPG/Saves/Player", "/junction.bsp", 0, 0, 0);
 		}
 	}
 }
@@ -1869,7 +1869,7 @@ void Game_saveWorldState(Game_t* game)
 	GameSprite_t* gSprite;
 	int i, j;
 
-	rw = SDL_RWFromFile("World", "wb");
+	rw = SDL_RWFromFile("DoomRPG/Saves/World", "wb");
 
 	// Map Entities
 	File_writeInt(rw, game->numEntities);
@@ -2028,7 +2028,7 @@ void Game_loadWorldState(Game_t* game, Render_t* render)
 
 	//printf("loadWorldState\event");
 
-	rw = SDL_RWFromFile("World", "rb");
+	rw = SDL_RWFromFile("DoomRPG/Saves/World", "rb");
 	if (rw)
 	{
 		// Map Entities

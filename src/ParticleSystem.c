@@ -326,21 +326,21 @@ void ParticleSystem_spawnParticles(ParticleSystem_t* particleSystem, int i, int 
 		particleSystem->gravity = (((particleSystem->gravity << 8) * particleSystem->scale) + 32768) >> 16;
 		particleSystem->dispWidth = particleSystem->doomRpg->doomCanvas->displayRect.w;
 		if (i2 == 2) {
-			particleSystem->dispHeight = particleSystem->doomRpg->doomCanvas->displayRect.h - (((12288 * particleSystem->scaleY) + 32768) >> 16);
+			particleSystem->dispHeight = 240 - (((12288 * particleSystem->scaleY) + 32768) >> 16);
 		}
 		else if (i2 == 3) {
-			particleSystem->dispHeight = particleSystem->doomRpg->doomCanvas->displayRect.h - (((13824 * particleSystem->scaleY) + 32768) >> 16);
+			particleSystem->dispHeight = 240 - (((13824 * particleSystem->scaleY) + 32768) >> 16);
 		}
 		else if (i2 == 4) {
-			particleSystem->dispHeight = particleSystem->doomRpg->doomCanvas->displayRect.h - (((14336 * particleSystem->scaleY) + 32768) >> 16);
+			particleSystem->dispHeight = 240 - (((14336 * particleSystem->scaleY) + 32768) >> 16);
 		}
 		else {
-			particleSystem->dispHeight = particleSystem->doomRpg->doomCanvas->displayRect.h - particleSystem->doomRpg->hud->statusBarHeight;
+			particleSystem->dispHeight = 240 - particleSystem->doomRpg->hud->statusBarHeight - 45;
 		}
 		particleSystem->minStartX = (((particleSystem->minStartX << 8) * particleSystem->scale) + 32768) >> 16;
 		particleSystem->maxStartX = (((particleSystem->maxStartX << 8) * particleSystem->scale) + 32768) >> 16;
 		particleSystem->minStartY = (((particleSystem->minStartY << 8) * particleSystem->scale) + 32768) >> 16;
-		particleSystem->maxStartY = (((particleSystem->maxStartY << 8) * particleSystem->scale) + 32768) >> 16;
+		particleSystem->maxStartY = (((particleSystem->maxStartY << 8) * particleSystem->scale - 50) + 32768) >> 16;
 		particleSystem->minSize = (((particleSystem->minSize << 8) * particleSystem->scaleSize) + 32768) >> 16;
 		particleSystem->maxSize = (((particleSystem->maxSize << 8) * particleSystem->scaleSize) + 32768) >> 16;
 		if (particleSystem->maxSize == 0) {

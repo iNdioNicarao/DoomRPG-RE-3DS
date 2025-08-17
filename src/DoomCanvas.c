@@ -3831,7 +3831,7 @@ void DoomCanvas_updateLoadingBar(DoomCanvas_t* doomCanvas)
 		y = (240 / 2) - 4;
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_clearGraphics(doomCanvas->doomRpg);
+		//DoomRPG_clearGraphics(doomCanvas->doomRpg);
 
 		DoomRPG_fillRect(doomCanvas->doomRpg, x, y, 35, 8);
 		DoomRPG_setColor(doomCanvas->doomRpg, 0xAAAAAA);

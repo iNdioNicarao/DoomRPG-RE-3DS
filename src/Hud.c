@@ -301,10 +301,10 @@ void Hud_drawEffects(DoomCanvas_t* doomCanvas)
             DoomRPG_setColor(doomRpg, 0xFFFFFF);
         }
 
-        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight, 2, 240 + -1);
-        DoomRPG_fillRect(doomRpg, 400 + -2, hud->statusTopBarHeight, 2, 240 + -1);
+        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight, 2, 192 + -1);
+        DoomRPG_fillRect(doomRpg, 400 + -2, hud->statusTopBarHeight, 2, 192 + -1);
         DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight, 400 - 1, 2);
-        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight + 240 + -2, 400 - 1, 2);
+        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight + 192 + -2, 400 - 1, 2);
 
         if (hud->damageDir && (hud->damageCount > 0)) {
             srcY = 0;
