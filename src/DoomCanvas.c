@@ -224,7 +224,7 @@ void DoomCanvas_automapState(DoomCanvas_t* doomCanvas)
 		//}
 		//DoomCanvas_drawAutomap(doomCanvas, true);
 	}
-	DoomCanvas_drawAutomap(doomCanvas, true);
+	//DoomCanvas_drawAutomap(doomCanvas, true);
 	waitTime = doomCanvas->game->waitTime;
 	if (waitTime && (doomCanvas->time >= waitTime)) {
 		doomCanvas->game->waitTime = 0;
@@ -1827,6 +1827,7 @@ void DoomCanvas_finishMovement(DoomCanvas_t* doomCanvas)
 	DoomCanvas_uncoverAutomap(doomCanvas);
 	Game_touchTile(doomCanvas->game, doomCanvas->destX, doomCanvas->destY, true);
 	Game_advanceTurn(doomCanvas->game);
+	DoomCanvas_drawAutomap(doomCanvas, true);
 }
 
 void DoomCanvas_finishRotation(DoomCanvas_t* doomCanvas)
@@ -1837,6 +1838,7 @@ void DoomCanvas_finishRotation(DoomCanvas_t* doomCanvas)
 	doomCanvas->viewStepY = ((-doomCanvas->viewSin) * 64) >> 16;
 	Game_executeTile(doomCanvas->game, doomCanvas->destX, doomCanvas->destY, DoomCanvas_flagForFacingDir(doomCanvas) | 0x400);
 	DoomCanvas_checkFacingEntity(doomCanvas);
+	DoomCanvas_drawAutomap(doomCanvas, true);
 }
 
 
@@ -1989,7 +1991,7 @@ void DoomCanvas_handleEvent(DoomCanvas_t* doomCanvas, int i) {
 		break;
 
 	case ST_PLAYING:
-		DoomCanvas_drawAutomap(doomCanvas, true);
+		//DoomCanvas_drawAutomap(doomCanvas, true);
 		DoomCanvas_handlePlayingEvents(doomCanvas, i);
 		break;
 
@@ -2382,6 +2384,7 @@ void DoomCanvas_handlePlayingEvents(DoomCanvas_t* doomCanvas, int i)
 			Game_touchTile(doomCanvas->game, doomCanvas->destX, doomCanvas->destY, false);
 			Game_advanceTurn(doomCanvas->game);
 		}
+		//DoomCanvas_drawAutomap(doomCanvas, true);
 		break;
 	}
 
@@ -2759,7 +2762,7 @@ void DoomCanvas_handleEpilogueInput(DoomCanvas_t* doomCanvas)
 		doomCanvas->epilogueTextPage++;
 		doomCanvas->epilogueTextTime = -1;
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 }
@@ -2767,7 +2770,7 @@ void DoomCanvas_handleEpilogueInput(DoomCanvas_t* doomCanvas)
 void DoomCanvas_handleStoryInput(DoomCanvas_t* doomCanvas)
 {
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 	DoomRPG_setColor(doomCanvas->doomRpg, 0xffffff);
 
 	if (doomCanvas->storyPage == 1) {
@@ -3367,7 +3370,7 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 
 	//printf("DoomCanvas_setState %d\n", stateNum);
 	if (doomCanvas->state == ST_AUTOMAP) {
-		doomCanvas->isUpdateView = false;
+		/*doomCanvas->isUpdateView = false;
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
 		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->clipRect.w, doomCanvas->clipRect.h);
@@ -3375,19 +3378,19 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 
 		/*if (stateNum == ST_DIALOG || stateNum == ST_DIALOGPASSWORD) {
 
-		}*/
+		}
 		doomCanvas->render->skipStretch = false;
 		DoomCanvas_renderScene(doomCanvas, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewAngle);
 		doomCanvas->doomRpg->hud->isUpdate = true;
 		Hud_drawTopBar(doomCanvas);
-		Hud_drawBottomBar(doomCanvas);
+		Hud_drawBottomBar(doomCanvas);*/
 	}
 	else if (doomCanvas->state == ST_MENU) {
 		if (stateNum == ST_MENU) {
 			if (doomCanvas->doomRpg->doomCanvas->unloadMedia)
 			{
 				DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-				//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->clipRect.w, doomCanvas->clipRect.h);
+				DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->clipRect.w, doomCanvas->clipRect.h);
 				//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 			}
 		}

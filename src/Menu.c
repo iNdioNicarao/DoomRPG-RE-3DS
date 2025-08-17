@@ -542,7 +542,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Inventory", 0, MENU_ITEMS);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Save Game", 0, MENU_INGAME_SAVE);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Load Game", 0, MENU_INGAME_LOAD);
-			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Automap", 0, MENU_NONE);
+			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], //"Automap", 0, MENU_NONE);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Status", 0, MENU_INGAME_STATUS);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Help/About", 0, MENU_INGAME_HELP_ABOUT);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Options", 0, MENU_INGAME_OPTIONS);
