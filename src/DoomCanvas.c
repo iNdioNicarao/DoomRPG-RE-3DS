@@ -1769,12 +1769,12 @@ void DoomCanvas_drawFont(DoomCanvas_t* doomCanvas, char* text, int x, int y, int
     // Select font size and parameters
     if (isLargerFont == 0) {
         imgFont = &doomCanvas->imgFont;
-        charAdvanceWidth = 8;
+        charAdvanceWidth = 7;
         charCellWidth = 9;
         charCellHeight = 12;
     } else {
         imgFont = &doomCanvas->imgLargerFont;
-        charAdvanceWidth = 11;
+        charAdvanceWidth = 10;
         charCellWidth = 13;
         charCellHeight = 17;
     }
@@ -2196,7 +2196,7 @@ void DoomCanvas_handleEvent(DoomCanvas_t* doomCanvas, int i) {
 		break;
 
 	case ST_PLAYING:
-		//DoomCanvas_drawAutomap(doomCanvas, true);
+		DoomCanvas_drawAutomap(doomCanvas, true);
 		DoomCanvas_handlePlayingEvents(doomCanvas, i);
 		break;
 
@@ -3651,7 +3651,7 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 	}
 	else if (stateNum == ST_LOADING || stateNum == ST_SAVING) {
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->clipRect.w, doomCanvas->softKeyY);
+		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->clipRect.w, 240);
 
 		len = SDL_strlen(justAMoment);
 		width = ((len * 7) + 10);
