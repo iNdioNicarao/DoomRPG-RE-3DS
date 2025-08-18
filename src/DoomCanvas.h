@@ -264,6 +264,9 @@ void DoomCanvas_uncoverAutomap(DoomCanvas_t* doomCanvas);
 void DoomCanvas_unloadMedia(DoomCanvas_t* doomCanvas);
 void DoomCanvas_checkFacingEntity(DoomCanvas_t* doomCanvas);
 void DoomCanvas_updateLoadingBar(DoomCanvas_t* doomCanvas);
+void DoomCanvas_scrollSpaceBGSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface);
+void DoomCanvas_drawString1Sur(DoomCanvas_t* doomCanvas, char* text, int x, int y, int flags, SDL_Surface* surface);
+void DoomCanvas_drawString2Sur(DoomCanvas_t* doomCanvas, char* text, int x, int y, int flags, int param_6, SDL_Surface* surface);
 boolean DoomCanvas_updatePlayerAnimDoors(DoomCanvas_t* doomCanvas);
 void DoomCanvas_updateView(DoomCanvas_t* doomCanvas);
 

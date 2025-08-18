@@ -302,13 +302,16 @@ short DoomRPG_shiftCoordAt(byte* data, int* posData);
 void DoomRPG_loopGame(DoomRPG_t* doomrpg);
 
 void DoomRPG_setClipFalse(DoomRPG_t* doomrpg);
+void DoomRPG_setClipFalseSur(DoomRPG_t* doomrpg, SDL_Surface* surface);
 void DoomRPG_setClipTrue(DoomRPG_t* doomrpg, int x, int y, int w, int h);
+void DoomRPG_setClipTrueSur(DoomRPG_t* doomrpg, int x, int y, int w, int h, SDL_Surface* surface);
 void DoomRPG_setColor(DoomRPG_t* doomrpg, int color);
 void DoomRPG_flushGraphics(...);
 boolean DoomRPG_ReinitCanvasAndRenderer(DoomRPG_t* doomRpg);
 void DoomRPG_clearGraphics(DoomRPG_t* doomrpg);
 void DoomRPG_drawRect(DoomRPG_t* doomrpg, int x, int y, int w, int h);
 void DoomRPG_fillRect(DoomRPG_t* doomrpg, int x, int y, int w, int h);
+void DoomRPG_fillRectSur(DoomRPG_t* doomrpg, int x, int y, int w, int h, SDL_Surface* surface);
 void DoomRPG_drawCircle(DoomRPG_t* doomrpg, int x, int y, int r);
 void DoomRPG_fillCircle(DoomRPG_t* doomrpg, int x, int y, int r);
 void DoomRPG_drawLine(DoomRPG_t* doomrpg, int x1, int y1, int x2, int y2);

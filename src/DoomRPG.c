@@ -1065,6 +1065,11 @@ void DoomRPG_setClipFalse(DoomRPG_t* doomrpg)
     SDL_RenderSetClipRect(sdlVideo.screenSurface, NULL);
     doomrpg->graphSetCliping = false;
 }
+void DoomRPG_setClipFalseSur(DoomRPG_t* doomrpg, SDL_Surface* surface)
+{
+	SDL_RenderSetClipRect(surface, NULL);
+	doomrpg->graphSetCliping = false;
+}
 
 void DoomRPG_setClipTrue(DoomRPG_t* doomrpg, int x, int y, int w, int h)
 {
@@ -1077,6 +1082,18 @@ void DoomRPG_setClipTrue(DoomRPG_t* doomrpg, int x, int y, int w, int h)
 
     SDL_RenderSetClipRect(sdlVideo.screenSurface, &clip);
     doomrpg->graphSetCliping = true;
+}
+void DoomRPG_setClipTrueSur(DoomRPG_t* doomrpg, int x, int y, int w, int h, SDL_Surface* surface)
+{
+	SDL_Rect clip;
+
+	clip.x = doomrpg->doomCanvas->displayRect.x + x;
+	clip.y = doomrpg->doomCanvas->displayRect.y + y;
+	clip.w = w;
+	clip.h = h;
+
+	SDL_RenderSetClipRect(surface, &clip);
+	doomrpg->graphSetCliping = true;
 }
 
 void DoomRPG_setColor(DoomRPG_t* doomrpg, int color)
@@ -1119,6 +1136,16 @@ void DoomRPG_fillRect(DoomRPG_t* doomrpg, int x, int y, int w, int h)
     rect.w = w;
     rect.h = h;
     SDL_RenderFillRect(sdlVideo.screenSurface, &rect);
+}
+void DoomRPG_fillRectSur(DoomRPG_t* doomrpg, int x, int y, int w, int h, SDL_Surface* surface)
+{
+	SDL_Rect rect;
+
+	rect.x = doomrpg->doomCanvas->displayRect.x + x;
+	rect.y = doomrpg->doomCanvas->displayRect.y + y;
+	rect.w = w;
+	rect.h = h;
+	SDL_RenderFillRect(surface, &rect);
 }
 
 void DoomRPG_drawCircle(DoomRPG_t* doomrpg, int x, int y, int r)

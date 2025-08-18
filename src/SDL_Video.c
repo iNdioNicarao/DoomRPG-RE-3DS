@@ -53,7 +53,6 @@ void SDL_InitVideo(void) {
 	SDL_SetVideoMode(400, 480, 32, SDL_HWSURFACE | SDL_DUALSCR |SDL_DOUBLEBUF
 | SDL_FULLSCREEN);
 	sdlVideo.screenSurface = SDL_GetVideoSurface();
- SDL_Has3DNowExt();
 	sdlVideo.screenW = sdlVideo.screenSurface->w;
 	sdlVideo.screenH = sdlVideo.screenSurface->h;
 	printf("3DS video initialized: %dx%d\n", sdlVideo.screenW, sdlVideo.screenH);

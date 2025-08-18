@@ -924,7 +924,7 @@ void DoomCanvas_drawCredits(DoomCanvas_t* doomCanvas)
 		doomCanvas->creditsTextTime = doomCanvas->time;
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 
@@ -933,7 +933,7 @@ void DoomCanvas_drawCredits(DoomCanvas_t* doomCanvas)
 	}
 
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 	//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 
 	// New line From J2ME Version
@@ -1256,7 +1256,7 @@ void DoomCanvas_drawEpilogue(DoomCanvas_t* doomCanvas)
 {
 	if (doomCanvas->epilogueTextTime == -1) {
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 
 		doomCanvas->epilogueTextTime = doomCanvas->time;
@@ -1299,6 +1299,16 @@ void DoomCanvas_drawImageSur(DoomCanvas_t* doomcanvas, Image_t* img, int x, int 
 
 void DoomCanvas_drawStory(DoomCanvas_t* doomCanvas)
 {
+	SDL_Surface* tmpSurface =
+		SDL_CreateRGBSurface(SDL_SWSURFACE,
+			sdlVideo.screenW,
+			240,
+			sdlVideo.screenSurface->format->BitsPerPixel,
+	sdlVideo.screenSurface->format->Rmask,
+	sdlVideo.screenSurface->format->Gmask,
+	sdlVideo.screenSurface->format->Bmask,
+	sdlVideo.screenSurface->format->Amask);
+
 	char **text;
 	int iVar1;
 
@@ -1315,11 +1325,11 @@ void DoomCanvas_drawStory(DoomCanvas_t* doomCanvas)
 		int i2 = (doomCanvas->time - doomCanvas->storyTextTime);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		DoomRPG_fillRectSur(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h, tmpSurface);
 		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 
 		// New line From J2ME Version
-		DoomRPG_setClipTrue(doomCanvas->doomRpg, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 128, 128);
+		DoomRPG_setClipTrueSur(doomCanvas->doomRpg, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 128, 128, tmpSurface);
 
 		if (doomCanvas->storyPage == 0 || doomCanvas->storyPage == 2) {
 
@@ -1337,22 +1347,22 @@ void DoomCanvas_drawStory(DoomCanvas_t* doomCanvas)
 				return;
 			}
 
-			DoomCanvas_scrollSpaceBG(doomCanvas);
+			DoomCanvas_scrollSpaceBGSur(doomCanvas, tmpSurface);
 
 			if (doomCanvas->showTextDone) {
-				DoomCanvas_drawString2(doomCanvas, text[doomCanvas->storyTextPage], doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 0, -1);
+				DoomCanvas_drawString2Sur(doomCanvas, text[doomCanvas->storyTextPage], doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 0, -1, tmpSurface);
 			}
 			else {
-				DoomCanvas_drawString2(doomCanvas, text[doomCanvas->storyTextPage], doomCanvas->SCR_CX -64,doomCanvas->SCR_CY - 64, 0, doomCanvas->storyTextTime);
+				DoomCanvas_drawString2Sur(doomCanvas, text[doomCanvas->storyTextPage], doomCanvas->SCR_CX -64,doomCanvas->SCR_CY - 64, 0, doomCanvas->storyTextTime, tmpSurface);
 			}
 
 			if (doomCanvas->storyTextPage < iVar1 - 1) {
-				DoomCanvas_drawImage(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgHand, (doomCanvas->SCR_CX + 36) - 4, (doomCanvas->SCR_CY + 64) - 2, 10);
-				DoomCanvas_drawString1(doomCanvas, "More", (doomCanvas->SCR_CX + 64) - 4, (doomCanvas->SCR_CY + 64), 10);
+				DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgHand, (doomCanvas->SCR_CX + 36) - 4, (doomCanvas->SCR_CY + 64) - 2, 10, tmpSurface);
+				DoomCanvas_drawString1Sur(doomCanvas, "More", (doomCanvas->SCR_CX + 64) - 4, (doomCanvas->SCR_CY + 64), 10, tmpSurface);
 			}
 			else {
-				DoomCanvas_drawImage(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgHand, (doomCanvas->SCR_CX + 8) - 4, (doomCanvas->SCR_CY + 64) - 2, 10);
-				DoomCanvas_drawString1(doomCanvas, "Continue", (doomCanvas->SCR_CX + 64) - 4, (doomCanvas->SCR_CY + 64), 10);
+				DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgHand, (doomCanvas->SCR_CX + 8) - 4, (doomCanvas->SCR_CY + 64) - 2, 10, tmpSurface);
+				DoomCanvas_drawString1Sur(doomCanvas, "Continue", (doomCanvas->SCR_CX + 64) - 4, (doomCanvas->SCR_CY + 64), 10, tmpSurface);
 			}
 
 			if (i2 > ((int)SDL_strlen(text[doomCanvas->storyTextPage]) * 25)) {
@@ -1375,37 +1385,36 @@ void DoomCanvas_drawStory(DoomCanvas_t* doomCanvas)
 			//DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->imgSpaceBG, i3, 0, 128, 128, 0, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 0);
 			//DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->imgLinesLayer, i4, 0, 128, 128, 0, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 0);
 			// }
-			
+
 			// J2ME Code
 			//{
-			DoomCanvas_drawImage(doomCanvas, &doomCanvas->imgSpaceBG, (doomCanvas->SCR_CX - 64) - i3, doomCanvas->SCR_CY - 64, 0);
-			DoomCanvas_drawImage(doomCanvas, &doomCanvas->imgLinesLayer, (doomCanvas->SCR_CX - 64) - i4, doomCanvas->SCR_CY - 64, 0);
+			DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->imgSpaceBG, (doomCanvas->SCR_CX - 64) - i3, doomCanvas->SCR_CY - 64, 0, tmpSurface);
+			DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->imgLinesLayer, (doomCanvas->SCR_CX - 64) - i4, doomCanvas->SCR_CY - 64, 0, tmpSurface);
 			//}
 
-			DoomCanvas_drawImage(doomCanvas, &doomCanvas->imgPlanetLayer, doomCanvas->SCR_CX - 64,doomCanvas->SCR_CY - 64, 0);
-			DoomCanvas_drawImage(doomCanvas, &doomCanvas->imgSpaceship, i5, i6, 0);
+			DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->imgPlanetLayer, doomCanvas->SCR_CX - 64,doomCanvas->SCR_CY - 64, 0, tmpSurface);
+			DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->imgSpaceship, i5, i6, 0, tmpSurface);
 			if ((i / 500) % 2 == 0)
 			{
-				DoomRPG_setClipTrue(doomCanvas->doomRpg, (doomCanvas->SCR_CX - 63), (doomCanvas->SCR_CY - 63), 126, 126);
-
 				DoomRPG_setColor(doomCanvas->doomRpg, 0xBB0000);
-				DoomRPG_drawLine(doomCanvas->doomRpg, i5, i6 - 1, i5 + 9, i6 - 1);
-				DoomRPG_drawLine(doomCanvas->doomRpg, i5 + 4, 0, i5 + 4, i6 - 1);
-				DoomRPG_drawLine(doomCanvas->doomRpg, i5, i6 + 9, i5 + 9, i6 + 9);
-				DoomRPG_drawLine(doomCanvas->doomRpg, i5 + 4, i6 + 9, i5 + 4, doomCanvas->displayRect.h);
-				DoomRPG_drawLine(doomCanvas->doomRpg, i5 - 1, i6, i5 - 1, i6 + 9);
-				DoomRPG_drawLine(doomCanvas->doomRpg, 0, i6 + 4, i5 - 1, i6 + 4);
-				DoomRPG_drawLine(doomCanvas->doomRpg, i5 + 9, i6, i5 + 9, i6 + 9);
-				DoomRPG_drawLine(doomCanvas->doomRpg, i5 + 9, i6 + 4, doomCanvas->displayRect.w, i6 + 4);
+				DoomRPG_drawLineSur(doomCanvas->doomRpg, i5, i6 - 1, i5 + 9, i6 - 1, tmpSurface);
+				DoomRPG_drawLineSur(doomCanvas->doomRpg, i5 + 4, 0, i5 + 4, i6 - 1, tmpSurface);
+				DoomRPG_drawLineSur(doomCanvas->doomRpg, i5, i6 + 9, i5 + 9, i6 + 9, tmpSurface);
+				DoomRPG_drawLineSur(doomCanvas->doomRpg, i5 + 4, i6 + 9, i5 + 4, doomCanvas->displayRect.h, tmpSurface);
+				DoomRPG_drawLineSur(doomCanvas->doomRpg, i5 - 1, i6, i5 - 1, i6 + 9, tmpSurface);
+				DoomRPG_drawLineSur(doomCanvas->doomRpg, 0, i6 + 4, i5 - 1, i6 + 4, tmpSurface);
+				DoomRPG_drawLineSur(doomCanvas->doomRpg, i5 + 9, i6, i5 + 9, i6 + 9, tmpSurface);
+				DoomRPG_drawLineSur(doomCanvas->doomRpg, i5 + 9, i6 + 4, doomCanvas->displayRect.w, i6 + 4, tmpSurface);
+				DoomRPG_setClipTrueSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX - 63), (doomCanvas->SCR_CY - 63), 126, 126, tmpSurface);
 			}
 		}
+		SDL_BlitSurface(tmpSurface, NULL, sdlVideo.screenSurface, NULL);
 	}
+	SDL_FreeSurface(tmpSurface);
 }
 
 void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 {
-	// Port:
-	// aplicar esta funci�n antes de actualizar el framebuffer
 	// apply this function before updating the framebuffer
 	//if (doomCanvas->doomRpg->player->berserkerTics) {
 		//Render_setBerserkColor(doomCanvas->doomRpg->render);
@@ -1460,12 +1469,11 @@ void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 
 void DoomCanvas_drawImageSpecial(DoomCanvas_t* doomCanvas, Image_t* img, int xSrc, int ySrc, int width, int height, int param_7, int xDst, int yDst, int flags)
 {
-    // Проверка на случай, если картинка не загрузилась
     if (img == NULL || img->imgBitmap == NULL) {
         return;
     }
 
-    // Если передана нулевая ширина/высота, используем размер картинки
+    // if null width or height then using img len
     if (width == 0) {
         width = img->width;
     }
@@ -1473,7 +1481,7 @@ void DoomCanvas_drawImageSpecial(DoomCanvas_t* doomCanvas, Image_t* img, int xSr
         height = img->height;
     }
 
-    // Обработка флагов выравнивания
+    // Flags
     if ((flags & 16) == 0) {
         if ((flags & 8) != 0) xDst -= width;
     } else {
@@ -1488,32 +1496,26 @@ void DoomCanvas_drawImageSpecial(DoomCanvas_t* doomCanvas, Image_t* img, int xSr
     int current_y = yDst;
     int remaining_h = height;
 
-    // Внешний цикл по вертикали
     while (remaining_h > 0)
     {
         int current_x = xDst;
         int remaining_w = width;
 
-        // Внутренний цикл по горизонтали
         while (remaining_w > 0)
         {
-            SDL_Rect src_rect; // Прямоугольник-источник (откуда из img читать)
-            SDL_Rect dst_rect; // Прямоугольник-приемник (куда на экран рисовать)
+            SDL_Rect src_rect;
+            SDL_Rect dst_rect;
 
-            // Устанавливаем источник
             src_rect.x = xSrc;
             src_rect.y = ySrc;
 
-            // --- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ ---
-            // Определяем, сколько пикселей рисовать на этой итерации
             int blit_w = (remaining_w > img->width) ? img->width : remaining_w;
             int blit_h = (remaining_h > img->height) ? img->height : remaining_h;
 
-            // Ограничиваем прямоугольник-источник реальными размерами
+            // Only real sizes
             src_rect.w = blit_w;
             src_rect.h = blit_h;
 
-            // Устанавливаем приемник
             if (doomCanvas) {
             	dst_rect.x = doomCanvas->displayRect.x + current_x;
             	dst_rect.y = doomCanvas->displayRect.y + current_y;
@@ -1523,7 +1525,7 @@ void DoomCanvas_drawImageSpecial(DoomCanvas_t* doomCanvas, Image_t* img, int xSr
             dst_rect.w = blit_w;
             dst_rect.h = blit_h;
 
-            // Обработка флага масштабирования (если нужно)
+            // Flags
             if (flags & 64) {
                  dst_rect.x = (dst_rect.x + dst_rect.w / 2) - (((dst_rect.w / 2) * 3) / 2);
                  dst_rect.y = (dst_rect.y + dst_rect.h / 2) - (((dst_rect.h / 2) * 3) / 2);
@@ -1531,39 +1533,34 @@ void DoomCanvas_drawImageSpecial(DoomCanvas_t* doomCanvas, Image_t* img, int xSr
                  dst_rect.h = (dst_rect.h * 3) / 2;
             }
 
-            // Рисуем на экране
+            // Drawing
 #ifdef __3DS__
             SDL_BlitSurface(img->imgBitmap, &src_rect, sdlVideo.screenSurface, &dst_rect);
 #else
             SDL_RenderCopy(sdlVideo.renderer, img->imgBitmap, &src_rect, &dst_rect);
 #endif
 
-            // Обновляем позицию для следующего тайла
+            // Updating pos for next tile
             current_x += blit_w;
             remaining_w -= blit_w;
         }
 
-        current_y += img->height; // Всегда сдвигаемся на полную высоту тайла
+        current_y += img->height;
         remaining_h -= img->height;
     }
 }
 
 void DoomCanvas_drawImageSpecialSur(DoomCanvas_t* doomCanvas, Image_t* img, int xSrc, int ySrc, int width, int height, int param_7, int xDst, int yDst, int flags, SDL_Surface* surface)
 {
-    // Проверка на случай, если картинка не загрузилась
     if (img == NULL || img->imgBitmap == NULL) {
         return;
     }
-
-    // Если передана нулевая ширина/высота, используем размер картинки
     if (width == 0) {
         width = img->width;
     }
     if (height == 0) {
         height = img->height;
     }
-
-    // Обработка флагов выравнивания
     if ((flags & 16) == 0) {
         if ((flags & 8) != 0) xDst -= width;
     } else {
@@ -1578,32 +1575,21 @@ void DoomCanvas_drawImageSpecialSur(DoomCanvas_t* doomCanvas, Image_t* img, int 
     int current_y = yDst;
     int remaining_h = height;
 
-    // Внешний цикл по вертикали
     while (remaining_h > 0)
     {
         int current_x = xDst;
         int remaining_w = width;
 
-        // Внутренний цикл по горизонтали
         while (remaining_w > 0)
         {
-            SDL_Rect src_rect; // Прямоугольник-источник (откуда из img читать)
-            SDL_Rect dst_rect; // Прямоугольник-приемник (куда на экран рисовать)
-
-            // Устанавливаем источник
+            SDL_Rect src_rect;
+            SDL_Rect dst_rect;
             src_rect.x = xSrc;
             src_rect.y = ySrc;
-
-            // --- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ ---
-            // Определяем, сколько пикселей рисовать на этой итерации
             int blit_w = (remaining_w > img->width) ? img->width : remaining_w;
             int blit_h = (remaining_h > img->height) ? img->height : remaining_h;
-
-            // Ограничиваем прямоугольник-источник реальными размерами
             src_rect.w = blit_w;
             src_rect.h = blit_h;
-
-            // Устанавливаем приемник
             if (doomCanvas) {
             	dst_rect.x = doomCanvas->displayRect.x + current_x;
             	dst_rect.y = doomCanvas->displayRect.y + current_y;
@@ -1612,28 +1598,22 @@ void DoomCanvas_drawImageSpecialSur(DoomCanvas_t* doomCanvas, Image_t* img, int 
         	}
             dst_rect.w = blit_w;
             dst_rect.h = blit_h;
-
-            // Обработка флага масштабирования (если нужно)
             if (flags & 64) {
                  dst_rect.x = (dst_rect.x + dst_rect.w / 2) - (((dst_rect.w / 2) * 3) / 2);
                  dst_rect.y = (dst_rect.y + dst_rect.h / 2) - (((dst_rect.h / 2) * 3) / 2);
                  dst_rect.w = (dst_rect.w * 3) / 2;
                  dst_rect.h = (dst_rect.h * 3) / 2;
             }
-
-            // Рисуем на экране
 #ifdef __3DS__
             SDL_BlitSurface(img->imgBitmap, &src_rect, surface, &dst_rect);
 #else
             SDL_RenderCopy(sdlVideo.renderer, img->imgBitmap, &src_rect, &dst_rect);
 #endif
-
-            // Обновляем позицию для следующего тайла
             current_x += blit_w;
             remaining_w -= blit_w;
         }
 
-        current_y += img->height; // Всегда сдвигаемся на полную высоту тайла
+        current_y += img->height;
         remaining_h -= img->height;
     }
 }
@@ -1729,14 +1709,41 @@ void DoomCanvas_scrollSpaceBG(DoomCanvas_t* doomCanvas)
 	//DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->imgSpaceBG, i3, 0, 128, 128, 0, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 0);
 }
 
+void DoomCanvas_scrollSpaceBGSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
+{
+	int i = (int)(-((doomCanvas->time / 157) % 192));
+	int i2 = i;
+	int i3 = i + 192;
+	if (i2 <= -192) {
+		i2 = i2 + 384;
+	}
+
+	// New Code
+	//{
+	DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->imgSpaceBG, 0, 0, 0, 0, 0, -i2 + doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 0, surface);
+	DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->imgSpaceBG, 0, 0, 0, 0, 0, -i3 + doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 0, surface);
+	//}
+
+	// Original Code
+	//DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->imgSpaceBG, i2, 0, 128, 128, 0, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 0);
+	//DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->imgSpaceBG, i3, 0, 128, 128, 0, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 0);
+}
+
 void DoomCanvas_drawString1(DoomCanvas_t* doomCanvas, char* text, int x, int y, int flags)
 {
 	DoomCanvas_drawFont(doomCanvas, text, x, y, flags, 0, -1, 0);
 }
-
+void DoomCanvas_drawString1Sur(DoomCanvas_t* doomCanvas, char* text, int x, int y, int flags, SDL_Surface* surface)
+{
+	DoomCanvas_drawFontSur(doomCanvas, text, x, y, flags, 0, -1, 0, surface);
+}
 void DoomCanvas_drawString2(DoomCanvas_t* doomCanvas, char* text, int x, int y, int flags, int param_6)
 {
 	DoomCanvas_drawFont(doomCanvas, text, x, y, flags, 0, (doomCanvas->time - param_6) / 25, 0);
+}
+void DoomCanvas_drawString2Sur(DoomCanvas_t* doomCanvas, char* text, int x, int y, int flags, int param_6, SDL_Surface* surface)
+{
+	DoomCanvas_drawFontSur(doomCanvas, text, x, y, flags, 0, (doomCanvas->time - param_6) / 25, 0, surface);
 }
 void SDL_SurfaceColorMod(SDL_Surface *surface, Uint8 r, Uint8 g, Uint8 b)
 {
@@ -2014,7 +2021,7 @@ void DoomCanvas_dyingState(DoomCanvas_t* doomCanvas)
 void DoomCanvas_sorryState(DoomCanvas_t* doomCanvas)
 {
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 	
 	DoomRPG_setClipTrue(doomCanvas->doomRpg, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 128, 128);
 	DoomCanvas_scrollSpaceBG(doomCanvas);
@@ -2743,7 +2750,7 @@ void DoomCanvas_loadPrologueText(DoomCanvas_t* doomCanvas)
 	doomCanvas->storyTextPage = 0;
 
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 }
 
 void DoomCanvas_keyPressed(DoomCanvas_t* doomCanvas, int keyCode)
@@ -2975,7 +2982,7 @@ void DoomCanvas_handleEpilogueInput(DoomCanvas_t* doomCanvas)
 void DoomCanvas_handleStoryInput(DoomCanvas_t* doomCanvas)
 {
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 	DoomRPG_setColor(doomCanvas->doomRpg, 0xffffff);
 
 	if (doomCanvas->storyPage == 1) {
