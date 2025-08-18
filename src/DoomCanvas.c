@@ -1292,6 +1292,10 @@ void DoomCanvas_drawImage(DoomCanvas_t* doomcanvas, Image_t* img, int x, int y, 
 {
 	DoomCanvas_drawImageSpecial(doomcanvas, img, 0, 0, 0, 0, 0, x, y, flags);
 }
+void DoomCanvas_drawImageSur(DoomCanvas_t* doomcanvas, Image_t* img, int x, int y, int flags, SDL_Surface* surface)
+{
+	DoomCanvas_drawImageSpecialSur(doomcanvas, img, 0, 0, 0, 0, 0, x, y, flags, surface);
+}
 
 void DoomCanvas_drawStory(DoomCanvas_t* doomCanvas)
 {
@@ -1426,22 +1430,8 @@ void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 	SDL_Rect renderQuad, clip;
 
 	clip.x = doomCanvas->render->screenX;
-	if (doomCanvas->menuSystem->menu != MENU_MAIN &&
-		doomCanvas->menuSystem->menu != MENU_MAIN_CONTINUE &&
-		doomCanvas->menuSystem->menu != MENU_MAIN_ERASE &&
-		doomCanvas->menuSystem->menu != MENU_MAIN_EXIT &&
-		doomCanvas->menuSystem->menu != MENU_MAIN_HELP_ABOUT &&
-		doomCanvas->menuSystem->menu != MENU_MAIN_OPTIONS &&
-		doomCanvas->menuSystem->menu != MENU_MAIN_SURE) {
-		clip.y = doomCanvas->hud->statusBarHeight;
-		clip.h = 240 - doomCanvas->hud->statusBarHeight;
-	}
-	else {
-		clip.y = doomCanvas->render->screenY;
-		clip.h = 240;
-	}
-		//clip.y = doomCanvas->render->screenY;
-	//clip.y = doomCanvas->hud->statusBarHeight - 10; //doomCanvas->render->screenY
+	clip.y = doomCanvas->render->screenY;
+	clip.h = 240;
 	clip.w = doomCanvas->render->screenWidth;
 
 	renderQuad.x = doomCanvas->render->screenX;
@@ -1544,6 +1534,96 @@ void DoomCanvas_drawImageSpecial(DoomCanvas_t* doomCanvas, Image_t* img, int xSr
             // Рисуем на экране
 #ifdef __3DS__
             SDL_BlitSurface(img->imgBitmap, &src_rect, sdlVideo.screenSurface, &dst_rect);
+#else
+            SDL_RenderCopy(sdlVideo.renderer, img->imgBitmap, &src_rect, &dst_rect);
+#endif
+
+            // Обновляем позицию для следующего тайла
+            current_x += blit_w;
+            remaining_w -= blit_w;
+        }
+
+        current_y += img->height; // Всегда сдвигаемся на полную высоту тайла
+        remaining_h -= img->height;
+    }
+}
+
+void DoomCanvas_drawImageSpecialSur(DoomCanvas_t* doomCanvas, Image_t* img, int xSrc, int ySrc, int width, int height, int param_7, int xDst, int yDst, int flags, SDL_Surface* surface)
+{
+    // Проверка на случай, если картинка не загрузилась
+    if (img == NULL || img->imgBitmap == NULL) {
+        return;
+    }
+
+    // Если передана нулевая ширина/высота, используем размер картинки
+    if (width == 0) {
+        width = img->width;
+    }
+    if (height == 0) {
+        height = img->height;
+    }
+
+    // Обработка флагов выравнивания
+    if ((flags & 16) == 0) {
+        if ((flags & 8) != 0) xDst -= width;
+    } else {
+        xDst -= (width >> 1);
+    }
+    if ((flags & 32) == 0) {
+        if ((flags & 2) != 0) yDst -= height;
+    } else {
+        yDst -= (height >> 1);
+    }
+
+    int current_y = yDst;
+    int remaining_h = height;
+
+    // Внешний цикл по вертикали
+    while (remaining_h > 0)
+    {
+        int current_x = xDst;
+        int remaining_w = width;
+
+        // Внутренний цикл по горизонтали
+        while (remaining_w > 0)
+        {
+            SDL_Rect src_rect; // Прямоугольник-источник (откуда из img читать)
+            SDL_Rect dst_rect; // Прямоугольник-приемник (куда на экран рисовать)
+
+            // Устанавливаем источник
+            src_rect.x = xSrc;
+            src_rect.y = ySrc;
+
+            // --- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ ---
+            // Определяем, сколько пикселей рисовать на этой итерации
+            int blit_w = (remaining_w > img->width) ? img->width : remaining_w;
+            int blit_h = (remaining_h > img->height) ? img->height : remaining_h;
+
+            // Ограничиваем прямоугольник-источник реальными размерами
+            src_rect.w = blit_w;
+            src_rect.h = blit_h;
+
+            // Устанавливаем приемник
+            if (doomCanvas) {
+            	dst_rect.x = doomCanvas->displayRect.x + current_x;
+            	dst_rect.y = doomCanvas->displayRect.y + current_y;
+            }
+        	else {
+        	}
+            dst_rect.w = blit_w;
+            dst_rect.h = blit_h;
+
+            // Обработка флага масштабирования (если нужно)
+            if (flags & 64) {
+                 dst_rect.x = (dst_rect.x + dst_rect.w / 2) - (((dst_rect.w / 2) * 3) / 2);
+                 dst_rect.y = (dst_rect.y + dst_rect.h / 2) - (((dst_rect.h / 2) * 3) / 2);
+                 dst_rect.w = (dst_rect.w * 3) / 2;
+                 dst_rect.h = (dst_rect.h * 3) / 2;
+            }
+
+            // Рисуем на экране
+#ifdef __3DS__
+            SDL_BlitSurface(img->imgBitmap, &src_rect, surface, &dst_rect);
 #else
             SDL_RenderCopy(sdlVideo.renderer, img->imgBitmap, &src_rect, &dst_rect);
 #endif
@@ -1791,15 +1871,126 @@ void DoomCanvas_drawFont(DoomCanvas_t* doomCanvas, char* text, int x, int y, int
 }
 
 
+void DoomCanvas_drawFontSur(DoomCanvas_t* doomCanvas, char* text, int x, int y, int flags, int strBeg, int strEnd, boolean isLargerFont, SDL_Surface* surface)
+{
+    Image_t* imgFont;
+    int charCellWidth, charCellHeight, charAdvanceWidth;
+    int len, i;
+    unsigned char c;
 
+    if (strEnd == 0) return;
+
+    // Select font size and parameters
+    if (isLargerFont == 0) {
+        imgFont = &doomCanvas->imgFont;
+        charAdvanceWidth = 7;
+        charCellWidth = 9;
+        charCellHeight = 12;
+    } else {
+        imgFont = &doomCanvas->imgLargerFont;
+        charAdvanceWidth = 10;
+        charCellWidth = 13;
+        charCellHeight = 17;
+    }
+
+    // Calculate string length
+    len = SDL_strlen(text) - strBeg;
+    if ((len > strEnd) && (strEnd >= 0)) {
+        len = strEnd;
+    }
+    len += strBeg;
+
+    // Horizontal alignment
+    if (flags & 8) {       // right aligned
+        x -= (len - strBeg) * charAdvanceWidth;
+    } else if (flags & 16) {  // center aligned
+        x -= ((len - strBeg) * charAdvanceWidth) / 2;
+    }
+
+    // Vertical alignment
+    if (flags & 2) {          // bottom aligned
+        y -= charCellHeight;
+    } else if (flags & 32) {  // center aligned
+        y -= charCellHeight / 2;
+    }
+
+    // Temporary surface for rendering the whole string block (estimate height with '\n')
+    int lineCount = 1;
+    for (i = strBeg; i < len; ++i) {
+        if (text[i] == '\n') lineCount++;
+    }
+
+    SDL_Surface* fontSurface = SDL_CreateRGBSurface(
+        SDL_SWSURFACE,
+        charAdvanceWidth * (len - strBeg), // width is maximum possible without breaking lines
+        charCellHeight * lineCount,
+        32,
+        0x00FF0000, // red mask (32-bit)
+        0x0000FF00, // green mask
+        0x000000FF, // blue mask
+        0xFF000000  // alpha mask
+    );
+
+    if (!fontSurface) {
+        printf("Failed to create font surface: %s\n", SDL_GetError());
+        return;
+    }
+
+    int xpos = 0; // horizontal offset on fontSurface
+    int ypos = 0; // vertical offset for new lines
+
+    // Render characters one by one
+    for (i = strBeg; i < len; ++i) {
+        c = (unsigned char)text[i];
+
+        if (c == '\n') {
+            // Move to next line
+            xpos = 0;
+            ypos += charCellHeight;
+            continue;
+        }
+        else if (c == ' ') {
+            // Space character: advance cursor
+            xpos += charAdvanceWidth;
+            continue;
+        }
+
+        int charIndex = c - 33;
+        if (charIndex < 0) continue;
+
+        SDL_Rect srcRect = {
+            (charIndex % 16) * charCellWidth,
+            (charIndex / 16) * charCellHeight,
+            charCellWidth,
+            charCellHeight
+        };
+
+        SDL_Rect dstRect = {
+            xpos,
+            ypos,
+            charCellWidth,
+            charCellHeight
+        };
+
+        SDL_BlitSurface(imgFont->imgBitmap, &srcRect, fontSurface, &dstRect);
+
+        xpos += charAdvanceWidth;
+    }
+
+    // Blit the entire rendered block onto the main screen
+    SDL_Rect destRect = { x, y, fontSurface->w, fontSurface->h };
+    SDL_BlitSurface(fontSurface, NULL, surface, &destRect);
+
+    SDL_FreeSurface(fontSurface);
+}
 
 void DoomCanvas_dyingState(DoomCanvas_t* doomCanvas)
 {
 	// New Code Lines
-	{
+	//{
 		Hud_drawTopBar(doomCanvas);
 		Hud_drawBottomBar(doomCanvas);
-	}
+	//}
 
 	if (doomCanvas->time < doomCanvas->deathTime + 750) {
 		doomCanvas->viewZ = 36 - ((8192 * ((((int)(doomCanvas->time - doomCanvas->deathTime)) << 16) / 192000)) >> 16);
@@ -3298,8 +3489,8 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 		}
 
 		if (doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME) {
-			Hud_drawTopBar(doomCanvas);
-			Hud_drawBottomBar(doomCanvas);
+			//Hud_drawTopBar(doomCanvas);
+			//Hud_drawBottomBar(doomCanvas);
 			DoomCanvas_restoreSoftKeys(doomCanvas);
 		}
 	}

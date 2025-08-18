@@ -312,6 +312,7 @@ void DoomRPG_fillRect(DoomRPG_t* doomrpg, int x, int y, int w, int h);
 void DoomRPG_drawCircle(DoomRPG_t* doomrpg, int x, int y, int r);
 void DoomRPG_fillCircle(DoomRPG_t* doomrpg, int x, int y, int r);
 void DoomRPG_drawLine(DoomRPG_t* doomrpg, int x1, int y1, int x2, int y2);
+void DoomRPG_drawLineSur(DoomRPG_t* doomrpg, int x1, int y1, int x2, int y2, SDL_Surface* surface);
 void DoomRPG_setFontColor(DoomRPG_t* doomrpg, int color); // New
 
 void DoomRPG_setRand(Random_t* rand);

@@ -279,43 +279,45 @@ void put_pixel_safe(SDL_Surface *surface, int x, int y, Uint32 color)
 }
 void SDL_RenderDrawLine(SDL_Surface *surface, int x1, int y1, int x2, int y2)
 {
-	int dx = abs(x2 - x1);
-	int dy = abs(y2 - y1);
-	int sx = (x1 < x2) ? 1 : -1;
-	int sy = (y1 < y2) ? 1 : -1;
-	int err = dx - dy;
-	int e2;
+	if (surface != NULL) {
+		int dx = abs(x2 - x1);
+		int dy = abs(y2 - y1);
+		int sx = (x1 < x2) ? 1 : -1;
+		int sy = (y1 < y2) ? 1 : -1;
+		int err = dx - dy;
+		int e2;
 
-	Uint32 color = (Uint32)(uintptr_t)curColor;
+		Uint32 color = (Uint32)(uintptr_t)curColor;
 
-	if (SDL_MUSTLOCK(surface)) {
-		if (SDL_LockSurface(surface) < 0) {
-			return;
-		}
-	}
-
-	while (1) {
-		put_pixel_safe(surface, x1, y1, color);
-
-		if (x1 == x2 && y1 == y2) {
-			break;
+		if (SDL_MUSTLOCK(surface)) {
+			if (SDL_LockSurface(surface) < 0) {
+				return;
+			}
 		}
 
-		e2 = 2 * err;
+		while (1) {
+			put_pixel_safe(surface, x1, y1, color);
 
-		if (e2 > -dy) {
-			err -= dy;
-			x1 += sx;
+			if (x1 == x2 && y1 == y2) {
+				break;
+			}
+
+			e2 = 2 * err;
+
+			if (e2 > -dy) {
+				err -= dy;
+				x1 += sx;
+			}
+
+			if (e2 < dx) {
+				err += dx;
+				y1 += sy;
+			}
 		}
 
-		if (e2 < dx) {
-			err += dx;
-			y1 += sy;
+		if (SDL_MUSTLOCK(surface)) {
+			SDL_UnlockSurface(surface);
 		}
-	}
-
-	if (SDL_MUSTLOCK(surface)) {
-		SDL_UnlockSurface(surface);
 	}
 }
 void SDL_RenderDrawFillCircle(RenderTarget* target, int x, int y, int r)

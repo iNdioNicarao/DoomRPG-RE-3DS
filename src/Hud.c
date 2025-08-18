@@ -2,6 +2,7 @@
 #ifdef __3DS__
 #include <SDL/SDL.h>
 #define skipNullptr 0
+#define caching 0
 #else
 #include <SDL.h>
 #endif
@@ -135,6 +136,141 @@ void Hud_drawBarTiles(DoomCanvas_t* doomCanvas, int x, int y, int width, boolean
 
     DoomCanvas_drawImageSpecial(doomCanvas, img, 0, 0, width, height, 0, x, y, 0);
 }
+void Hud_drawBarTilesSur(DoomCanvas_t* doomCanvas, int x, int y, int width, boolean isLargerStatusBar, SDL_Surface* surface)
+{
+#if skipNullptr
+    if (!hud->doomRpg->doomCanvas) {
+        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
+        return;
+    }
+#endif
+    Image_t* img;
+    int height;
+
+    if (isLargerStatusBar == false) {
+        height = doomCanvas->hud->imgStatusBar.height;
+        img = &doomCanvas->hud->imgStatusBar;
+    }
+    else {
+        height = doomCanvas->hud->imgStatusBarLarge.height;
+        img = &doomCanvas->hud->imgStatusBarLarge;
+    }
+
+    DoomCanvas_drawImageSpecialSur(doomCanvas, img, 0, 0, width, height, 0, x, y, 0, surface);
+}
+#if caching
+void Hud_drawLines(DoomCanvas_t* doomCanvas, SDL_Surface* targetSurface) {
+    Hud_t* hud = doomCanvas->hud;
+    int top    = doomCanvas->clipRect.h - hud->statusBarHeight;
+
+    DoomRPG_setColor(doomCanvas->doomRpg, 0xFFFFFF);
+    DoomRPG_drawLineSur(doomCanvas->doomRpg, 0, top, doomCanvas->clipRect.w, top, targetSurface);
+    DoomRPG_drawLineSur(doomCanvas->doomRpg, 0, top + hud->statusBarHeight - 1,
+                        doomCanvas->clipRect.w, top + hud->statusBarHeight - 1, targetSurface);
+}
+
+void Hud_drawCompass(DoomCanvas_t* doomCanvas, int dir, SDL_Surface* targetSurface) {
+    Hud_t* hud = doomCanvas->hud;
+    int compassX = hud->statusOrientationArrowXpos;
+    int compassY = hud->statusBarHeight / 2;
+
+    //Image_t* img = &doomCanvas->imgCompass[dir];
+    DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->hud->imgStatusArrow, compassX, compassY, 9, targetSurface);
+}
+
+void Hud_drawBarTilesSur(DoomCanvas_t* doomCanvas, int x, int y, int width, boolean isLargerStatusBar, SDL_Surface* surface)
+{
+#if skipNullptr
+    if (!hud->doomRpg->doomCanvas) {
+        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
+        return;
+    }
+#endif
+    Image_t* img;
+    int height;
+
+    if (isLargerStatusBar == false) {
+        height = doomCanvas->hud->imgStatusBar.height;
+        img = &doomCanvas->hud->imgStatusBar;
+    }
+    else {
+        height = doomCanvas->hud->imgStatusBarLarge.height;
+        img = &doomCanvas->hud->imgStatusBarLarge;
+    }
+
+    DoomCanvas_drawImageSpecialSur(doomCanvas, img, 0, 0, width, height, 0, x, y, 0, surface);
+}
+void Hud_drawFace(DoomCanvas_t* doomCanvas, int a, SDL_Surface* surface) {
+
+}
+void Hud_drawBottomBar(DoomCanvas_t* doomCanvas) {
+    Hud_t* hud = doomCanvas->hud;
+    HudCache_t* cache = hud->cache;
+    CombatEntity_t* ce = &doomCanvas->player->ce;
+
+    int health = CombatEntity_getHealth(ce);
+    int armor  = CombatEntity_getArmor(ce);
+    int weapon = doomCanvas->player->weapon;
+    int ammo   = doomCanvas->player->ammo[doomCanvas->combat->weaponInfo[weapon].ammoType];;
+    int dir    = doomCanvas->destAngle & 255;
+
+    if (cache->oldHealth != health ||
+        cache->oldArmor  != armor ||
+        cache->oldAmmo[weapon] != ammo ||
+        cache->oldDir    != dir ||
+        cache->oldWeapon != weapon)
+    {
+        cache->dirty = 1;
+    }
+
+    if (cache->dirty) {
+        SDL_FillRect(cache->hudSurface, NULL, 0x00000000); // очистка (прозрачный фон)
+
+        // рисуем всё заново на surface
+        Hud_drawBarTilesSur(doomCanvas, 0, 0, 400, hud->largeHud, cache->hudSurface);
+        Hud_drawLines(doomCanvas, cache->hudSurface);
+
+        // здоровье
+        char num[16];
+        snprintf(num, sizeof(num), "%d", health);
+        DoomCanvas_drawFontSur(doomCanvas, num, hud->statusHealthXpos,
+            hud->statusBarHeight/2, 9, 0, 3, hud->largeHud, cache->hudSurface);
+
+        // броня
+        snprintf(num, sizeof(num), "%d", armor);
+        DoomCanvas_drawFontSur(doomCanvas, num, hud->statusArmorXpos,
+            hud->statusBarHeight/2, 9, 0, 3, hud->largeHud, cache->hudSurface);
+
+        // лицо
+        Hud_drawFace(doomCanvas, hud->faceFrame, cache->hudSurface);
+
+        // патроны
+        snprintf(num, sizeof(num), "%d", ammo);
+        DoomCanvas_drawFontSur(doomCanvas, num, hud->statusAmmoXpos,
+            hud->statusBarHeight/2, 9, 0, 3, hud->largeHud, cache->hudSurface);
+
+        // направление
+        Hud_drawCompass(doomCanvas, dir, cache->hudSurface);
+
+        // сохранить новые значения
+        cache->oldHealth = health;
+        cache->oldArmor  = armor;
+        cache->oldAmmo[weapon] = ammo;
+        cache->oldDir    = dir;
+        cache->oldWeapon = weapon;
+        cache->oldFaceFrame = hud->faceFrame;
+
+        cache->dirty = 0;
+    }
+
+    SDL_Rect dst = {0, doomCanvas->clipRect.h - hud->statusBarHeight,
+                    400, hud->statusBarHeight};
+    SDL_BlitSurface(cache->hudSurface, NULL, sdlVideo.screenSurface, &dst);
+}
+#else
+void Hud_drawBarLine(DoomCanvas_t* doomCanvas, int x1, int y1, int x2, int y2, SDL_Surface* targetSurface){
+    DoomRPG_drawLineSur(doomCanvas->doomRpg, x1, y1, x2, y2, targetSurface);
+}
 void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
 {
 #if skipNullptr
@@ -144,6 +280,16 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
     }
 #endif
     //if (doomCanvas->menuSystem->menu)
+    //------creating surface & variables
+    SDL_Surface* tmpSurface =
+        SDL_CreateRGBSurface(SDL_SWSURFACE,
+            sdlVideo.screenW,
+            doomCanvas->hud->statusBarHeight,
+            16,
+            0x0,
+            0x0,
+            0x0,
+            0x0);
     Image_t* img;
     CombatEntity_t* ce;
     Combat_t* combat;
@@ -154,12 +300,13 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
     int faceState, faceX;
     int weapon;
     char dir[2];
+    //set variables
     ce = &doomCanvas->player->ce;
     dispW = 400;
-    dispH = 240;
+    dispH = doomCanvas->hud->statusBarHeight;
     stbH = doomCanvas->hud->statusBarHeight;
     cx = doomCanvas->SCR_CX;
-    y = dispH - (stbH >> 1);
+    y = 10;
 
     if (doomCanvas->hud->largeHud) {
         cx -= 88;
@@ -172,32 +319,31 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
         x = 7;
     }
 
-    Hud_drawBarTiles(doomCanvas, 0, dispH - stbH, 400, doomCanvas->hud->largeHud);
+    //drawing bottom bar rect
+    Hud_drawBarTilesSur(doomCanvas, 0, dispH - stbH, 400, doomCanvas->hud->largeHud, tmpSurface);
 
-    // draw vertical gray lines
     lx1 = doomCanvas->hud->statusLine1Xpos + cx;
     lx2 = doomCanvas->hud->statusLine2Xpos + cx;
     DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-    DoomRPG_drawLine(doomCanvas->doomRpg, lx1, dispH - stbH, lx1, dispH - 1);
-    DoomRPG_drawLine(doomCanvas->doomRpg, lx2, dispH - stbH, lx2, dispH - 1);
+    Hud_drawBarLine(doomCanvas, lx1, dispH - stbH, lx1, dispH - 1, tmpSurface);
+    Hud_drawBarLine(doomCanvas, lx2, dispH - stbH, lx2, dispH - 1, tmpSurface);
     DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-    DoomRPG_drawLine(doomCanvas->doomRpg, lx1 + 1, dispH - stbH, lx1 + 1, dispH - 1);
-    DoomRPG_drawLine(doomCanvas->doomRpg, lx2 + 1, dispH - stbH, lx2 + 1, dispH - 1);
-
+    Hud_drawBarLine(doomCanvas, lx1 + 1, dispH - stbH, lx1 + 1, dispH - 1, tmpSurface);
+    Hud_drawBarLine(doomCanvas, lx2 + 1, dispH - stbH, lx2 + 1, dispH - 1, tmpSurface);
+//-----drawing health
     img = &doomCanvas->hud->imgIconSheet;
     dy = dispH - (stbH >> 1);
 
-    // draw health
     int healthNow = CombatEntity_getHealth(ce);
-    DoomCanvas_drawImageSpecial(doomCanvas, img, 0, 0, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusHealthXpos + cx, dy, 0x24);
+    DoomCanvas_drawImageSpecialSur(doomCanvas, img, 0, 0, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusHealthXpos + cx, dy, 0x24, tmpSurface);
     SDL_snprintf(doomCanvas->hud->healthNum, 4, "%d", healthNow);
-    DoomCanvas_drawFont(doomCanvas, doomCanvas->hud->healthNum, doomCanvas->hud->statusHealthXpos + cx + x * 2 + doomCanvas->hud->iconSheetWidth + 1, y, 9, 0, 3, doomCanvas->hud->largeHud);
+    DoomCanvas_drawFontSur(doomCanvas, doomCanvas->hud->healthNum, doomCanvas->hud->statusHealthXpos + cx + x * 2 + doomCanvas->hud->iconSheetWidth + 1, y, 9, 0, 3, doomCanvas->hud->largeHud, tmpSurface);
 
     // draw armmor
     int armorNow = CombatEntity_getArmor(ce);
-    DoomCanvas_drawImageSpecial(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusArmorXpos + cx, dy, 0x24);
+    DoomCanvas_drawImageSpecialSur(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusArmorXpos + cx, dy, 0x24, tmpSurface);
     SDL_snprintf(doomCanvas->hud->armorNum, 4, "%d", armorNow);
-    DoomCanvas_drawFont(doomCanvas, doomCanvas->hud->armorNum, doomCanvas->hud->statusArmorXpos + cx + x * 2 + doomCanvas->hud->iconSheetWidth, y, 9, 0, 3, doomCanvas->hud->largeHud);
+    DoomCanvas_drawFontSur(doomCanvas, doomCanvas->hud->armorNum, doomCanvas->hud->statusArmorXpos + cx + x * 2 + doomCanvas->hud->iconSheetWidth, y, 9, 0, 3, doomCanvas->hud->largeHud, tmpSurface);
     // draw face
     health = CombatEntity_getHealth(ce);
 
@@ -240,27 +386,38 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
 
     faceX = doomCanvas->hud->statusHudFacesXpos + cx;
     DoomRPG_setColor(doomCanvas->doomRpg, 0x323232);
-    DoomRPG_drawLine(doomCanvas->doomRpg, faceX - 1, dispH - doomCanvas->hud->statusBarHeight, faceX - 1, dispH -1);
-    DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->hud->imgHudFaces, 0, faceState * doomCanvas->hud->hudFaceHeight, doomCanvas->hud->hudFaceWidth, doomCanvas->hud->hudFaceHeight, 0, faceX, dy, 0x24);
-    DoomRPG_setColor(doomCanvas->doomRpg, 0x828282);
-    DoomRPG_drawLine(doomCanvas->doomRpg, faceX + doomCanvas->hud->hudFaceWidth, dispH - doomCanvas->hud->statusBarHeight, faceX + doomCanvas->hud->hudFaceWidth, dispH + -1);
+    Hud_drawBarLine(doomCanvas, faceX - 1, dispH - doomCanvas->hud->statusBarHeight, faceX - 1, dispH -1, tmpSurface);
+    DoomCanvas_drawImageSpecialSur(doomCanvas,
+        &doomCanvas->hud->imgHudFaces,
+        0,
+        faceState * doomCanvas->hud->hudFaceHeight,
+        doomCanvas->hud->hudFaceWidth,
+        doomCanvas->hud->hudFaceHeight,
+        0,
+        faceX,
+        dy,
+        0x24,
+        tmpSurface);
+    DoomRPG_setColor(doomCanvas->doomRpg,
+        0x828282);
+    Hud_drawBarLine(doomCanvas, faceX + doomCanvas->hud->hudFaceWidth, dispH - doomCanvas->hud->statusBarHeight, faceX + doomCanvas->hud->hudFaceWidth, dispH + -1, tmpSurface);
 
     // draw weapon and ammo
     if (doomCanvas->player->weapons) {
         weapon = doomCanvas->player->weapon;
 
         if (weapon == 0) {
-            DoomCanvas_drawImageSpecial(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight << 1, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusAmmoXpos + cx, dy, 0x24);
+            DoomCanvas_drawImageSpecialSur(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight << 1, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusAmmoXpos + cx, dy, 0x24, tmpSurface);
             strncpy(doomCanvas->hud->ammoNum, "--", 4);
         }
         else {
             combat = doomCanvas->doomRpg->combat;
             int ammoCount = doomCanvas->player->ammo[combat->weaponInfo[weapon].ammoType];
-            DoomCanvas_drawImageSpecial(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight * (combat->weaponInfo[weapon].ammoType + 3), doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusAmmoXpos + cx, dy, 0x24);
+            DoomCanvas_drawImageSpecialSur(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight * (combat->weaponInfo[weapon].ammoType + 3), doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusAmmoXpos + cx, dy, 0x24, tmpSurface);
             SDL_snprintf(doomCanvas->hud->ammoNum, 3, "%d", ammoCount);
         }
 
-        DoomCanvas_drawFont(doomCanvas, doomCanvas->hud->ammoNum, doomCanvas->hud->statusAmmoXpos + cx + doomCanvas->hud->iconSheetWidth + x * 2, y, 9, 0, 2, doomCanvas->hud->largeHud);
+        DoomCanvas_drawFontSur(doomCanvas, doomCanvas->hud->ammoNum, doomCanvas->hud->statusAmmoXpos + cx + doomCanvas->hud->iconSheetWidth + x * 2, y, 9, 0, 2, doomCanvas->hud->largeHud, tmpSurface);
     }
 
     // draw orientation text
@@ -279,10 +436,26 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
         break;
     }
 
-    DoomCanvas_drawImage(doomCanvas, &doomCanvas->hud->imgStatusArrow, doomCanvas->hud->statusOrientationArrowXpos + cx, y - 3, 9);
-    DoomCanvas_drawFont(doomCanvas, dir, doomCanvas->hud->statusOrientationXpos + cx, y + 2, 9, 0, 1, doomCanvas->hud->largeHud);
-}
+    DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->hud->imgStatusArrow, doomCanvas->hud->statusOrientationArrowXpos + cx, y - 3, 9, tmpSurface);
+    DoomCanvas_drawFontSur(doomCanvas, dir, doomCanvas->hud->statusOrientationXpos + cx, y + 2, 9, 0, 1, doomCanvas->hud->largeHud, tmpSurface);
+    SDL_Rect* srcRect = malloc(sizeof(*srcRect));
+    SDL_Rect* dstRect = malloc(sizeof(*srcRect));
+    srcRect->h = tmpSurface->h;
+    srcRect->w = tmpSurface->w;
+    srcRect->x = 0;
+    srcRect->y = 0;
 
+    dstRect->h = tmpSurface->h;
+    dstRect->w = tmpSurface->w;
+    dstRect->x = 0;
+    dstRect->y = 240 - doomCanvas->hud->statusBarHeight;
+
+    SDL_BlitSurface(tmpSurface, srcRect, sdlVideo.screenSurface, dstRect);
+    SDL_FreeSurface(tmpSurface);
+    SDL_free(dstRect);
+    SDL_free(srcRect);
+}
+#endif
 void Hud_drawEffects(DoomCanvas_t* doomCanvas)
 {
 #if skipNullptr

@@ -8,7 +8,17 @@
 #include "logger.h"
 struct DoomRPG_s;
 struct Image_s;
+typedef struct {
+	int oldHealth;
+	int oldArmor;
+	int oldAmmo[30];
+	int oldFaceFrame;
+	int oldDir;
+	int oldWeapon;
 
+	SDL_Surface* hudSurface; // общий offscreen HUD
+	int dirty; // нужно ли обновить кэш
+} HudCache_t;
 typedef struct Hud_s
 {
 	int memory;
@@ -49,6 +59,9 @@ typedef struct Hud_s
 	char healthNum[4];
 	char armorNum[4];
 	char ammoNum[3];
+	HudCache_t* cache;
+	int faceFrame;
+	int statusCompassXpos;
 	struct DoomRPG_s* doomRpg;
 } Hud_t;
 

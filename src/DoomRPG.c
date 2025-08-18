@@ -1214,6 +1214,15 @@ void DoomRPG_drawLine(DoomRPG_t* doomrpg, int x1, int y1, int x2, int y2)
 
     SDL_RenderDrawLine(sdlVideo.screenSurface, sx, sy, ex, ey);
 }
+void DoomRPG_drawLineSur(DoomRPG_t* doomrpg, int x1, int y1, int x2, int y2, SDL_Surface* surface)
+{
+	int sx = doomrpg->doomCanvas->displayRect.x + x1;
+	int sy = doomrpg->doomCanvas->displayRect.y + y1;
+	int ex = doomrpg->doomCanvas->displayRect.x + x2;
+	int ey = doomrpg->doomCanvas->displayRect.y + y2;
+
+	SDL_RenderDrawLine(surface, sx, sy, ex, ey);
+}
 
 void DoomRPG_setFontColor(DoomRPG_t* doomrpg, int color)
 {
