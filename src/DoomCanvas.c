@@ -1409,6 +1409,7 @@ void DoomCanvas_drawStory(DoomCanvas_t* doomCanvas)
 			}
 		}
 		SDL_BlitSurface(tmpSurface, NULL, sdlVideo.screenSurface, NULL);
+		DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 	SDL_FreeSurface(tmpSurface);
 }
@@ -1890,12 +1891,12 @@ void DoomCanvas_drawFontSur(DoomCanvas_t* doomCanvas, char* text, int x, int y, 
     // Select font size and parameters
     if (isLargerFont == 0) {
         imgFont = &doomCanvas->imgFont;
-        charAdvanceWidth = 8;
+        charAdvanceWidth = 7;
         charCellWidth = 9;
         charCellHeight = 12;
     } else {
         imgFont = &doomCanvas->imgLargerFont;
-        charAdvanceWidth = 11;
+        charAdvanceWidth = 10;
         charCellWidth = 13;
         charCellHeight = 17;
     }
@@ -2725,6 +2726,7 @@ void DoomCanvas_loadPrologueText(DoomCanvas_t* doomCanvas)
 	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 	DoomCanvas_drawString1(doomCanvas, "Loading...", doomCanvas->SCR_CX, doomCanvas->SCR_CY, 17);
 
+	//Sound_stopSounds(doomCanvas->doomRpg->sound);
 	Sound_playSound(doomCanvas->doomRpg->sound, 5039, SND_FLG_LOOP | SND_FLG_STOPSOUNDS | SND_FLG_ISMUSIC, 5);
 
 	textLen = SDL_strlen(storyTextA);
@@ -2750,7 +2752,7 @@ void DoomCanvas_loadPrologueText(DoomCanvas_t* doomCanvas)
 	doomCanvas->storyTextPage = 0;
 
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 }
 
 void DoomCanvas_keyPressed(DoomCanvas_t* doomCanvas, int keyCode)
