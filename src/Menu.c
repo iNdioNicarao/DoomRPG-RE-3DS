@@ -1931,6 +1931,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			if(itemId != 2) {
 				return MENU_INGAME;
 			}
+			DoomRPG_clearGraphics(doomCanvas->doomRpg);
 			DoomCanvas_loadState(doomCanvas, 1, "Loading Game...");
 			Hud_addMessage(doomCanvas, "Game Loaded");
 			break;
@@ -2206,6 +2207,7 @@ void Menu_startGame(Menu_t* menu, int i)
 		}
 	}
 	else {
+		DoomRPG_clearGraphics(doomCanvas->doomRpg);
 		DoomCanvas_loadState(doomCanvas, 1, "Loading Game");
 	}
 }

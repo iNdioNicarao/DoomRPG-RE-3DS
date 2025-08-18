@@ -237,7 +237,7 @@ void DoomCanvas_setupmenu(DoomCanvas_t* doomCanvas, boolean notdrawLoading)
 {
 	if (notdrawLoading == false) {
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		DoomCanvas_drawString1(doomCanvas, "Loading...", doomCanvas->SCR_CX, doomCanvas->SCR_CY + -0x18, 0x11);
 	}
 
@@ -2715,7 +2715,7 @@ void DoomCanvas_loadPrologueText(DoomCanvas_t* doomCanvas)
 {
 	int textLen;
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 	DoomCanvas_drawString1(doomCanvas, "Loading...", doomCanvas->SCR_CX, doomCanvas->SCR_CY, 17);
 
 	Sound_playSound(doomCanvas->doomRpg->sound, 5039, SND_FLG_LOOP | SND_FLG_STOPSOUNDS | SND_FLG_ISMUSIC, 5);
@@ -2791,11 +2791,11 @@ boolean DoomCanvas_loadMedia(DoomCanvas_t* doomCanvas)
 	if (Render_beginLoadMap(doomCanvas->render, doomCanvas->loadMapID))
 	{
 		DoomRPG_setColor(doomCanvas->doomRpg, doomCanvas->render->introColor);
-		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		DoomCanvas_drawString1(doomCanvas, "Loading", doomCanvas->SCR_CX, doomCanvas->SCR_CY - 48, 17);
 		DoomCanvas_drawString2(doomCanvas, doomCanvas->render->mapName, doomCanvas->SCR_CX, doomCanvas->SCR_CY - 36, 17, -1);
 		doomCanvas->fillRectIndex = 0;
-		//DoomCanvas_updateLoadingBar(doomCanvas);
+		DoomCanvas_updateLoadingBar(doomCanvas);
 
 		if (doomCanvas->game->isSaved) {
 			DoomCanvas_drawString1(doomCanvas, "Game Saved", doomCanvas->SCR_CX, doomCanvas->displayRect.h, 18);
@@ -2804,7 +2804,7 @@ boolean DoomCanvas_loadMedia(DoomCanvas_t* doomCanvas)
 			DoomCanvas_drawString1(doomCanvas, "Game Loaded", doomCanvas->SCR_CX, doomCanvas->displayRect.h, 18);
 		}
 
-		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
+		DoomRPG_flushGraphics(doomCanvas->doomRpg);
 
 		if (Render_beginLoadMapData(doomCanvas->render))
 		{
@@ -3670,7 +3670,7 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 		DoomCanvas_drawString1(doomCanvas, justAMoment, doomCanvas->SCR_CX, doomCanvas->SCR_CY, 0x11);
 		DoomCanvas_drawSoftKeys(doomCanvas, NULL, NULL);
 
-		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
+		DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 	else if (stateNum == ST_PARTICLE)
 	{
