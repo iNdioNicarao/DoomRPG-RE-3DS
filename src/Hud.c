@@ -438,7 +438,7 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
     DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->hud->imgStatusArrow, doomCanvas->hud->statusOrientationArrowXpos + cx, y - 3, 9, tmpSurface);
     DoomCanvas_drawFontSur(doomCanvas, dir, doomCanvas->hud->statusOrientationXpos + cx, y + 2, 9, 0, 1, doomCanvas->hud->largeHud, tmpSurface);
     SDL_Rect* srcRect = malloc(sizeof(*srcRect));
-    SDL_Rect* dstRect = malloc(sizeof(*srcRect));
+    SDL_Rect* dstRect = malloc(sizeof(*dstRect));
     srcRect->h = tmpSurface->h;
     srcRect->w = tmpSurface->w;
     srcRect->x = 0;

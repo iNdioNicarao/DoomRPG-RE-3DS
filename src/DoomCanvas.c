@@ -24,6 +24,7 @@
 #include "EntityDef.h"
 #include "Combat.h"
 #include "SDL_Video.h"
+#include "Z_Zone.h"
 
 static char processing[] = "Processing...";
 static char justAMoment[] = "(Just a moment!)";
@@ -503,10 +504,10 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 				doomCanvas->strPassCode[strLen] = '_';
 			}
 			else {
-#ifdef __3DS__
-#else
-				doomCanvas->strPassCode[strLen] = sdlController.gGameController ? doomCanvas->passInput : ' ';
-#endif
+				if (doomCanvas->passInput != ' ')
+					doomCanvas->strPassCode[strLen] = doomCanvas->passInput;
+				else
+					doomCanvas->strPassCode[strLen] = ' ';
 			}
 		}
 	}
@@ -749,6 +750,194 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
 }
 
 #else
+void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
+{
+	//SDL_Surface* automap = SDL_CreateRGBSurface();
+	SDL_Surface* tmpSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
+			sdlVideo.screenW,
+			240,
+			sdlVideo.screenSurface->format->BitsPerPixel,
+			sdlVideo.screenSurface->format->Rmask,
+	sdlVideo.screenSurface->format->Gmask,
+	sdlVideo.screenSurface->format->Bmask,
+	sdlVideo.screenSurface->format->Amask);
+	Entity_t* entity;
+	Sprite_t* sprite;
+	Line_t* line;
+
+	int cw = doomCanvas->clipRect.w;
+	int ch = doomCanvas->clipRect.h;
+
+	int screenOffsetY = 0; // bottom screen offset when using SDL_DUALSCR (400x480)
+
+	/* preserve original behavior for ch calculation */
+	if (cw < ch) {
+		ch = cw + ((cw >> 0x1f) >> 0x1b);
+	} else {
+		ch = ch + ((ch >> 0x1f) >> 0x1b);
+	}
+
+	int i, i2, i3, i4;
+	int i5 = ch / 32;
+	int i6 = doomCanvas->SCR_CX - (i5 * 16);
+	int i7 = doomCanvas->SCR_CY - (i5 * 16);
+	int i8 = 0x400000 / (i5 << 8);
+
+	if (z)
+	{
+		/* clear bottom screen automap area and set clipping */
+		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+		DoomRPG_fillRectSur(doomCanvas->doomRpg, 0, screenOffsetY, doomCanvas->displayRect.w, doomCanvas->displayRect.h, tmpSurface);
+		DoomRPG_setClipTrueSur(doomCanvas->doomRpg, 0, screenOffsetY, doomCanvas->displayRect.w, doomCanvas->displayRect.h, tmpSurface);
+
+		/* draw visited tiles and entities-on-tile markers */
+		int baseIndex = 0;
+		for (int row = 0; row < 32; row++) {
+			for (int col = 0; col < 32; col++) {
+				byte b = doomCanvas->render->mapFlags[baseIndex + col];
+				boolean visitedAndNotWall = false;
+				if ((b & BIT_AM_VISITED) != 0 && (b & BIT_AM_WALL) == 0) {
+					visitedAndNotWall = true;
+					if ((b & BIT_AM_ENTRANCE) != 0) {
+						DoomRPG_setColor(doomCanvas->doomRpg, 0xFFAA00);
+					} else {
+						DoomRPG_setColor(doomCanvas->doomRpg, 0x660000);
+					}
+					DoomRPG_fillRectSur(doomCanvas->doomRpg,
+						i6 + (i5 * col),
+						i7 + (i5 * row) + screenOffsetY,
+						i5, i5, tmpSurface);
+				}
+
+				for (entity = doomCanvas->game->entityDb[baseIndex + col]; entity != NULL; entity = entity->nextOnTile) {
+					if (visitedAndNotWall && entity->def->eType == 2) {
+						DoomRPG_setColor(doomCanvas->doomRpg, 0x33BB00);
+						DoomRPG_fillRectSur(doomCanvas->doomRpg,
+							i6 + (i5 * col) + (i5 / 2),
+							i7 + (i5 * row) + (i5 / 2) + screenOffsetY,
+							i5 / 2, i5 / 2, tmpSurface);
+					}
+				}
+			}
+			baseIndex += 32;
+		}
+
+		/* draw directional sprites / special sprite lines */
+		int baseIndex2 = 0;
+		for (int r = 0; r < 32; r++) {
+			for (int c = 0; c < 32; c++) {
+				for (entity = doomCanvas->game->entityDb[baseIndex2 + c]; entity != NULL; entity = entity->nextOnTile) {
+					if (entity->def->eType == 14 || entity->def->eType == 15) {
+						sprite = &doomCanvas->render->mapSprites[(entity->info & 65535) - 1];
+						if ((sprite->info & 268435456) != 0) {
+							if ((sprite->info & 262144) != 0) {
+								DoomRPG_setColor(doomCanvas->doomRpg, 0xCC0000);
+							} else {
+								DoomRPG_setColor(doomCanvas->doomRpg, 0x880000);
+							}
+
+							if ((sprite->info & 524288) != 0) {
+								i4 = ((sprite->x - 32) << 16) / i8;
+								i2 = ((sprite->x + 32) << 16) / i8;
+								i = (sprite->y << 16) / i8;
+								i3 = i;
+							}
+							else if ((sprite->info & 1048576) != 0) {
+								i4 = ((sprite->x - 32) << 16) / i8;
+								i2 = ((sprite->x + 32) << 16) / i8;
+								i = (sprite->y << 16) / i8;
+								i3 = i;
+							}
+							else if ((sprite->info & 4194304) != 0) {
+								i = ((sprite->y + 32) << 16) / i8;
+								i3 = ((sprite->y - 32) << 16) / i8;
+								i4 = (sprite->x << 16) / i8;
+								i2 = i4;
+							}
+							else {
+								i = ((sprite->y + 32) << 16) / i8;
+								i3 = ((sprite->y - 32) << 16) / i8;
+								i4 = (sprite->x << 16) / i8;
+								i2 = i4;
+							}
+
+							DoomRPG_drawLineSur(doomCanvas->doomRpg,
+								i6 + ((i4 + 128) >> 8),
+								i7 + ((i3 + 128) >> 8) + screenOffsetY,
+								i6 + ((i2 + 128) >> 8),
+								i7 + ((i + 128) >> 8) + screenOffsetY, tmpSurface);
+						}
+					}
+				}
+			}
+			baseIndex2 += 32;
+		}
+
+		/* draw lines marked with flag 128 */
+		DoomRPG_setColor(doomCanvas->doomRpg, 0xCC0000);
+		for (int li = 0; li < doomCanvas->render->linesLength; li++) {
+			line = &doomCanvas->render->lines[li];
+			if ((line->flags & 128) != 0) {
+				int i20 = (line->vert1.x << 16) / i8;
+				int i21 = (line->vert1.y << 16) / i8;
+				int i22 = (line->vert2.x << 16) / i8;
+				int i23 = (line->vert2.y << 16) / i8;
+				if ((line->flags & 4) != 0) {
+					DoomRPG_setColor(doomCanvas->doomRpg, 0xCC9900);
+				} else {
+					DoomRPG_setColor(doomCanvas->doomRpg, 0xCC0000);
+				}
+				DoomRPG_drawLineSur(doomCanvas->doomRpg,
+					i6 + ((i20 + 128) >> 8),
+					i7 + ((i21 + 128) >> 8) + screenOffsetY,
+					i6 + ((i22 + 128) >> 8),
+					i7 + ((i23 + 128) >> 8) + screenOffsetY, tmpSurface);
+			}
+		}
+	}
+
+	/* automap blink timing */
+	if (doomCanvas->time > doomCanvas->automapBlinkTime) {
+		doomCanvas->automapBlinkTime = doomCanvas->time + 333;
+		doomCanvas->automapBlinkState = !doomCanvas->automapBlinkState;
+	}
+
+	/* compute cursor frame index based on angle */
+	int i24 = 0;
+	switch (doomCanvas->destAngle & 255) {
+	case 0:   i24 = 2; break;
+	case 128: i24 = 3; break;
+	case 192: i24 = 1; break;
+	default:  i24 = 0; break;
+	}
+
+	int i25 = i24 * 6;
+	if (doomCanvas->automapBlinkState) {
+		i25 += 24;
+	}
+
+	/* player marker position */
+	int px = i6 + ((i5 * (doomCanvas->viewX - 32)) / 64) + (i5 / 2);
+	int py = i7 + ((i5 * (doomCanvas->viewY - 32)) / 64) + (i5 / 2);
+
+	/* small adjustment so marker doesn't overlap map lines */
+	px += 1;
+	py += 1;
+	py += screenOffsetY;
+
+	/* only draw cursor if inside display region (bottom screen region) */
+	if (py < (doomCanvas->displayRect.y + doomCanvas->displayRect.h + screenOffsetY)) {
+		DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->imgMapCursor, 0, i25, 6, 6, 0, px, py, 0x30, tmpSurface);
+	}
+	SDL_Rect* dstRect = malloc(sizeof(*dstRect));
+	dstRect->y = 240;
+	dstRect->x = 0;
+	dstRect->w = 400;
+	dstRect->h = 240;
+	SDL_BlitSurface(tmpSurface, NULL, sdlVideo.screenSurface, dstRect);
+	if (tmpSurface)
+		SDL_FreeSurface(tmpSurface);
+}
 void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
 {
 	Entity_t* entity;
@@ -3544,6 +3733,10 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 
 	// New Code Lines
 	//{
+	//char freeMemory[32];
+	//int freeMem = Z_FreeMemory();
+	//snprintf(freeMemory, 32, "Free Memory: %d", freeMem);
+	//DoomCanvas_drawString1(doomCanvas, freeMemory, 150, 0, 0);
 	if (doomCanvas->renderOnly && (doomCanvas->state == ST_PLAYING)) {
 		if (doomCanvas->lastFrameTime == doomCanvas->time) {
 			DoomRPG_flushGraphics(doomCanvas->doomRpg);

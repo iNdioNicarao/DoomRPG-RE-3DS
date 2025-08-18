@@ -430,7 +430,7 @@ boolean Render_beginLoadMap(Render_t* render, int mapNameID)
 		//printf("render->ioBufferPos %d\n", render->ioBufferPos);
 		render->mapMemory = DoomRPG_freeMemory() - render->mapMemory;
 		//printf("render->mapMemory %d\n", render->mapMemory);
-
+		//DoomCanvas_drawAutomap(render->doomRpg->doomCanvas, true);
 		return true;
 	}
 

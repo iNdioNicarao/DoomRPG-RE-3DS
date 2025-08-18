@@ -514,6 +514,8 @@ void Menu_initMenu(Menu_t* menu, int i)
 		}
 
 		case MENU_INGAME_NOTEBOOK: {
+			DoomRPG_setColor(menu->doomRpg, 0x0);
+			DoomRPG_fillRect(menu->doomRpg, 0, 0, 400, 240);
 			strncpy(menu->doomRpg->hud->logMessage, "Notebook", MS_PER_CHAR);
 			menuSystem->type = 5;
 			menuSystem->imgBG = (Image_t*)0x0;
@@ -1542,6 +1544,8 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 					DoomCanvas_saveState(doomCanvas, 11, "Saving Game...");
 				}
 				else if(action == 1) { // Don't Save
+					DoomRPG_setColor(menu->doomRpg, 0x0);
+					DoomRPG_fillRect(menu->doomRpg, 0, 240, 400, 240);
 					DoomCanvas_setupmenu(doomCanvas, 0);
 					return MENU_MAIN;
 				}
@@ -1551,6 +1555,8 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			}
 			else {
 				if (action == 1) { // Yes
+					DoomRPG_setColor(menu->doomRpg, 0x0);
+					DoomRPG_fillRect(menu->doomRpg, 0, 240, 400, 240);
 					DoomCanvas_setupmenu(doomCanvas, 0);
 					return MENU_MAIN;
 				}
