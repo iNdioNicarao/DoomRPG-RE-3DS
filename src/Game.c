@@ -562,7 +562,8 @@ Entity_t* Game_findMapEntityXY(Game_t* game, int x, int y)
 void Game_changeMap(Game_t* game)
 {
 	int mapNameId;
-
+	DoomRPG_setColor(game->doomRpg, 0x0);
+	DoomRPG_fillRect(game->doomRpg, 0, 240, 320, 240);
 	if (game->changeMapParam != 0) {
 
 		game->spawnParam = (game->changeMapParam << 1) >> 9;
