@@ -1769,12 +1769,12 @@ void DoomCanvas_drawFont(DoomCanvas_t* doomCanvas, char* text, int x, int y, int
     // Select font size and parameters
     if (isLargerFont == 0) {
         imgFont = &doomCanvas->imgFont;
-        charAdvanceWidth = 7;
+        charAdvanceWidth = 8;
         charCellWidth = 9;
         charCellHeight = 12;
     } else {
         imgFont = &doomCanvas->imgLargerFont;
-        charAdvanceWidth = 10;
+        charAdvanceWidth = 11;
         charCellWidth = 13;
         charCellHeight = 17;
     }
@@ -1883,12 +1883,12 @@ void DoomCanvas_drawFontSur(DoomCanvas_t* doomCanvas, char* text, int x, int y, 
     // Select font size and parameters
     if (isLargerFont == 0) {
         imgFont = &doomCanvas->imgFont;
-        charAdvanceWidth = 7;
+        charAdvanceWidth = 8;
         charCellWidth = 9;
         charCellHeight = 12;
     } else {
         imgFont = &doomCanvas->imgLargerFont;
-        charAdvanceWidth = 10;
+        charAdvanceWidth = 11;
         charCellWidth = 13;
         charCellHeight = 17;
     }

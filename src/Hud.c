@@ -113,51 +113,6 @@ void Hud_calcMsgTime(DoomCanvas_t* doomCanvas)
         hud->msgDuration = len * 100;
     }
 }
-
-void Hud_drawBarTiles(DoomCanvas_t* doomCanvas, int x, int y, int width, boolean isLargerStatusBar)
-{
-#if skipNullptr
-    if (!hud->doomRpg->doomCanvas) {
-        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
-        return;
-    }
-#endif
-    Image_t* img;
-    int height;
-
-    if (isLargerStatusBar == false) {
-        height = doomCanvas->hud->imgStatusBar.height;
-        img = &doomCanvas->hud->imgStatusBar;
-    }
-    else {
-        height = doomCanvas->hud->imgStatusBarLarge.height;
-        img = &doomCanvas->hud->imgStatusBarLarge;
-    }
-
-    DoomCanvas_drawImageSpecial(doomCanvas, img, 0, 0, width, height, 0, x, y, 0);
-}
-void Hud_drawBarTilesSur(DoomCanvas_t* doomCanvas, int x, int y, int width, boolean isLargerStatusBar, SDL_Surface* surface)
-{
-#if skipNullptr
-    if (!hud->doomRpg->doomCanvas) {
-        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
-        return;
-    }
-#endif
-    Image_t* img;
-    int height;
-
-    if (isLargerStatusBar == false) {
-        height = doomCanvas->hud->imgStatusBar.height;
-        img = &doomCanvas->hud->imgStatusBar;
-    }
-    else {
-        height = doomCanvas->hud->imgStatusBarLarge.height;
-        img = &doomCanvas->hud->imgStatusBarLarge;
-    }
-
-    DoomCanvas_drawImageSpecialSur(doomCanvas, img, 0, 0, width, height, 0, x, y, 0, surface);
-}
 #if caching
 void Hud_drawLines(DoomCanvas_t* doomCanvas, SDL_Surface* targetSurface) {
     Hud_t* hud = doomCanvas->hud;
@@ -271,6 +226,49 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas) {
 void Hud_drawBarLine(DoomCanvas_t* doomCanvas, int x1, int y1, int x2, int y2, SDL_Surface* targetSurface){
     DoomRPG_drawLineSur(doomCanvas->doomRpg, x1, y1, x2, y2, targetSurface);
 }
+void Hud_drawBarTiles(DoomCanvas_t* doomCanvas, int x, int y, int width, boolean isLargerStatusBar)
+{
+#if skipNullptr
+    if (!hud->doomRpg->doomCanvas) {
+        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
+        return;
+    }
+#endif
+    Image_t* img;
+    int height;
+
+    if (isLargerStatusBar == false) {
+        height = doomCanvas->hud->imgStatusBar.height;
+        img = &doomCanvas->hud->imgStatusBar;
+    }
+    else {
+        height = doomCanvas->hud->imgStatusBarLarge.height;
+        img = &doomCanvas->hud->imgStatusBarLarge;
+    }
+
+    DoomCanvas_drawImageSpecial(doomCanvas, img, 0, 0, width, height, 0, x, y, 0);
+}
+void Hud_drawBarTilesSur(DoomCanvas_t* doomCanvas, int x, int y, int width, boolean isLargerStatusBar, SDL_Surface* surface)
+{
+#if skipNullptr
+    if (!hud->doomRpg->doomCanvas) {
+        DoomRPG_ReinitCanvasAndRenderer(hud->doomRpg);
+        return;
+    }
+#endif
+    Image_t* img;
+    int height;
+
+    if (isLargerStatusBar == false) {
+        height = doomCanvas->hud->imgStatusBar.height;
+        img = &doomCanvas->hud->imgStatusBar;
+    }
+    else {
+        height = doomCanvas->hud->imgStatusBarLarge.height;
+        img = &doomCanvas->hud->imgStatusBarLarge;
+    }
+    DoomCanvas_drawImageSpecialSur(doomCanvas, img, 0, 0, width, height, 0, x, y, 0, surface);
+}
 void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
 {
 #if skipNullptr
@@ -285,11 +283,12 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
         SDL_CreateRGBSurface(SDL_SWSURFACE,
             sdlVideo.screenW,
             doomCanvas->hud->statusBarHeight,
-            16,
-            0x0,
-            0x0,
-            0x0,
-            0x0);
+            sdlVideo.screenSurface->format->BitsPerPixel,
+    sdlVideo.screenSurface->format->Rmask,
+    sdlVideo.screenSurface->format->Gmask,
+    sdlVideo.screenSurface->format->Bmask,
+    sdlVideo.screenSurface->format->Amask
+);
     Image_t* img;
     CombatEntity_t* ce;
     Combat_t* combat;
@@ -306,17 +305,17 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
     dispH = doomCanvas->hud->statusBarHeight;
     stbH = doomCanvas->hud->statusBarHeight;
     cx = doomCanvas->SCR_CX;
-    y = 10;
+    y = 15;
 
     if (doomCanvas->hud->largeHud) {
         cx -= 88;
         y -= 8;
-        x = 10;
+        x = 11;
     }
     else {
         cx -= 64;
         y -= 5;
-        x = 7;
+        x = 8;
     }
 
     //drawing bottom bar rect
