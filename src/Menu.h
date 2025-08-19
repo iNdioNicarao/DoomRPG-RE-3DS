@@ -6,7 +6,7 @@ struct DoomRPG_s;
 
 enum menus {
 	MENU_NONE = 0,
-	MENU_MAIN, 
+	MENU_MAIN = 1,
 	MENU_MAIN_HELP_ABOUT,
 	MENU_MAIN_EXIT,
 	MENU_MAIN_ERASE,

@@ -2217,12 +2217,14 @@ void DoomCanvas_dyingState(DoomCanvas_t* doomCanvas)
 		DoomCanvas_updateViewTrue(doomCanvas);
 		DoomCanvas_updateView(doomCanvas);
 		DoomCanvas_drawRGB(doomCanvas);
+		Hud_drawBottomBar(doomCanvas);
 		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 	else if (doomCanvas->time < doomCanvas->deathTime + 3000) {
 		int fade = 255 - ((65280 * ((((int)((doomCanvas->time - doomCanvas->deathTime) - 750)) << 16) / 576000)) >> 16);
 		Render_fadeScreen(doomCanvas->render, fade & 0xff);
 		DoomCanvas_drawRGB(doomCanvas);
+		Hud_drawBottomBar(doomCanvas);
 		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 	else {
@@ -2463,6 +2465,7 @@ void DoomCanvas_handleEvent(DoomCanvas_t* doomCanvas, int i) {
 		return;
 
 	case ST_DYING:
+			Hud_drawBottomBar(doomCanvas);
 		break;
 
 	case ST_PARTICLE:
@@ -2986,7 +2989,8 @@ void DoomCanvas_keyPressed(DoomCanvas_t* doomCanvas, int keyCode)
 void DoomCanvas_loadMap(DoomCanvas_t* doomCanvas, int mapID)
 {
 	int stateNum;
-
+	DoomRPG_setColor(doomCanvas->doomRpg, 0x0);
+	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 240, 400, 240);
 	doomCanvas->loadMapID = mapID;
 	Sound_stopSounds(doomCanvas->doomRpg->sound);
 	if (doomCanvas->loadMapID == MAP_END_GAME) {
@@ -2998,6 +3002,7 @@ void DoomCanvas_loadMap(DoomCanvas_t* doomCanvas, int mapID)
 		doomCanvas->printMsg[0] = '\0';
 		stateNum = ST_LOADING;
 	}
+	//DoomCanvas_drawAutomap(doomCanvas, true);
 	DoomCanvas_setState(doomCanvas, stateNum);
 }
 
@@ -3627,6 +3632,7 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 		}
 
 		case ST_DYING: {
+			Hud_drawBottomBar(doomCanvas);
 			DoomCanvas_dyingState(doomCanvas);
 			break;
 		}

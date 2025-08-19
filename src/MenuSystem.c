@@ -114,6 +114,10 @@ void MenuSystem_select(MenuSystem_t* menuSystem)
 	Sound_playSound(menuSystem->doomRpg->sound, 5046, 0, 3);
 
 	menu = Menu_select(menuSystem->doomRpg->menu, menuSystem->menu, menuSystem->selectedIndex);
+	if (menu == MENU_MAIN_HELP_ABOUT)
+		menu = MENU_MAIN_EXIT;
+	if (menu == MENU_MAIN_OPTIONS)
+		menu = MENU_MAIN_HELP_ABOUT;
 	if (menuSystem->menu != menu) {
 		MenuSystem_setMenu(menuSystem, menu);
 	}

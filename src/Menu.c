@@ -351,9 +351,9 @@ void Menu_initMenu(Menu_t* menu, int i)
 			menuSystem->imgBG = &menuSystem->imgLogo;
 			menuSystem->oldMenu = -1;
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Start Game", 2, 0);
-			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Options   ", 2, 0);
-			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Help/About", 2, 0);
-			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Exit      ", 2, 0);
+			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Options   ", 2, 0);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Help/About", 2, 2);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Exit      ", 2, 3);
 			break;
 		}
 
@@ -402,7 +402,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 			break;
 		}
 
-		case MENU_MAIN_OPTIONS:
+		/*case MENU_MAIN_OPTIONS:
 		case MENU_INGAME_OPTIONS: {
 			if (i == MENU_INGAME_OPTIONS) {
 				strncpy(menu->doomRpg->hud->logMessage, "Options", sizeof(menu->doomRpg->hud->logMessage));
@@ -418,9 +418,9 @@ void Menu_initMenu(Menu_t* menu, int i)
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Back", 0, 0);
 
 			// New Option
-			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Video", 0, (i == MENU_INGAME_OPTIONS) ? true : false);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Video", 0, (i == MENU_INGAME_OPTIONS) ? true : false);
 			// New Option
-			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Input", 0, (i == MENU_INGAME_OPTIONS) ? true : false);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Input", 0, (i == MENU_INGAME_OPTIONS) ? true : false);
 			// New Option
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Sound", 0, (i == MENU_INGAME_OPTIONS) ? true : false);
 
@@ -452,7 +452,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 #endif
 
 			break;
-		}
+		}*/
 
 		case MENU_ENABLE_SOUNDS: {
 			Menu_setYesNo(menu, "Enable sounds?");
@@ -1048,9 +1048,9 @@ void Menu_initMenu(Menu_t* menu, int i)
 			}
 
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Back", 0, 0);
-			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Bindings", 0, 0);
-			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Mouse", 0, 0);
-			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Controller", 0, 0);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Bindings", 0, 0);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Mouse", 0, 0);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Controller", 0, 0);
 			break;
 		}
 
@@ -2188,7 +2188,6 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			break;
 		}
 	}
-
 	return MENU_NONE;
 }
 
