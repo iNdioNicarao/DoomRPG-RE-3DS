@@ -1836,27 +1836,27 @@ void Game_saveState(Game_t* game, int mapId, int x, int y, int angleDir, boolean
 	printf("Saving state on %d at x:%d y:%d dir:%d\n", mapId, x, y, angleDir);
 
 	if (game->doomRpg->doomCanvas->imgFont.imgBitmap) {
-		DoomRPG_setColor(game->doomRpg, 0xff000000);
-		DoomRPG_fillRect(game->doomRpg, 0, 0, game->doomRpg->doomCanvas->displayRect.w, game->doomRpg->doomCanvas->displayRect.h);
-		DoomRPG_setColor(game->doomRpg, 0xffffffff);
-		DoomCanvas_drawString1(game->doomRpg->doomCanvas, "Saving...", game->doomRpg->doomCanvas->SCR_CX, game->doomRpg->doomCanvas->SCR_CY - 24, 17);
+		//DoomRPG_setColor(game->doomRpg, 0xff000000);
+		//DoomRPG_fillRect(game->doomRpg, 0, 0, game->doomRpg->doomCanvas->displayRect.w, game->doomRpg->doomCanvas->displayRect.h);
+		//DoomRPG_setColor(game->doomRpg, 0xffffffff);
+		//DoomCanvas_drawString1(game->doomRpg->doomCanvas, "Saving...", game->doomRpg->doomCanvas->SCR_CX, game->doomRpg->doomCanvas->SCR_CY - 24, 17);
 		//DoomRPG_flushGraphics(game->doomRpg);
 	}
 
-	DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
+	//DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
 	Game_saveConfig(game, z);
-	DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
+	//DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
 	Game_savePlayerState(game, "DoomRPG/Saves/Player2", game->mapFiles[mapId-1], x, y, angleDir);
-	DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
+	//DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
 	Game_saveWorldState(game);
 	if (!z) {
 		if (game->newMapName && SDL_strcmp(game->newMapName, "")) {
-			DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
+			//DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
 			Game_savePlayerState(game, "DoomRPG/Saves/Player", game->newMapName, game->newDestX, game->newDestY, game->newAngle);
 			game->newMapName[0] = '\0';
 		}
 		else {
-			DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
+			//DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
 			Game_savePlayerState(game, "DoomRPG/Saves/Player", "/junction.bsp", 0, 0, 0);
 		}
 	}

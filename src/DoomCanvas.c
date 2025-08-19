@@ -1602,6 +1602,28 @@ void DoomCanvas_drawStory(DoomCanvas_t* doomCanvas)
 	}
 	SDL_FreeSurface(tmpSurface);
 }
+void DarkenSurface(SDL_Surface* surface, float factor) {
+	if (SDL_MUSTLOCK(surface)) SDL_LockSurface(surface);
+
+	Uint16* pixels = (Uint16*)surface->pixels;
+	int count = (surface->w * surface->h);
+
+	for (int i = 0; i < count; i++) {
+		Uint16 p = pixels[i];
+
+		Uint8 r = (p & 0xF800) >> 11; // 5 бит
+		Uint8 g = (p & 0x07E0) >> 5;  // 6 бит
+		Uint8 b = (p & 0x001F);       // 5 бит
+
+		r = (Uint8)(r * factor);
+		g = (Uint8)(g * factor);
+		b = (Uint8)(b * factor);
+
+		pixels[i] = (r << 11) | (g << 5) | b;
+	}
+
+	if (SDL_MUSTLOCK(surface)) SDL_UnlockSurface(surface);
+}
 
 void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 {
@@ -1644,6 +1666,7 @@ void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 		renderQuad.h = clip.h;
 	}
 #ifdef __3DS__
+	//DarkenSurface(doomCanvas->render->piDIB, 0.3);
 	memcpy(doomCanvas->render->piDIB->pixels,
 	   doomCanvas->render->framebuffer,
 	   sdlVideo.screenW * 240 * 2);
