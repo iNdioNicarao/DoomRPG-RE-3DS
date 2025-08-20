@@ -1,12 +1,11 @@
+include("/opt/devkitpro/cmake/3ds.cmake" REQUIRED)
 cmake_minimum_required(VERSION 3.25)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
 project(DoomRPG LANGUAGES C)
-
 if(MSVC)
 	add_definitions("/D_CRT_SECURE_NO_WARNINGS")
 endif()
-
 find_package(SDL REQUIRED)
 find_package(SDL_mixer REQUIRED)
 find_package(ZLIB REQUIRED)

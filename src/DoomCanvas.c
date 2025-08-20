@@ -585,7 +585,7 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
 	int cw = doomCanvas->clipRect.w;
 	int ch = doomCanvas->clipRect.h;
 
-	int screenOffsetY = 240; // bottom screen offset when using SDL_DUALSCR (400x480)
+	int screenOffsetY = 235; // bottom screen offset when using SDL_DUALSCR (400x480)
 
 	/* preserve original behavior for ch calculation */
 	if (cw < ch) {
@@ -1105,6 +1105,15 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
 static char creditsText[] = "     CREDITS\n\nProduced by\nJOHN CARMACK\nKATHERINE A. KANG\n\nProgramming by\nJOHN CARMACK\nJAH RAPHAEL\nHEATH MORRISON\n\nDesign by\nMATTHEW C. ROSS\nDAVID WHITLARK\n\nArt by\nDAVID WHITLARK\nMATTHEW C. ROSS\n\nSupport by\nBRETT ESTABROOK\n\n\n\n\n\nThanks for\nplaying.\n\n\n\nPress OK to\ncontinue.";
 void DoomCanvas_drawCredits(DoomCanvas_t* doomCanvas)
 {
+	SDL_Surface* tmpSurface =
+		SDL_CreateRGBSurface(SDL_SWSURFACE,
+			sdlVideo.screenW,
+			240,
+			sdlVideo.screenSurface->format->BitsPerPixel,
+	sdlVideo.screenSurface->format->Rmask,
+	sdlVideo.screenSurface->format->Gmask,
+	sdlVideo.screenSurface->format->Bmask,
+	sdlVideo.screenSurface->format->Amask);
 	int len;
 	if (doomCanvas->creditsTextTime == -1) {
 		len = SDL_strlen(creditsText);
@@ -1113,7 +1122,7 @@ void DoomCanvas_drawCredits(DoomCanvas_t* doomCanvas)
 		doomCanvas->creditsTextTime = doomCanvas->time;
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		DoomRPG_fillRectSur(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h, tmpSurface);
 		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 
@@ -1122,19 +1131,20 @@ void DoomCanvas_drawCredits(DoomCanvas_t* doomCanvas)
 	}
 
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+	DoomRPG_fillRectSur(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h, tmpSurface);
 	//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 
 	// New line From J2ME Version
-	DoomRPG_setClipTrue(doomCanvas->doomRpg, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 128, 128);
+	DoomRPG_setClipTrueSur(doomCanvas->doomRpg, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 128, 128, tmpSurface);
 
-	DoomCanvas_scrollSpaceBG(doomCanvas);
+	DoomCanvas_scrollSpaceBGSur(doomCanvas, tmpSurface);
 	
-	DoomCanvas_drawString2(doomCanvas, doomCanvas->creditsText, doomCanvas->SCR_CX - 64, (doomCanvas->SCR_CY + 64) - ((doomCanvas->time - doomCanvas->creditsTextTime) / 62), 0, -1);
+	DoomCanvas_drawString2Sur(doomCanvas, doomCanvas->creditsText, doomCanvas->SCR_CX - 64, (doomCanvas->SCR_CY + 64) - ((doomCanvas->time - doomCanvas->creditsTextTime) / 62), 0, -1, tmpSurface);
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_fillRect(doomCanvas->doomRpg, 0, -doomCanvas->displayRect.y, doomCanvas->displayRect.w, doomCanvas->displayRect.y + doomCanvas->SCR_CY - 64);
-	DoomRPG_fillRect(doomCanvas->doomRpg, 0, doomCanvas->SCR_CY + 64, doomCanvas->displayRect.w, (doomCanvas->clipRect.h - doomCanvas->SCR_CY) - 64);
-
+	DoomRPG_fillRectSur(doomCanvas->doomRpg, 0, -doomCanvas->displayRect.y, doomCanvas->displayRect.w, doomCanvas->displayRect.y + doomCanvas->SCR_CY - 64, tmpSurface);
+	DoomRPG_fillRectSur(doomCanvas->doomRpg, 0, doomCanvas->SCR_CY + 64, doomCanvas->displayRect.w, (doomCanvas->clipRect.h - doomCanvas->SCR_CY) - 64, tmpSurface);
+	SDL_BlitSurface(tmpSurface,NULL,sdlVideo.screenSurface, NULL);
+	SDL_FreeSurface(tmpSurface);
 }
 
 void DoomCanvas_castState(DoomCanvas_t* doomCanvas)
@@ -1443,38 +1453,50 @@ void DoomCanvas_castState(DoomCanvas_t* doomCanvas)
 
 void DoomCanvas_drawEpilogue(DoomCanvas_t* doomCanvas)
 {
+	SDL_Surface* tmpSurface =
+		SDL_CreateRGBSurface(SDL_SWSURFACE,
+			sdlVideo.screenW,
+			240,
+			sdlVideo.screenSurface->format->BitsPerPixel,
+	sdlVideo.screenSurface->format->Rmask,
+	sdlVideo.screenSurface->format->Gmask,
+	sdlVideo.screenSurface->format->Bmask,
+	sdlVideo.screenSurface->format->Amask);
+
 	if (doomCanvas->epilogueTextTime == -1) {
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_fillRect(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+		DoomRPG_fillRectSur(doomCanvas->doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h, tmpSurface);
 		//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 
 		doomCanvas->epilogueTextTime = doomCanvas->time;
 	}
 
 	// New line From J2ME Version
-	DoomRPG_setClipTrue(doomCanvas->doomRpg, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 128, 128);
+	DoomRPG_setClipTrueSur(doomCanvas->doomRpg, doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 128, 128, tmpSurface);
 
 	if (doomCanvas->epilogueTextPage == 2) {
 		DoomCanvas_disposeEpilogue(doomCanvas);
 	}
 	else {
-		DoomCanvas_scrollSpaceBG(doomCanvas);
-		DoomCanvas_drawString2(doomCanvas, doomCanvas->epilogueText[doomCanvas->epilogueTextPage], 
-			doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 0, (doomCanvas->showTextDone != 0) ? -1 : doomCanvas->epilogueTextTime);
+		DoomCanvas_scrollSpaceBGSur(doomCanvas, tmpSurface);
+		DoomCanvas_drawString2Sur(doomCanvas, doomCanvas->epilogueText[doomCanvas->epilogueTextPage],
+			doomCanvas->SCR_CX - 64, doomCanvas->SCR_CY - 64, 0, (doomCanvas->showTextDone != 0) ? -1 : doomCanvas->epilogueTextTime, tmpSurface);
 
 		if (doomCanvas->epilogueTextPage < 1) {
-			DoomCanvas_drawImage(doomCanvas, &doomCanvas->menuSystem->imgHand, (doomCanvas->SCR_CX + 36) - 4, doomCanvas->SCR_CY + 64, 10);
-			DoomCanvas_drawString1(doomCanvas, "More", (doomCanvas->SCR_CX + 64) - 4, doomCanvas->SCR_CY + 64, 10);
+			DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->menuSystem->imgHand, (doomCanvas->SCR_CX + 36) - 4, doomCanvas->SCR_CY + 64, 10, tmpSurface);
+			DoomCanvas_drawString1Sur(doomCanvas, "More", (doomCanvas->SCR_CX + 64) - 4, doomCanvas->SCR_CY + 64, 10, tmpSurface);
 		}
 		else {
-			DoomCanvas_drawImage(doomCanvas, &doomCanvas->menuSystem->imgHand, (doomCanvas->SCR_CX + 8) - 4, doomCanvas->SCR_CY + 64, 10);
-			DoomCanvas_drawString1(doomCanvas, "Continue", (doomCanvas->SCR_CX + 64) - 4, doomCanvas->SCR_CY + 64, 10);
+			DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->menuSystem->imgHand, (doomCanvas->SCR_CX + 8) - 4, doomCanvas->SCR_CY + 64, 10, tmpSurface);
+			DoomCanvas_drawString1Sur(doomCanvas, "Continue", (doomCanvas->SCR_CX + 64) - 4, doomCanvas->SCR_CY + 64, 10, tmpSurface);
 		}
 
 		if ((doomCanvas->time - doomCanvas->epilogueTextTime) > (((int) SDL_strlen(doomCanvas->epilogueText[doomCanvas->epilogueTextPage]) * 25))) {
 			doomCanvas->showTextDone = true;
 		}
 	}
+	SDL_BlitSurface(tmpSurface, NULL, sdlVideo.screenSurface, NULL);
+	SDL_FreeSurface(tmpSurface);
 }
 
 void DoomCanvas_drawImage(DoomCanvas_t* doomcanvas, Image_t* img, int x, int y, int flags)
@@ -1679,6 +1701,60 @@ void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 #endif
 	//DoomRPG_flushGraphics(doomCanvas->doomRpg);
 }
+void DoomCanvas_drawRGBSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
+{
+	// apply this function before updating the framebuffer
+	//if (doomCanvas->doomRpg->player->berserkerTics) {
+	//Render_setBerserkColor(doomCanvas->doomRpg->render);
+	//}
+
+	if (doomCanvas->time < doomCanvas->shaketime) {
+		if (!doomCanvas->skipShakeX) {
+			doomCanvas->shakeX = ((DoomRPG_randNextByte(&doomCanvas->doomRpg->random)) % (doomCanvas->shakeVal * 2)) - doomCanvas->shakeVal;
+		}
+		doomCanvas->shakeY = ((DoomRPG_randNextByte(&doomCanvas->doomRpg->random)) % (doomCanvas->shakeVal * 2)) - doomCanvas->shakeVal;
+	}
+	else if (!(doomCanvas->shakeX == 0 && doomCanvas->shakeY == 0)) {
+		doomCanvas->shakeY = 0;
+		doomCanvas->shakeX = 0;
+	}
+
+	if (doomCanvas->state == ST_CAST) {
+		doomCanvas->shakeY = 0;
+		doomCanvas->shakeX = 0;
+	}
+
+	SDL_Rect renderQuad, clip;
+
+	clip.x = doomCanvas->render->screenX;
+	clip.y = doomCanvas->render->screenY;
+	clip.h = 240;
+	clip.w = doomCanvas->render->screenWidth;
+
+	renderQuad.x = doomCanvas->render->screenX;
+	renderQuad.y = doomCanvas->render->screenY;
+	renderQuad.w = sdlVideo.screenW;
+	renderQuad.h = 240;
+	if (clip.w <= renderQuad.w) {
+		renderQuad.w = clip.w;
+	}
+	if (clip.h <= renderQuad.h) {
+		renderQuad.h = clip.h;
+	}
+#ifdef __3DS__
+	//DarkenSurface(doomCanvas->render->piDIB, 0.3);
+	memcpy(doomCanvas->render->piDIB->pixels,
+	   doomCanvas->render->framebuffer,
+	   sdlVideo.screenW * 240 * 2);
+	//gspWaitForVBlank();
+	SDL_BlitSurface(doomCanvas->render->piDIB, &clip, surface, &renderQuad);
+	//SDL_Flip(SDL_GetVideoSurface());
+#else
+	SDL_UpdateTexture(doomCanvas->render->piDIB, NULL, doomCanvas->render->framebuffer, sdlVideo.rendererW * 2);
+	SDL_RenderCopy(sdlVideo.renderer, doomCanvas->render->piDIB, &clip, &renderQuad);
+#endif
+	//DoomRPG_flushGraphics(doomCanvas->doomRpg);
+}
 
 void DoomCanvas_drawImageSpecial(DoomCanvas_t* doomCanvas, Image_t* img, int xSrc, int ySrc, int width, int height, int param_7, int xDst, int yDst, int flags)
 {
@@ -1854,6 +1930,32 @@ void DoomCanvas_drawScrollBar(DoomCanvas_t* doomCanvas, int y, int totalHeight, 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
 		DoomRPG_drawRect(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + barOffset_y, 6, barHeight - 1);
 		DoomRPG_drawRect(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y, 6, totalHeight - 1);
+	}
+
+}
+void DoomCanvas_drawScrollBarSur(DoomCanvas_t* doomCanvas, int y, int totalHeight, int i3, int i4, int i5, SDL_Surface* surface)
+{
+	int i6 = i4 - i3;
+	if (i6 != 0) {
+		int barHeight = totalHeight / (((i5 + i6) - 1) / i6);
+		int offSetY = (((i3 << 16) / ((i5 - 1) << 8)) * ((totalHeight - barHeight) << 8)) >> 16;
+		if (i4 == i5) {
+			offSetY = (totalHeight - 14) - barHeight;
+		}
+		int barOffset_y = offSetY + 7;
+
+		DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 0, 7, 7, 0, doomCanvas->SCR_CX + 64, y, 9, surface);
+		DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 7, 7, 7, 0, doomCanvas->SCR_CX + 64, y + totalHeight, 10, surface);
+
+		DoomRPG_setColor(doomCanvas->doomRpg, 0x888888);
+		DoomRPG_fillRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + 7, 7, totalHeight - 14, surface);
+
+		DoomRPG_setColor(doomCanvas->doomRpg, 0xDDDDDD);
+		DoomRPG_fillRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + barOffset_y, 7, barHeight, surface);
+
+		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+		DoomRPG_drawRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + barOffset_y, 6, barHeight - 1, surface);
+		DoomRPG_drawRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y, 6, totalHeight - 1, surface);
 	}
 
 }

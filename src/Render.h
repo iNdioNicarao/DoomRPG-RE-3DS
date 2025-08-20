@@ -208,7 +208,7 @@ typedef struct Render_s
 	int frameTime;
 	struct DoomRPG_s* doomRpg;
 	SDL_Rect clipRect;
-	SDL_Texture* piDIB;
+	SDL_Surface* piDIB;
 	int pitch;
 	byte* framebuffer;
 	//IDIB* piDIB;

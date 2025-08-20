@@ -78,6 +78,8 @@ void Hud_finishMessageBufferForce(DoomCanvas_t* doomCanvas, boolean force);
 void Hud_finishMessageBuffer(DoomCanvas_t* doomCanvas);
 char* Hud_getMessageBufferForce(DoomCanvas_t* doomCanvas, boolean force);
 char* Hud_getMessageBuffer(DoomCanvas_t* doomCanvas);
+void Hud_drawBottomBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface);
+void Hud_drawTopBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface);
 void Hud_shiftMsgs(DoomCanvas_t* doomCanvas);
 void Hud_startup(Hud_t* hud, boolean largeStatus);
 

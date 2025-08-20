@@ -217,9 +217,7 @@ int Render_startup(Render_t* render)
 	if (render->piDIB) {
 		render->pitch = render->piDIB->pitch;
 	} else {
-		// Важно обработать ошибку, если поверхность не создалась
-		fprintf(stderr, "Не удалось создать поверхность: %s\n", SDL_GetError());
-		render->pitch = 0; // или другая обработка
+		render->pitch = 0;
 	}
 #else
 	render->piDIB = SDL_CreateTexture(sdlVideo.renderer,

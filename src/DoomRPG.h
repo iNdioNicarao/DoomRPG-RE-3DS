@@ -307,6 +307,7 @@ void DoomRPG_setClipTrue(DoomRPG_t* doomrpg, int x, int y, int w, int h);
 void DoomRPG_setClipTrueSur(DoomRPG_t* doomrpg, int x, int y, int w, int h, SDL_Surface* surface);
 void DoomRPG_setColor(DoomRPG_t* doomrpg, int color);
 void DoomRPG_flushGraphics(...);
+void DoomRPG_drawRectSur(DoomRPG_t*, int, int, int, int, SDL_Surface*);
 boolean DoomRPG_ReinitCanvasAndRenderer(DoomRPG_t* doomRpg);
 void DoomRPG_clearGraphics(DoomRPG_t* doomrpg);
 void DoomRPG_drawRect(DoomRPG_t* doomrpg, int x, int y, int w, int h);

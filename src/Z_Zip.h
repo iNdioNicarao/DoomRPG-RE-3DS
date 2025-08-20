@@ -34,5 +34,5 @@ void findAndReadZipDir(zip_file_t* zipFile, int startoffset);
 void openZipFile(const char* name, zip_file_t* zipFile);
 void closeZipFile(zip_file_t* zipFile);
 unsigned char* readZipFileEntry(const char* name, zip_file_t* zipFile, int* sizep);
-
+SDL_RWops* readZipFileEntry2(const char* name, zip_file_t* zipFile, int* sizep);
 #endif

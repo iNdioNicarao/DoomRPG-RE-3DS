@@ -1,3 +1,4 @@
+
 file(GLOB_RECURSE HEADER_FILES
 		"*.hpp"
 		"*.h")
@@ -35,3 +36,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 		${ZLIB_LIBRARIES}
 		m
 )
+set(DEVKITPRO $ENV{DEVKITPRO})
+set(TOOLS_DIR ${DEVKITPRO}/tools/bin)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+		COMMAND ${TOOLS_DIR}/3dsxtool
+		${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.elf
+		${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.3dsx
+		COMMENT "Converting ELF to 3DSX"
+)
+#add_3dsx_target({PROJECT_NAME})

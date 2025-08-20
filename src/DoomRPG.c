@@ -830,8 +830,6 @@ void DoomRPG_createImage(DoomRPG_t* doomrpg, const char* resourceName, boolean i
 		SDL_free(fdata);
 		return;
 	}
-
-	// 4. Если нужно, устанавливаем прозрачность НА ОПТИМИЗИРОВАННОЙ ПОВЕРХНОСТИ.
 	if (isTransparentMask) {
 		Uint32 colorKey = SDL_MapRGB(tempSurface->format, 255, 0, 255);
 
@@ -841,8 +839,7 @@ void DoomRPG_createImage(DoomRPG_t* doomrpg, const char* resourceName, boolean i
 	img->isTransparentMask = isTransparentMask;
 	img->width = tempSurface->w;
 	img->height = tempSurface->h;
-	img->imgBitmap = tempSurface; // `imgBitmap` теперь хранит идеальную, готовую к бою поверхность
-
+	img->imgBitmap = tempSurface;
 	SDL_free(fdata);
 }
 
@@ -1125,6 +1122,17 @@ void DoomRPG_drawRect(DoomRPG_t* doomrpg, int x, int y, int w, int h)
     rect.w = w + 1;
     rect.h = h + 1;
     SDL_RenderDrawRect(sdlVideo.screenSurface, &rect);
+}
+
+void DoomRPG_drawRectSur(DoomRPG_t* doomrpg, int x, int y, int w, int h, SDL_Surface* surface)
+{
+	SDL_Rect rect;
+
+	rect.x = doomrpg->doomCanvas->displayRect.x + x;
+	rect.y = doomrpg->doomCanvas->displayRect.y + y;
+	rect.w = w + 1;
+	rect.h = h + 1;
+	SDL_RenderDrawRect(surface, &rect);
 }
 
 void DoomRPG_fillRect(DoomRPG_t* doomrpg, int x, int y, int w, int h)

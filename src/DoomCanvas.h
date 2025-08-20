@@ -223,6 +223,8 @@ void DoomCanvas_finishRotation(DoomCanvas_t* doomCanvas);
 int DoomCanvas_flagForFacingDir(DoomCanvas_t* doomCanvas);
 int DoomCanvas_getKeyAction(DoomCanvas_t* doomCanvas, int i);
 void DoomCanvas_handleDialogEvents(DoomCanvas_t* doomCanvas, int i);
+void DoomCanvas_drawRGBSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface);
+void DoomCanvas_drawScrollBarSur(DoomCanvas_t* doomCanvas, int y, int totalHeight, int i3, int i4, int i5, SDL_Surface* surface);
 void DoomCanvas_handleEvent(DoomCanvas_t* doomCanvas, int i);
 void DoomCanvas_handlePasswordEvents(DoomCanvas_t* doomCanvas, int i);
 void DoomCanvas_handleMenuEvents(DoomCanvas_t* doomCanvas, int i);

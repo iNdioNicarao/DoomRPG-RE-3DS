@@ -643,9 +643,11 @@ void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
 
 #else
     char fileName[128];
-    byte* fdata = NULL;
+    SDL_RWops* fdata = NULL;
     int fSize = 0;
-    SDL_RWops* rw;
+    	const char* base_path = "DoomRPG/";
+    	char full_path[128];
+    //SDL_RWops* rw;
 
     // mp3 or wav
     if (sChannel->flags & SND_FLG_ISMUSIC) {
@@ -653,33 +655,25 @@ void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
 	        snprintf(fileName, sizeof(fileName), "%d.mp3", resourceID);
         }
 
+    	snprintf(full_path, sizeof(full_path), "%s%s", base_path, fileName);
         // reading file
-        fdata = readZipFileEntry(fileName, &zipFile, &fSize);
-        if (fdata) {
-            rw = SDL_RWFromMem(fdata, fSize);
-            sChannel->mediaAudioMusic = Mix_LoadMUS_RW(rw);
-            SDL_free(fdata);
+        //fdata = readZipFileEntry2(fileName, &zipFile, &fSize);
+    	//rw = SDL_RWFromMem(fdata, fSize);
+    	sChannel->mediaAudioMusic = Mix_LoadMUS(full_path);
+    	SDL_free(fdata);
 
-            if (!sChannel->mediaAudioMusic) {
-                printf("Error loading music '%s': %s\n", fileName, Mix_GetError());
-            }
-        } else {
-             printf("Error reading file data for music '%s'\n", fileName);
-        }
+    	if (!sChannel->mediaAudioMusic) {
+    		printf("Error loading music '%s': %s\n", fileName, Mix_GetError());
+    	}
 
     } else {
         snprintf(fileName, sizeof(fileName), "%d.wav", resourceID);
-        fdata = readZipFileEntry(fileName, &zipFile, &fSize);
-        if (fdata) {
-            rw = SDL_RWFromMem(fdata, fSize);
-            sChannel->mediaAudioSound = Mix_LoadWAV_RW(rw, SDL_TRUE);
-            SDL_free(fdata);
-            if (!sChannel->mediaAudioSound) {
-                printf("Error loading sound '%s': %s\n", fileName, Mix_GetError());
-            }
-        } else {
-            printf("Error reading file data for sound '%s'\n", fileName);
-        }
+    	snprintf(full_path, sizeof(full_path), "%s%s", base_path, fileName);
+    	sChannel->mediaAudioSound = Mix_LoadWAV(full_path);
+    	SDL_free(fdata);
+    	if (!sChannel->mediaAudioSound) {
+    		printf("Error loading sound '%s': %s\n", fileName, Mix_GetError());
+    	}
     }
 #endif
     }

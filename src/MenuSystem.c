@@ -274,6 +274,16 @@ void MenuSystem_generateBg(DoomCanvas_t* doomCanvas, Hud_t* hud) {
 }
 void MenuSystem_paint(MenuSystem_t* menuSystem)
 {
+	SDL_Surface* menuSurface =
+			SDL_CreateRGBSurface(SDL_SWSURFACE,
+				sdlVideo.screenW,
+				240,
+				sdlVideo.screenSurface->format->BitsPerPixel,
+		sdlVideo.screenSurface->format->Rmask,
+		sdlVideo.screenSurface->format->Gmask,
+		sdlVideo.screenSurface->format->Bmask,
+		sdlVideo.screenSurface->format->Amask);
+
 	int i, i2;
 
 	DoomRPG_t* doomRpg;
@@ -296,6 +306,7 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 		i2 = 0;
 
 		if (menuSystem->menu >= MENU_INGAME) {
+			DoomRPG_fillRectSur(doomRpg, 0, 0, 400, 240, menuSurface);
 			int topY = doomRpg->hud->statusTopBarHeight;
 			int bottomY = doomCanvas->displayRect.h - doomRpg->hud->statusBarHeight;
 
@@ -304,7 +315,9 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 			if (!(menuSystem->menu == MENU_ITEMS_CONFIRM || menuSystem->menu == MENU_STORE_BUY)) {
 				if (cachedMenuBg) {
 					SDL_Rect dst = { 0, topY, 0, 0 };
-					SDL_BlitSurface(cachedMenuBg, NULL, sdlVideo.screenSurface, &dst);
+					Hud_drawTopBarSur(doomCanvas, menuSurface);
+					SDL_BlitSurface(cachedMenuBg, NULL, menuSurface, &dst);
+					Hud_drawBottomBarSur(doomCanvas, menuSurface);
 				} else {
 					// fallback: if no cached image then generate it
 					MenuSystem_generateBg(doomCanvas, doomRpg->hud);
@@ -313,7 +326,7 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 		}
 
 		else {
-			//DoomRPG_fillRect(doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+			DoomRPG_fillRectSur(doomRpg, 0, 0, doomCanvas->displayRect.w, doomCanvas->displayRect.h, menuSurface);
 
 			if (MenuSystem_checkMenu(menuSystem)) {
 				doomCanvas->viewAngle = (doomCanvas->time / menuSystem->field_0xc58) & 0xff;
@@ -321,18 +334,18 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 				Render_render(menuSystem->doomRpg->render, doomCanvas->viewX, doomCanvas->viewY, 36, doomCanvas->viewAngle);
 
 				// Port new line
-				DoomCanvas_drawRGB(doomCanvas);
+				DoomCanvas_drawRGBSur(doomCanvas, menuSurface);
 			}
 
 			if (doomCanvas->benchmarkString) {
 				int AvgMs1 = (doomCanvas->renderAvgMs * 100) / doomCanvas->st_count;
 				int AvgMs2 = doomCanvas->renderAvgMs / doomCanvas->st_count;
 				SDL_snprintf(doomCanvas->printMsg, sizeof(doomCanvas->printMsg), "Avg: %d.%dms", AvgMs2, AvgMs1 - (AvgMs2 * 100));
-				DoomCanvas_drawString2(doomCanvas, doomCanvas->printMsg, 0, doomCanvas->displayRect.h - 12, 0, -1);
+				DoomCanvas_drawString2Sur(doomCanvas, doomCanvas->printMsg, 0, doomCanvas->displayRect.h - 12, 0, -1, menuSurface);
 			}
 
 			if (menuSystem->imgBG) {
-				DoomCanvas_drawImage(doomCanvas, menuSystem->imgBG, doomCanvas->SCR_CX, 0, 17);
+				DoomCanvas_drawImageSur(doomCanvas, menuSystem->imgBG, doomCanvas->SCR_CX, 0, 17, menuSurface);
 			}
 
 			menuSystem->maxItems = doomCanvas->displayRect.h / 12;
@@ -349,7 +362,7 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 
 			int i9 = ((0x4000 * ((doomRpg->render->screenWidth << 16) / 0x8000)) + 65280) >> 16;
 			Render_draw2DSprite(doomRpg->render, ent->tileIndex, 0, 0, (doomRpg->render->screenHeight - i9) - (i9 / 10), 0, 0);
-			DoomCanvas_drawRGB(doomCanvas);
+			DoomCanvas_drawRGBSur(doomCanvas, menuSurface);
 			DoomCanvas_updateViewTrue(doomCanvas);
 		}
 
@@ -382,7 +395,7 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 
 		int i101 = doomCanvas->SCR_CX + i - 64;
 		if (menuSystem->maxItems > 0 && menuSystem->numItems > menuSystem->maxItems) {
-			DoomCanvas_drawScrollBar(doomCanvas, i2, menuSystem->maxItems * 12, menuSystem->scrollIndex, menuSystem->scrollIndex + menuSystem->maxItems, menuSystem->numItems);
+			DoomCanvas_drawScrollBarSur(doomCanvas, i2, menuSystem->maxItems * 12, menuSystem->scrollIndex, menuSystem->scrollIndex + menuSystem->maxItems, menuSystem->numItems, menuSurface);
 		}
 
 		int local_34 = 9;
@@ -465,15 +478,15 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 						i12 -= local_34;
 					}
 
-					DoomCanvas_drawFont(doomCanvas, textField2, i12, i2, 9, 0, -1, isLargerFont);
+					DoomCanvas_drawFontSur(doomCanvas, textField2, i12, i2, 9, 0, -1, isLargerFont, menuSurface);
 				}
 
 				if (menuSystem->type != 5 && i11 == menuSystem->selectedIndex) {
-					DoomCanvas_drawImage(doomCanvas, &menuSystem->imgHand, i10, i2 + local_2c, 40);
+					DoomCanvas_drawImageSur(doomCanvas, &menuSystem->imgHand, i10, i2 + local_2c, 40, menuSurface);
 					i10 += 2;
 				}
 				if (textField[0] != '\0') {
-					DoomCanvas_drawFont(doomCanvas, textField, i10, i2, 0, 0, -1, isLargerFont);
+					DoomCanvas_drawFontSur(doomCanvas, textField, i10, i2, 0, 0, -1, isLargerFont, menuSurface);
 				}
 			}
 
@@ -511,16 +524,16 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 			}
 
 			DoomRPG_setFontColor(menuSystem->doomRpg, 0xffffffff);
-			DoomCanvas_drawFont(doomCanvas, "Press New Key For", doomCanvas->SCR_CX, doomCanvas->SCR_CY, 16|32, 0, -1, isLargerFont);
+			DoomCanvas_drawFontSur(doomCanvas, "Press New Key For", doomCanvas->SCR_CX, doomCanvas->SCR_CY, 16|32, 0, -1, isLargerFont, menuSurface);
 			SDL_snprintf(textField, sizeof(textField), "%s", menuSystem->items[menuSystem->bindIndx].textField);
 			textField[strlen(textField) - 1] = '\0'; // remove :
 
 			DoomRPG_setFontColor(menuSystem->doomRpg, 0xff80C0FF);
-			DoomCanvas_drawFont(doomCanvas, textField, doomCanvas->SCR_CX, doomCanvas->SCR_CY + local_28, 16 | 32, 0, -1, isLargerFont);
+			DoomCanvas_drawFontSur(doomCanvas, textField, doomCanvas->SCR_CX, doomCanvas->SCR_CY + local_28, 16 | 32, 0, -1, isLargerFont, menuSurface);
 			DoomRPG_setFontColor(menuSystem->doomRpg, 0xffffffff);
 			
 		}
-
+		SDL_BlitSurface(menuSurface, NULL, sdlVideo.screenSurface, NULL);
 		//DoomRPG_setFontColor(menuSystem->doomRpg, 0xffffffff);
 
 	}

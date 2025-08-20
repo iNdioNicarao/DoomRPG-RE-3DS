@@ -246,66 +246,69 @@ unsigned char* readZipFileEntry(const char* name, zip_file_t* zipFile, int* size
 #else
 unsigned char* readZipFileEntry(const char* name, zip_file_t* zipFile, int* sizep)
 {
-	// Аргумент zipFile намеренно игнорируется, так как мы читаем с диска.
 	(void)zipFile;
-
-	// Укажите здесь путь к вашей директории с игровыми данными.
 	const char* base_path = "DoomRPG/";
 	char full_path[128];
-
-	// Формируем полный путь к файлу.
-	// snprintf безопаснее, чем sprintf.
 	snprintf(full_path, sizeof(full_path), "%s%s", base_path, name);
 
-	// Инициализируем выходной размер на случай ошибки.
 	if (sizep != NULL) {
 		*sizep = 0;
 	}
 
-	// Открываем файл для бинарного чтения с помощью SDL_RWops.
 	SDL_RWops* rw = SDL_RWFromFile(full_path, "rb");
 	if (rw == NULL) {
-		DoomRPG_Error("Не удалось открыть файл '%s': %s", full_path, SDL_GetError());
 		return NULL;
 	}
 
-	// Определяем размер файла.
 	int current_pos = SDL_RWtell(rw);
 
 	Sint64 file_size = SDL_RWseek(rw, 0, SEEK_END);
 
 	SDL_RWseek(rw, current_pos, SEEK_SET);
 	if (file_size < 0) {
-		DoomRPG_Error("Не удалось определить размер файла '%s': %s", full_path, SDL_GetError());
 		SDL_RWclose(rw);
 		return NULL;
 	}
 
-	// Выделяем память под содержимое файла.
 	unsigned char* buffer = (unsigned char*)SDL_malloc(file_size);
 	if (buffer == NULL) {
-		DoomRPG_Error("Не удалось выделить %lld байт памяти для файла '%s'", (long long)file_size, full_path);
 		SDL_RWclose(rw);
 		return NULL;
 	}
 
-	// Читаем весь файл в буфер.
 	size_t bytes_read = SDL_RWread(rw, buffer, 1, file_size);
 	if (bytes_read != (size_t)file_size) {
-		DoomRPG_Error("Ошибка чтения файла '%s'. Ожидалось %lld, прочитано %zu.", full_path, (long long)file_size, bytes_read);
 		SDL_free(buffer);
 		SDL_RWclose(rw);
 		return NULL;
 	}
 
-	// Файл больше не нужен, закрываем его.
 	SDL_RWclose(rw);
 
-	// Устанавливаем выходной размер и возвращаем буфер.
 	if (sizep != NULL) {
 		*sizep = (int)file_size;
 	}
 
 	return buffer;
+}
+SDL_RWops* readZipFileEntry2(const char* name, zip_file_t* zipFile, int* sizep)
+{
+	(void)zipFile;
+
+	const char* base_path = "DoomRPG/";
+	char full_path[128];
+
+	snprintf(full_path, sizeof(full_path), "%s%s", base_path, name);
+
+	if (sizep != NULL) {
+		*sizep = 0;
+	}
+
+	SDL_RWops* rw = SDL_RWFromFile(full_path, "rb");
+	if (rw == NULL) {
+		return NULL;
+	}
+	return rw;
+
 }
 #endif
