@@ -1,77 +1,54 @@
-# DoomRPG-RE
+# DoomRPG-RE - Nintendo 3DS port
 
-![image](https://github.com/Erick194/DoomRPG-RE/assets/41172072/258e99d9-b122-4cbe-8659-2fd0f4105068)<br />
-https://www.doomworld.com/forum/topic/129997
+This is a Nintendo Switch port of the [reverse engineered Doom RPG](https://github.com/Erick194/DoomRPG-RE) by [GEC]. All credits go to the GEC team, this project would not exist without their hard work.
 
-## Español
-Doom RPG ingeniería inversa por [GEC]<br />
-Creado por Erick Vásquez García.
+## How to install
 
-Versión actual 0.2.2
+1. Search for "Doom RPG BREW" on [archive.org](https://archive.org/) to get the original mobile game assets file: `doomrpg.bar` (CRC32: d7cf11c5).
+2. Next, you need `BarToZip.exe` converter tool (Windows only) included in the [PC release](https://github.com/Erick194/DoomRPG-RE/releases/latest).
+3. Copy `doomrpg.bar` to a folder containing `BarToZip.exe`. Run `BarToZip.exe` to generate `DoomRPG.zip` file.
+4. Download the [latest NRO release](https://github.com/efimandreev0/DoomRPG-RE-NSLite/releases/latest) and extract this to `switch/`.
+5. Extract the newly generated `DoomRPG.zip` to `switch/doomrpg/`.
+6. Extract `datafiles.zip` from last Release to `switch/doomrpg/`.<br />
+Optional: You can install localizations from Release too.
+8. You can now start the game
 
-Requiere CMake para crear el proyecto.<br />
-Requisitos para el projecto:
-  * SDL2
-  * SDL2-Mixer
-  * Zlib
-  * FluidSynth
+## Default controls
 
-Configuración por defecto de las teclas.
+| Action           | Button      |
+| ---------------  | ----------- |
+| Move Forward     | D-pad Up    |
+| Move Backward    | D-pad Down  |
+| Move Left        | ZL          |
+| Move Right       | ZR          |
+| Turn Left        | D-pad Left  |
+| Turn Right       | D-pad Right |
+| Attack/Talk/Use  | A           |
+| Next Weapon      | R           |
+| Prev Weapon      | L           |
+| Pass Turn        | B           |
+| Automap          | Minus       |
+| Menu Open/Back   | Plus        |
 
-Move Forward: Up<br />
-Move Backward: Down<br />
-Move Left: A<br />
-Move Right: D<br />
-Turn Left: Left<br />
-Turn Right: Right<br />
-Atk/Talk/Use: Return<br />
-Next Weapon: Z<br />
-Prev Weapon: X<br />
-Pass Turn: C<br />
-Automap: Tab<br />
-Menu Open/Back: Escape<br />
+## Save and config data
 
-Trucos originales del juego:
+All user data is stored in `/3ds/doomrpg/saves` - these files are compatible with the PC release.
 
-Versión J2ME/BREW:<br />
-Abres menu e ingresa los siguientes numeros.<br />
-3666 -> Abre el menú debug.<br />
-43629 -> Da al jugador maximo de salud y armadura.<br />
-4332 -> Da al jugador todas las llaves, items y armas.<br />
-3366 -> Inicia el testeo de velocidad, "Benchmark".<br />
+## Building instructions
 
-## English
-Doom RPG Reverse Engineering By [GEC]<br />
-Created by Erick Vásquez García.
+This port uses SDL1.2 and SDL_Mixer (1.2)
 
-Current version 0.2.2
+1. Install [Devkitpro] and 3DS-dev package, also make sure `DEVKITPRO` env variable is set
+1. Install SDL1.2 and SDL_Mixer by Pacman
+1. git clone https://github.com/efimandreev0/DoomRPG-RE-3DS.git && cd DoomRPG-RE-3DS
+1. mkdir build && cd build
+1. cmake .. -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake
+1. make
 
-You need CMake to make the project.<br />
-What you need for the project is:
-  * SDL2
-  * SDL2-Mixer
-  * Zlib
-  * FluidSynth
+## Bug reporting
 
-Default key configuration:
+If you find a bug, please open an issue here on github.
 
-Move Forward: Up<br />
-Move Backward: Down<br />
-Move Left: A<br />
-Move Right: D<br />
-Turn Left: Left<br />
-Turn Right: Right<br />
-Atk/Talk/Use: Return<br />
-Next Weapon: Z<br />
-Prev Weapon: X<br />
-Pass Turn: C<br />
-Automap: Tab<br />
-Menu Open/Back: Escape<br />
+## License
 
-Original game cheat codes:
-
-J2ME/BREW Version:<br />
-3666 -> Opens debug menu.<br />
-43629 -> Gives max health and armor to the player.<br />
-4332 -> Gives all keys, items and weapons to the player.<br />
-3366 -> Starts speed test "Benchmark".<br />
+GNU General Public License v3.0
