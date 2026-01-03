@@ -7,7 +7,7 @@ This is a Nintendo 3DS port of the [reverse engineered Doom RPG](https://github.
 1. Search for "Doom RPG BREW" on [archive.org](https://archive.org/) to get the original mobile game assets file: `doomrpg.bar` (CRC32: d7cf11c5).
 2. Next, you need `BarToZip.exe` converter tool (Windows only) included in the [PC release](https://github.com/Erick194/DoomRPG-RE/releases/latest).
 3. Copy `doomrpg.bar` to a folder containing `BarToZip.exe`. Run `BarToZip.exe` to generate `DoomRPG.zip` file.
-4. Download the [latest NRO release](https://github.com/efimandreev0/DoomRPG-RE-3DS/releases/latest) and extract this to `3ds/`.
+4. Download the [latest 3dsx release](https://github.com/efimandreev0/DoomRPG-RE-3DS/releases/latest) and extract this to `3ds/`.
 5. Extract the newly generated `DoomRPG.zip` to `3ds/doomrpg/`.
 6. Extract `datafiles.zip` from last Release to `3ds/doomrpg/`.<br />
 Optional: You can install localizations from Release too.
