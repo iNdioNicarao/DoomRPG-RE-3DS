@@ -1,6 +1,6 @@
 # DoomRPG-RE - Nintendo 3DS port
 
-This is a Nintendo Switch port of the [reverse engineered Doom RPG](https://github.com/Erick194/DoomRPG-RE) by [GEC]. All credits go to the GEC team, this project would not exist without their hard work.
+This is a Nintendo 3DS port of the [reverse engineered Doom RPG](https://github.com/Erick194/DoomRPG-RE) by [GEC]. All credits go to the GEC team, this project would not exist without their hard work.
 
 ## How to install
 
@@ -8,8 +8,8 @@ This is a Nintendo Switch port of the [reverse engineered Doom RPG](https://gith
 2. Next, you need `BarToZip.exe` converter tool (Windows only) included in the [PC release](https://github.com/Erick194/DoomRPG-RE/releases/latest).
 3. Copy `doomrpg.bar` to a folder containing `BarToZip.exe`. Run `BarToZip.exe` to generate `DoomRPG.zip` file.
 4. Download the [latest NRO release](https://github.com/efimandreev0/DoomRPG-RE-NSLite/releases/latest) and extract this to `switch/`.
-5. Extract the newly generated `DoomRPG.zip` to `switch/doomrpg/`.
-6. Extract `datafiles.zip` from last Release to `switch/doomrpg/`.<br />
+5. Extract the newly generated `DoomRPG.zip` to `3ds/doomrpg/`.
+6. Extract `datafiles.zip` from last Release to `3ds/doomrpg/`.<br />
 Optional: You can install localizations from Release too.
 8. You can now start the game
 
