@@ -15,20 +15,22 @@ Optional: You can install localizations from Release too.
 
 ## Default controls
 
-| Action           | Button      |
-| ---------------  | ----------- |
-| Move Forward     | D-pad Up    |
-| Move Backward    | D-pad Down  |
-| Move Left        | ZL          |
-| Move Right       | ZR          |
-| Turn Left        | D-pad Left  |
-| Turn Right       | D-pad Right |
-| Attack/Talk/Use  | A           |
-| Next Weapon      | R           |
-| Prev Weapon      | L           |
-| Pass Turn        | B           |
-| Automap          | Minus       |
-| Menu Open/Back   | Plus        |
+| Action           | Button          |
+| ---------------  | --------------- |
+| Move Forward     | D-pad Up        |
+| Move Backward    | D-pad Down      |
+| Move Left        | ZL (or C-Left)  |
+| Move Right       | ZR (or C-Right) |
+| Turn Left        | D-pad Left      |
+| Turn Right       | D-pad Right     |
+| Attack/Talk/Use  | A               |
+| Next Weapon      | R               |
+| Prev Weapon      | L               |
+| Pass Turn        | B               |
+| Automap          | Select          |
+| Menu Open/Back   | Start           |
+
+NOTE: Automap is always on your downscreen.
 
 ## Save and config data
 
