@@ -190,6 +190,7 @@ typedef struct Render_s
 	int screenX;
 	int screenY;
 	char* mediaTexels;
+	int mediaTexelsCap;
 	short* mediaPalettes;
 	int mediaPalettesLength;
 	short* shapeData;
