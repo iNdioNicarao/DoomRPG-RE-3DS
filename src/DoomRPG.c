@@ -74,7 +74,7 @@ void DoomRPG_Error(const char* fmt, ...)
 
 #ifdef __3DS__
 	// 3. Срём в лог-файл на SD-карте
-	FILE* logFile = fopen("/doomrpg_error.log", "a"); // "a" - дописывать в конец файла
+	FILE* logFile = fopen("sdmc:/doomrpg_error.log", "a"); // "a" - дописывать в конец файла
 	if (logFile)
 	{
 		time_t now = time(NULL);
