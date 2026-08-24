@@ -645,7 +645,7 @@ void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
     char fileName[128];
     SDL_RWops* fdata = NULL;
     int fSize = 0;
-    	const char* base_path = "DoomRPG/";
+    	const char* base_path = "sdmc:/3ds/doomrpg/";
     	char full_path[128];
     //SDL_RWops* rw;
 

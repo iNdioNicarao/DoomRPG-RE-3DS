@@ -247,7 +247,7 @@ unsigned char* readZipFileEntry(const char* name, zip_file_t* zipFile, int* size
 unsigned char* readZipFileEntry(const char* name, zip_file_t* zipFile, int* sizep)
 {
 	(void)zipFile;
-	const char* base_path = "DoomRPG/";
+	const char* base_path = "sdmc:/3ds/doomrpg/";
 	char full_path[128];
 	snprintf(full_path, sizeof(full_path), "%s%s", base_path, name);
 
@@ -295,7 +295,7 @@ SDL_RWops* readZipFileEntry2(const char* name, zip_file_t* zipFile, int* sizep)
 {
 	(void)zipFile;
 
-	const char* base_path = "DoomRPG/";
+	const char* base_path = "sdmc:/3ds/doomrpg/";
 	char full_path[128];
 
 	snprintf(full_path, sizeof(full_path), "%s%s", base_path, name);
