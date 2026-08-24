@@ -549,7 +549,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Help/About", 0, MENU_INGAME_HELP_ABOUT);
 			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Options", 0, MENU_INGAME_OPTIONS);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Main Menu", 0, MENU_INGAME_EXIT);
-			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Cheats", 0, MENU_DEBUG);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Debug", 0, MENU_DEBUG);
 			break;
 		}
 
