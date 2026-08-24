@@ -401,9 +401,6 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 		}
 
 		int i101 = doomCanvas->SCR_CX + i - 64;
-		if (menuSystem->type == 1) { // MENUTYPE_LIST: use full width, not the old centered column
-			i101 = 24;
-		}
 		if (menuSystem->maxItems > 0 && menuSystem->numItems > menuSystem->maxItems) {
 			DoomCanvas_drawScrollBarSur(doomCanvas, i2, menuSystem->maxItems * 12, menuSystem->scrollIndex, menuSystem->scrollIndex + menuSystem->maxItems, menuSystem->numItems, menuSurface);
 		}
@@ -426,6 +423,11 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 
 		for (int i11 = menuSystem->scrollIndex; i11 < menuSystem->numItems; i11++) {
 			int i10 = i101;
+			if (menuSystem->type == 1 && textField[0] != '\0') {
+				int len = (((strlen(textField) << 16) >> 9) * local_38) >> 8;
+				i10 = doomCanvas->SCR_CX - (len / 2) - 42;
+			}
+
 			mItem = &menuSystem->items[i11];
 
 			SDL_memcpy(textField, mItem->textField, sizeof(mItem->textField));
