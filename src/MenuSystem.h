@@ -36,6 +36,7 @@ typedef struct MenuSystem_s
 	int nextMsgTime; // New
 	int nextMsg;// new
 
+	SDL_Surface* menuSurface; // persistent, allocated once in init, reused each paint
 } MenuSystem_t;
 
 
