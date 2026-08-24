@@ -401,6 +401,9 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 		}
 
 		int i101 = doomCanvas->SCR_CX + i - 64;
+		if (menuSystem->type == 1) { // MENUTYPE_LIST: use full width, not the old centered column
+			i101 = 24;
+		}
 		if (menuSystem->maxItems > 0 && menuSystem->numItems > menuSystem->maxItems) {
 			DoomCanvas_drawScrollBarSur(doomCanvas, i2, menuSystem->maxItems * 12, menuSystem->scrollIndex, menuSystem->scrollIndex + menuSystem->maxItems, menuSystem->numItems, menuSurface);
 		}
