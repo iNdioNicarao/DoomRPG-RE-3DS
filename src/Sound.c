@@ -2,6 +2,7 @@
 #ifdef __3DS__
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
+#include "MusicStream.h"
 #else
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -17,6 +18,42 @@
 #include "Z_Zip.h"
 
 #define INIT_ALLSOUNDS	0
+
+
+#define SOUND_CACHE_MAX 128
+static struct { int resourceID; Mix_Chunk* chunk; } soundChunkCache[SOUND_CACHE_MAX];
+static int soundChunkCacheCount = 0;
+
+static int Sound_isCachedChunk(Sound_t* sound, Mix_Chunk* chunk) {
+    (void)sound;
+    for (int i = 0; i < soundChunkCacheCount; ++i) {
+        if (soundChunkCache[i].chunk == chunk) return 1;
+    }
+    return 0;
+}
+
+static Mix_Chunk* Sound_cachedChunk(Sound_t* sound, int resourceID) {
+    (void)sound;
+    for (int i = 0; i < soundChunkCacheCount; ++i) {
+        if (soundChunkCache[i].resourceID == resourceID) {
+            return soundChunkCache[i].chunk;
+        }
+    }
+    return NULL;
+}
+
+static void Sound_cacheChunk(Sound_t* sound, int resourceID, Mix_Chunk* chunk) {
+    (void)sound;
+    if (chunk == NULL) return;
+    if (soundChunkCacheCount >= SOUND_CACHE_MAX) return;
+    for (int i = 0; i < soundChunkCacheCount; ++i) {
+        if (soundChunkCache[i].resourceID == resourceID) return;
+    }
+    soundChunkCache[soundChunkCacheCount].resourceID = resourceID;
+    soundChunkCache[soundChunkCacheCount].chunk = chunk;
+    ++soundChunkCacheCount;
+}
+
 
 static int soundTable[MAX_AUDIOFILES] = {
 	5039, 5040, 5042, 5043, 5044, 5045, 5046, 5047, 5048, 5049, 5050,
@@ -177,7 +214,10 @@ void Sound_freeSound(Sound_t* sound, int chan)
 
 	if (sChannel->mediaAudioSound) {
 #if !INIT_ALLSOUNDS
-		Mix_FreeChunk(sChannel->mediaAudioSound);
+		if (!Sound_isCachedChunk(sound, sChannel->mediaAudioSound)) {
+			Mix_FreeChunk(sChannel->mediaAudioSound);
+		} else {
+		}
 #endif
 	}
 
@@ -253,6 +293,8 @@ void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
 	char fileName[128];
 	byte* fdata;
 	int fSize;
+	const char* base_path = "sdmc:/3ds/doomrpg/";
+	char full_path[128];
 #endif
 
 #if INIT_ALLSOUNDS
@@ -275,16 +317,16 @@ void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
 		//sChannel->mediaAudioMusic = (Mix_Music*)sound->audioFiles[id].ptr;
 		sChannel->mediaAudioMusic = (fluid_player_t*)sound->audioFiles[id].ptr;
 #else
-		snprintf(fileName, sizeof(fileName), "%03d.mid", resourceID);
-		fdata = readZipFileEntry(fileName, &zipFile, &fSize);
-
-		rw = SDL_RWFromMem(fdata, fSize);
+		// 3DS: SDL_mixer lacks MP3/MIDI decoders here, so music tracks are
+		// stored as .wav files in the loose SD folder.
+		snprintf(fileName, sizeof(fileName), "%d.wav", resourceID);
+		snprintf(full_path, sizeof(full_path), "%s%s", base_path, fileName);
+		rw = SDL_RWFromFile(full_path, "rb");
 		if (!rw) {
-			DoomRPG_Error("Error with SDL_RWFromMem: %s\n", SDL_GetError());
+		} else {
+			sChannel->mediaAudioSound = Mix_LoadWAV_RW(rw, SDL_TRUE);
+			SDL_FreeRW(rw);
 		}
-
-		sChannel->mediaAudioMusic = Mix_LoadMUS_RW(rw, SDL_TRUE);
-		SDL_free(fdata);
 #endif
 	}
 	else {
@@ -543,6 +585,7 @@ void Sound_stopSounds(Sound_t* sound)
     if (sound->soundEnabled) {
     	Mix_HaltChannel(-1);
     	Mix_HaltMusic();
+    	MusicStream_stop();
 
     	for (int chan = 0; chan < (MAX_SOUNDCHANNELS + 1); ++chan) {
     		sound->soundChannel[chan].flags = 0;
@@ -575,7 +618,10 @@ void Sound_freeSound(Sound_t* sound, int chan)
     		}
 #if !INIT_ALLSOUNDS
     		if (sChannel->mediaAudioSound) {
-    			Mix_FreeChunk(sChannel->mediaAudioSound);
+    			if (!Sound_isCachedChunk(sound, sChannel->mediaAudioSound)) {
+    				Mix_FreeChunk(sChannel->mediaAudioSound);
+    			} else {
+    			}
     		}
 #endif
     		sChannel->mediaAudioSound = NULL;
@@ -615,6 +661,7 @@ int Sound_getFreeChanel(Sound_t* sound) {
     }
     return -1; //no free channels
 }
+// --- WAV chunk cache (3DS): load each NNNN.wav exactly once per session ---
 void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
 {
     if (sound->soundEnabled) {
@@ -649,23 +696,28 @@ void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
     	char full_path[128];
     //SDL_RWops* rw;
 
-    // mp3 or wav
-    if (sChannel->flags & SND_FLG_ISMUSIC) {
-        if (resourceID == 5039 || resourceID == 5040 || resourceID == 5043) {
-	        snprintf(fileName, sizeof(fileName), "%d.mp3", resourceID);
+    // CHUNK CACHE: the intro re-fires the same music ID every loop; re-loading a 2-5MB
+    // WAV from SD each time exhausted the heap (clean SDL_malloc(NULL) errors). Cache by
+    // resourceID and reuse - each file is loaded from SD exactly once per session.
+    {
+        Mix_Chunk* cached = Sound_cachedChunk(sound, resourceID);
+        if (cached != NULL) {
+            sChannel->mediaAudioSound = cached;
+            return;
         }
+    }
 
-    	snprintf(full_path, sizeof(full_path), "%s%s", base_path, fileName);
-        // reading file
-        //fdata = readZipFileEntry2(fileName, &zipFile, &fSize);
-    	//rw = SDL_RWFromMem(fdata, fSize);
-    	sChannel->mediaAudioMusic = Mix_LoadMUS(full_path);
-    	SDL_free(fdata);
-
-    	if (!sChannel->mediaAudioMusic) {
-    		printf("Error loading music '%s': %s\n", fileName, Mix_GetError());
-    	}
-
+    // mp3 or wav
+    // NOTE: this 3DS SDL_mixer build has no working MP3 decoder and its MOD/tracker
+    // probe (MOD_CheckType) crashes the heap. So ALL music is loaded as a .wav
+    // (re-encoded from the original tracks) via Mix_LoadWAV into mediaAudioSound.
+    // The play path then uses Mix_PlayChannel (looped) — never Mix_LoadMUS.
+    if (sChannel->flags & SND_FLG_ISMUSIC) {
+        // Full tracks stream as MP3 via libmad (~64KB RAM) instead of decoding
+        // 40-75MB of PCM into the heap. SFX still use cached WAV chunks.
+        MusicStream_stop();
+        MusicStream_play(resourceID, (sChannel->flags & SND_FLG_LOOP) ? 1 : 0);
+        sChannel->mediaAudioSound = NULL;
     } else {
         snprintf(fileName, sizeof(fileName), "%d.wav", resourceID);
     	snprintf(full_path, sizeof(full_path), "%s%s", base_path, fileName);
@@ -673,6 +725,8 @@ void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
     	SDL_free(fdata);
     	if (!sChannel->mediaAudioSound) {
     		printf("Error loading sound '%s': %s\n", fileName, Mix_GetError());
+    	} else {
+    		Sound_cacheChunk(sound, resourceID, sChannel->mediaAudioSound);
     	}
     }
 #endif
