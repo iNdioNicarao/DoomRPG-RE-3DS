@@ -6,6 +6,7 @@
 #include <SDL.h>
 #endif
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 
 #include "DoomRPG.h"
@@ -106,9 +107,6 @@ void Render_setup(Render_t* render, SDL_Rect* windowRect)
 void Render_freeRuntime(Render_t* render) {
 
 	int i;
-
-	SDL_free(render->mediaTexels);
-	render->mediaTexels = NULL;
 
 	SDL_free(render->shapeData);
 	render->shapeData = NULL;
@@ -824,9 +822,9 @@ boolean Render_beginLoadMapData(Render_t* render)
 
 	SDL_free(render->mapSpriteTexels);
 	render->mapSpriteTexels = NULL;
-
 	render->mapMemory = (DoomRPG_freeMemory() + render->mapMemory) - mem;
 	//printf("mapMemory %d\n", render->mapMemory);
+
 
 	return true;
 }
@@ -864,7 +862,10 @@ boolean Render_loadBitShapes(Render_t* render)
 	for (i = 0; i < render->mapSpriteTexelsCount; i++) {
 		ioOffset = render->mediaBitShapeOffsets[render->mapSpriteTexels[i] * 2];
 		if (ioOffset != prevIoOffset) {
-			shapeDataSize += (ioBuffer[ioOffset + 6] & 255) | ((ioBuffer[ioOffset + 7] << 8) & 65280);
+			int sz = (ioBuffer[ioOffset + 6] & 255) | ((ioBuffer[ioOffset + 7] << 8) & 65280);
+			/* the packed walk below can write more shorts than this 16-bit size
+			   implies; pad generously so shapeData writes stay in bounds */
+			shapeDataSize += sz + (sz >> 1) + 256;
 			prevIoOffset = ioOffset;
 		}
 	}
@@ -873,7 +874,8 @@ boolean Render_loadBitShapes(Render_t* render)
 
 	//printf("shapeDataSize %d\n", shapeDataSize);
 	SDL_free(render->shapeData);
-	render->shapeData = SDL_malloc(shapeDataSize * sizeof(short));
+	int shapeDataCap = shapeDataSize * (int)sizeof(short);
+	render->shapeData = SDL_malloc(shapeDataCap + 64); /* slack for walk overshoot */
 
 	updtCnt = 0;
 	shapeOffset = 0;
@@ -890,6 +892,11 @@ boolean Render_loadBitShapes(Render_t* render)
 			if (++updtCnt == 3) {
 				DoomCanvas_updateLoadingBar(render->doomRpg->doomCanvas);
 				updtCnt = 0;
+			}
+
+			if ((shapeOffset * (int)sizeof(short)) > shapeDataCap - 4096) {
+				/* would overflow shapeData: stop before corrupting the heap */
+				break;
 			}
 
 			prevIoOffset = ioOffset;
@@ -979,9 +986,22 @@ boolean Render_loadTexels(Render_t* render)
 	}
 	//printf("i7 %d\n", i7);
 
-	SDL_free(render->mediaTexels);
-	render->mediaTexels = SDL_malloc(i7 * sizeof(*render->mediaTexels));
-
+	int mediaTexelsCap = (int)(i7 * sizeof(*render->mediaTexels));
+	// Persistent texture buffer: allocate ONCE and reuse. Freeing+reallocating a 450KB
+	// block every frame during the spinning level-load fragments the heap until no
+	// contiguous 453617-byte hole survives. We only grow when a map genuinely needs more.
+	if (!render->mediaTexels || render->mediaTexelsCap < mediaTexelsCap) {
+		if (render->mediaTexels) {
+			SDL_free(render->mediaTexels);
+			render->mediaTexels = NULL;
+		}
+		render->mediaTexels = SDL_malloc(mediaTexelsCap);
+		render->mediaTexelsCap = mediaTexelsCap;
+	}
+	if (render->mediaTexels == NULL) {
+		DoomRPG_Error("Render_loadTexels: SDL_malloc(%d) returned NULL", mediaTexelsCap);
+		return false;
+	}
 
 	int dataSize;
 	// Read Wall Texels Data
@@ -989,6 +1009,8 @@ boolean Render_loadTexels(Render_t* render)
 
 	dataSize = DoomRPG_intAt(ioBuffer, 0);
 	ioBuffer += sizeof(int);
+	byte* wEnd = ioBufferBase + (dataSize + sizeof(int));
+	int wallOob = 0;
 	//printf("dataSize %d\n", dataSize);
 
 
@@ -1011,7 +1033,10 @@ boolean Render_loadTexels(Render_t* render)
 			}
 			if (i2 > m) {
 				int n11 = (i2 - m) / 2;
-				for (int n12 = 0; n12 < n11; n12 += 256) {
+				if (ioBuffer + n11 > wEnd && !wallOob) {
+					wallOob = 1;
+				}
+				for (int n12 = 0; n12 < n11 && !wallOob; n12 += 256) {
 					//a(resourceAsStream, ioBuffer, (n12 + 256 > n11) ? (n11 - n12) : 256);
 					memcpy(ioBufferTmp, ioBuffer, (n12 + 256 > n11) ? (n11 - n12) : 256);
 					ioBuffer += (n12 + 256 > n11) ? (n11 - n12) : 256;
@@ -1024,13 +1049,13 @@ boolean Render_loadTexels(Render_t* render)
 			n8 = n6;
 			for (int n13 = 0; n13 < 2048; n13 += 256) {
 				int n14 = (n13 + 256 > 2048) ? (2048 - n13) : 256;
-				//a(resourceAsStream, ioBuffer, n14);
-
 				memcpy(ioBufferTmp, ioBuffer, n14);
 				ioBuffer += n14;
 
 				for (int n15 = 0; n15 < n14; ++n15) {
-					render->mediaTexels[n6++] = ioBufferTmp[n15];
+					if (n6 < mediaTexelsCap) {
+						render->mediaTexels[n6++] = ioBufferTmp[n15];
+					}
 					//int n16 = ioBufferTmp[n15] & 0xFF;
 					//render->mediaTexels[n6++] = (byte)(n16 & 0xF);
 					//render->mediaTexels[n6++] = (byte)(n16 >> 4 & 0xF);
@@ -1049,7 +1074,8 @@ boolean Render_loadTexels(Render_t* render)
 	ioBuffer = ioBufferBase = DoomRPG_fileOpenRead(render->doomRpg, "/stexels.bin");
 	dataSize = DoomRPG_intAt(ioBuffer, 0);
 	ioBuffer += sizeof(int);
-	//printf("dataSize %d\n", dataSize);
+	byte* sEnd = ioBufferBase + (dataSize + sizeof(int));
+	int sprOob = 0;
 
 	int n17 = -1;
 
@@ -1070,7 +1096,10 @@ boolean Render_loadTexels(Render_t* render)
 			n8 = (n6 << 1);
 			if (i4 > i3) {
 				int n21 = (i4 - i3) / 2;
-				for (int n22 = 0; n22 < n21; n22 += 256) {
+				if (ioBuffer + n21 > sEnd && !sprOob) {
+					sprOob = 1;
+				}
+				for (int n22 = 0; n22 < n21 && !sprOob; n22 += 256) {
 					//a(resourceAsStream2, r.c, (n22 + 256 > n21) ? (n21 - n22) : 256);
 					memcpy(ioBufferTmp, ioBuffer, (n22 + 256 > n21) ? (n21 - n22) : 256);
 					ioBuffer += (n22 + 256 > n21) ? (n21 - n22) : 256;
@@ -1085,13 +1114,19 @@ boolean Render_loadTexels(Render_t* render)
 			for (int n24 = 0; n24 < n23; n24 += 256) {
 				int n25 = (n24 + 256 > n23) ? (n23 - n24) : 256;
 				//a(resourceAsStream2, r.c, n25);
-
+				if (ioBuffer + n25 > sEnd && !sprOob) {
+					sprOob = 1;
+					memset(ioBufferTmp, 0, n25);
+				} else {
 				memcpy(ioBufferTmp, ioBuffer, n25);
 				ioBuffer += n25;
+				}
 
 				for (int n26 = 0; n26 < n25; ++n26) {
 
-					render->mediaTexels[n6++] = ioBufferTmp[n26];
+					if (n6 < mediaTexelsCap) {
+						render->mediaTexels[n6++] = ioBufferTmp[n26];
+					}
 					//int n27 = ioBufferTmp[n26] & 0xFF;
 					//render->mediaTexels[n6++] = (byte)(n27 & 0xF);
 					//render->mediaTexels[n6++] = (byte)(n27 >> 4 & 0xF);
