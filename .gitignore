@@ -1,0 +1,13 @@
+# Build output
+build/
+.DS_Store
+# Game data / binaries (NEVER commit — user-supplied, stay on SD)
+*.wav
+*.mp3
+*.bar
+*.cia
+*.zip
+*.elf
+*.sav
+*.bmp
+assets/
