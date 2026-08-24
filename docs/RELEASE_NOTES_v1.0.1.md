@@ -4,7 +4,7 @@ New 3DS home-menu build (`.cia`) of Doom RPG RE, with the 3DS-specific fixes
 below. Source-only: no game assets or audio are bundled in the repository.
 They are supplied on the SD card (see *Install*).
 
-- Build: 2026-08-23
+- Build: 2026-08-24
 - Title ID: `000400000FD0BB01`
 - License: GPLv3
 
@@ -25,10 +25,11 @@ crashed or blanked the screen before gameplay. The fixes:
 | HUD | Guard NULL HUD surfaces and free the temp surface on early-return paths (leak fix). |
 | Intro | Reset the player on intro dispose — the first-spin new-game path could reach `disposeIntro` without passing through `Menu_startGame`, leaving the player struct uninitialized and the camera spawning into a black screen. |
 | Menu | Keep repainting the active menu every frame after the intro spin stops, so the Enable-Sound / Main menu cursor tracks input. |
-| Input | Rebind strafe to L/R, weapons to ZL/ZR. Boot stack raised to 256 KB. |
+| Input | D-pad turns; L/R are lateral movement (strafe). Weapons on ZL/ZR. Boot stack raised to 256 KB. |
 
-No copyrighted material is included. Game data (`.wav` SFX, `.mp3` music,
-`DoomRPG.bar`/`.zip` assets) must be supplied on the SD card.
+No copyrighted material is included. Game data (loose files from `DoomRPG.zip`,
+numbered `.wav` SFX, numbered `.mp3` music) must be supplied on the SD card
+under `sdmc:/3ds/doomrpg/`.
 
 ## Build (from a checkout)
 
@@ -45,31 +46,34 @@ file controls the CIA filename; the Title ID / version byte comes from
 
 ## Install
 
-1. Install `DoomRPG-1.0.1.cia` with FBI (or run `DoomRPG-1.0.1.3dsx` from the
+1. Install `DoomRPG-1.0.1.cia` with FBI (or run `DoomRPG.3dsx` from the
    Homebrew Menu).
-2. Place game assets on the SD card at `sdmc:/3ds/doomrpg/`:
-   - `DoomRPG.bar` (or the equivalent asset archive) — game data
-   - `authentic_wavs/*.wav` — SFX
-   - `*.mp3` — music tracks
-   - `saves/` is created at runtime for config/player/world state.
+2. On the SD card, extract the **contents** of `DoomRPG.zip` into
+   `sdmc:/3ds/doomrpg/` so the game data files sit loose in that folder.
+3. Add audio next to the data, also under `sdmc:/3ds/doomrpg/`:
+   - SFX as numbered `.wav` files (`001.wav`, `002.wav`, …).
+   - Music as numbered `.mp3` files (`1.mp3`, `2.mp3`, …) by track ID.
+4. Launch from the HOME Menu. `sdmc:/3ds/doomrpg/saves/` is created at runtime.
 
-The app will not start without the asset directory present.
+The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files present.
 
 ## Controls (New 3DS)
 
-- D-pad / Circle Pad: move
-- A: use / confirm
-- B: back
-- L / R: strafe left / right
+- D-pad: turn left / right
+- L / R: strafe left / right (lateral movement)
 - ZL / ZR: previous / next weapon
+- A: use / confirm
+- B: back / pass turn
+- Start: menu open / back
+- Select: automap (always on bottom screen)
 - Touch: menu
 
 ## Release assets
 
 This release includes the built binaries as download assets:
 
-- `DoomRPG-1.0.1.cia` — MD5 `3ee88a76a623ae249ce9ed2cf8b87f24`
-- `DoomRPG-1.0.1.3dsx` — see release asset for checksum
+- `DoomRPG-1.0.1.cia` — MD5 `b69a586807d453f829573dcbc9d8f3be`
+- `DoomRPG.3dsx` — MD5 `5e44f7b1c1a4365f7f9541c032332697`
 
 ## Notes
 

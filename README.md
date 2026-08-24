@@ -2,55 +2,87 @@
 
 This is a Nintendo 3DS port of the [reverse engineered Doom RPG](https://github.com/Erick194/DoomRPG-RE) by [GEC]. All credits go to the GEC team, this project would not exist without their hard work.
 
+This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) created to provide a **home-menu `.cia` build** (installable on a New 3DS from the HOME Menu via FBI) and to fold in a set of quality-of-life and stability fixes that make the port actually playable on real hardware. The original work targets the loader it was developed against; on a stock New 3DS the boot path hit heap exhaustion and null-surface dereferences that crashed or blanked the screen before gameplay. The fixes in this fork are summarized in [`docs/RELEASE_NOTES_v1.0.1.md`](docs/RELEASE_NOTES_v1.0.1.md).
+
 ## How to install
 
-1. Search for "Doom RPG BREW" on [archive.org](https://archive.org/) to get the original mobile game assets file: `doomrpg.bar` (CRC32: d7cf11c5).
-2. Next, you need `BarToZip.exe` converter tool (Windows only) included in the [PC release](https://github.com/Erick194/DoomRPG-RE/releases/latest).
-3. Copy `doomrpg.bar` to a folder containing `BarToZip.exe`. Run `BarToZip.exe` to generate `DoomRPG.zip` file.
-4. Download the [latest 3dsx release](https://github.com/efimandreev0/DoomRPG-RE-3DS/releases/latest) and extract this to `3ds/`.
-5. Extract the newly generated `DoomRPG.zip` to `3ds/doomrpg/`.
-6. Extract `datafiles.zip` from last Release to `3ds/doomrpg/`.<br />
-Optional: You can install localizations from Release too.
-8. You can now start the game
+1. Get the original game assets: search "Doom RPG BREW" on
+   [archive.org](https://archive.org/) for `doomrpg.bar` (CRC32: d7cf11c5), then
+   convert it to `DoomRPG.zip` with `BarToZip.exe` (Windows, in the
+   [PC release](https://github.com/Erick194/DoomRPG-RE/releases/latest)).
+2. Install `DoomRPG-1.0.1.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
+3. On the SD card, extract the **contents** of `DoomRPG.zip` into
+   `sdmc:/3ds/doomrpg/` so the game data files sit loose in that folder.
+4. Add audio next to the data, also under `sdmc:/3ds/doomrpg/`:
+   - SFX as numbered `.wav` files (`001.wav`, `002.wav`, …) — these are the
+     game's sound resources.
+   - Music as numbered `.mp3` files (`1.mp3`, `2.mp3`, …) by track ID.
+5. Launch from the HOME Menu. `sdmc:/3ds/doomrpg/saves/` is created at runtime.
 
-## Default controls
+The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files present.
+
+## Default controls (New 3DS)
 
 | Action           | Button          |
 | ---------------  | --------------- |
 | Move Forward     | D-pad Up        |
 | Move Backward    | D-pad Down      |
-| Move Left        | ZL (or C-Left)  |
-| Move Right       | ZR (or C-Right) |
+| Strafe Left      | L               |
+| Strafe Right     | R               |
 | Turn Left        | D-pad Left      |
 | Turn Right       | D-pad Right     |
 | Attack/Talk/Use  | A               |
-| Next Weapon      | R               |
-| Prev Weapon      | L               |
+| Next Weapon      | ZR              |
+| Prev Weapon      | ZL              |
 | Pass Turn        | B               |
 | Automap          | Select          |
 | Menu Open/Back   | Start           |
 
-NOTE: Automap is always on your downscreen.
+NOTE: the D-pad turns; **L/R are lateral movement (strafe)** — hold L or R to
+step left/right without changing facing. Automap is always on your bottom screen.
 
 ## Save and config data
 
-All user data is stored in `/3ds/doomrpg/saves` - these files are compatible with the PC release.
+All user data is stored in `sdmc:/3ds/doomrpg/saves` — these files are compatible with the PC release.
 
-## Building instructions
+## Building from source
 
-This port uses SDL1.2 and SDL_Mixer (1.2)
+This port uses SDL1.2 and SDL_Mixer (1.2). The reproducible build runs inside a Docker image with the devkitARM toolchain (makerom + bannertool); the CIA recipe lives under `tools/cia/`.
 
-1. Install [Devkitpro] and 3DS-dev package, also make sure `DEVKITPRO` env variable is set
-1. Install SDL1.2 and SDL_Mixer by Pacman
-1. git clone https://github.com/efimandreev0/DoomRPG-RE-3DS.git && cd DoomRPG-RE-3DS
-1. mkdir build && cd build
-1. cmake .. -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake
-1. make
+```
+cd tools/cia
+./build_cia.sh
+```
+
+This produces `tools/cia/DoomRPG-<version>.cia` and a `DoomRPG.3dsx`. The `VERSION` file controls the CIA filename; the Title ID / version byte comes from `DoomRPG-3DS.rsf` and is left at upstream's value.
+
+To build manually instead:
+
+1. Install [DevkitPro](https://devkitpro.org/) and the 3DS-dev package; ensure `DEVKITPRO` is set.
+2. Install SDL1.2 and SDL_Mixer via pacman (`dkp-pacman -S 3ds-sdl 3ds-sdl_mixer`).
+3. `git clone <this-repo> && cd <this-repo>`
+4. `mkdir build && cd build`
+5. `cmake .. -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake`
+6. `make`
 
 ## Bug reporting
 
-If you find a bug, please open an issue here on github.
+If you find a bug, please open an issue here on GitHub.
+
+## Acknowledgments
+
+This fork — including the home-menu `.cia` packaging, the quality-of-life and
+stability fixes, the documentation, and the build/release tooling — was
+developed with the assistance of **Hermes Agent**, an AI coding assistant.
+
+- **Assistant:** Hermes Agent ([Nous Research](https://nousresearch.com))
+- **Model used:** `tencent/hy3:free`
+- **How it was used:** end-to-end — tracing the 3DS boot/render path,
+  root-causing and fixing the heap-exhaustion and null-surface crashes,
+  preparing the repository for public release (source-only scrub, clean
+  commit history, README + `docs/`), and building/packaging the CIA.
 
 ## License
 
-GNU General Public License v3.0
+GNU General Public License v3.0. Doom RPG game data is the property of its
+respective owners and is **not** included in this repository.
