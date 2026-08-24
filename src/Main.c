@@ -21,8 +21,24 @@
 
 extern DoomRPG_t* doomRpg;
 
+// 3DS: libctru's initSystem creates the main thread with this many bytes of stack.
+// Default 32KB is exhausted by the map-load call chain (Render_loadTexels
+// frame + locals), causing data aborts near the stack ceiling.
+#if defined(__3DS__)
+unsigned int __stacksize__ = 0x40000; // 256KB
+#endif
+
+// Build identity - bump on every build so we can verify what is actually running.
+static const char* BUILD_VERSION = "DOOMRPG-3DS v1.0.1 (persistent menuSurface fix)";
+
+
 int main(int argc, char* args[])
 {
+    printf("\n=== %s ===\n", BUILD_VERSION);
+    {
+        FILE* bv = fopen("sdmc:/3ds/doomrpg/version.log", "w");
+        if (bv) { fprintf(bv, "%s\n", BUILD_VERSION); fclose(bv); }
+    }
     Z_Init();
     SDL_InitVideo();
     SDL_InitAudio();

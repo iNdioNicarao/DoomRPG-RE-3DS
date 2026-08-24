@@ -36,10 +36,10 @@ keyMapping_t keyMappingDefault[12] = {
 	{AVK_DOWN | AVK_MENU_DOWN,			{KEY_DDOWN,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Move backward
 	{AVK_LEFT | AVK_MENU_PAGE_UP,		{KEY_DLEFT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Turn left/page up
 	{AVK_RIGHT | AVK_MENU_PAGE_DOWN,	{KEY_DRIGHT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Turn right/page down
-	{AVK_MOVELEFT,						{KEY_LEFT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Move left
-	{AVK_MOVERIGHT,					{KEY_RIGHT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Move right
-	{AVK_NEXTWEAPON,					{KEY_R,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Next weapon
-	{AVK_PREVWEAPON,					{KEY_L,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Prev weapon
+	{AVK_MOVELEFT,						{KEY_L,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Move left
+	{AVK_MOVERIGHT,					{KEY_R,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Move right
+	{AVK_NEXTWEAPON,						{KEY_ZR,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Next weapon
+	{AVK_PREVWEAPON,						{KEY_ZL,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Prev weapon
 	{AVK_SELECT | AVK_MENU_SELECT,		{KEY_A,-1,-1,-1,-1,-1,-1,-1,-1,-1}},// Attack/Talk/Use
 	{AVK_PASSTURN,						{KEY_B,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Pass Turn
 	{AVK_AUTOMAP,						{KEY_SELECT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Automap
