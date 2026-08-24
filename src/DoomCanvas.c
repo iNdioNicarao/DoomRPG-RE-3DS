@@ -1627,6 +1627,16 @@ void DoomCanvas_drawStory(DoomCanvas_t* doomCanvas)
 		SDL_BlitSurface(tmpSurface, NULL, sdlVideo.screenSurface, NULL);
 		DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
+
+	/* After the spin animation ends, drawStory used to return without ever
+	   flushing again, so the Enable-Sound / Main menu overlay froze on the
+	   last frame while input kept changing selectedIndex. Keep repainting
+	   the active menu cursor every frame once the spin has stopped. */
+	if (doomCanvas->doomRpg->menuSystem->menu >= MENU_ENABLE_SOUNDS) {
+		MenuSystem_paint(doomCanvas->doomRpg->menuSystem);
+	}
+	SDL_BlitSurface(tmpSurface, NULL, sdlVideo.screenSurface, NULL);
+	DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	SDL_FreeSurface(tmpSurface);
 }
 void DarkenSurface(SDL_Surface* surface, float factor) {
