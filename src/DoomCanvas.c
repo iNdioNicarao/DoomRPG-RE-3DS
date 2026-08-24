@@ -560,6 +560,11 @@ void DoomCanvas_disposeEpilogue(DoomCanvas_t* doomCanvas)
 
 void DoomCanvas_disposeIntro(DoomCanvas_t* doomCanvas)
 {
+	// Mirror Menu_startGame(1): the very first spin can reach this without ever
+	// passing through Menu_startGame, so reset the player here too. Without it the
+	// player struct carries garbage and the camera spawns at a bad view -> black screen.
+	Player_reset(doomCanvas->doomRpg->player);
+	doomCanvas->doomRpg->player->totalDeaths = 0;
 	DoomRPG_freeImage(doomCanvas->doomRpg, &doomCanvas->imgSpaceBG);
 	DoomRPG_freeImage(doomCanvas->doomRpg, &doomCanvas->imgLinesLayer);
 	DoomRPG_freeImage(doomCanvas->doomRpg, &doomCanvas->imgPlanetLayer);
