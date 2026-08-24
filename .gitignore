@@ -11,3 +11,6 @@ build/
 *.sav
 *.bmp
 assets/
+
+# Build-tooling asset required by make_cia.sh (not game data)
+!tools/cia/silence.wav
