@@ -549,6 +549,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Help/About", 0, MENU_INGAME_HELP_ABOUT);
 			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Options", 0, MENU_INGAME_OPTIONS);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Main Menu", 0, MENU_INGAME_EXIT);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Cheats", 0, MENU_DEBUG);
 			break;
 		}
 
@@ -1527,6 +1528,9 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			else if (itemId == 8) {
 				menuSystem->oldMenu = MENU_INGAME;
 				return action;
+			}
+			else if (itemId == 6) {
+				return MENU_DEBUG;
 			}
 
 			return action;
