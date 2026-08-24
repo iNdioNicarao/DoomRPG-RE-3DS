@@ -865,6 +865,13 @@ void DoomRPG_createImageBerserkColor(DoomRPG_t* doomrpg, const char* resourceNam
 	byte* fdata;
 	int fSize;
 	fdata = readZipFileEntry(fileName, &zipFile, &fSize);
+	if (!fdata) {
+		DoomRPG_Error("Failed to read file %s from zip.", fileName);
+		img->width = 0;
+		img->height = 0;
+		img->imgBitmap = NULL;
+		return;
+	}
 
 	rw = SDL_RWFromMem(fdata, fSize);
 	if (!rw) {
@@ -1000,9 +1007,17 @@ byte *DoomRPG_fileOpenRead(DoomRPG_t* doomrpg, const char* resourceName)
 
 	snprintf(fileName, sizeof(fileName), "%s", resourceName+1);
 
-	fdata = readZipFileEntry(fileName, &zipFile, &fSize);
-
-	return fdata;
+	/* SD access can briefly fail during early boot; retry a few times
+	   before giving up so startup asset loads are reliable. */
+	for (int attempt = 0; attempt < 20; ++attempt) {
+		fdata = readZipFileEntry(fileName, &zipFile, &fSize);
+		if (fdata != NULL) return fdata;
+		if (attempt == 0) {
+			DoomRPG_Error("Failed to read file %s from zip.", fileName);
+		}
+		svcSleepThread(100 * 1000 * 1000ULL); /* 100ms */
+	}
+	return NULL;
 }
 
 void DoomRPG_setErrorID(DoomRPG_t* doomrpg, int ID)
