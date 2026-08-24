@@ -449,22 +449,20 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
         SDL_FreeSurface(tmpSurface);
         return;
     }
-    SDL_Rect* srcRect = malloc(sizeof(*srcRect));
-    SDL_Rect* dstRect = malloc(sizeof(*dstRect));
-    srcRect->h = tmpSurface->h;
-    srcRect->w = tmpSurface->w;
-    srcRect->x = 0;
-    srcRect->y = 0;
+    SDL_Rect srcRect;
+    SDL_Rect dstRect;
+    srcRect.h = tmpSurface->h;
+    srcRect.w = tmpSurface->w;
+    srcRect.x = 0;
+    srcRect.y = 0;
 
-    dstRect->h = tmpSurface->h;
-    dstRect->w = tmpSurface->w;
-    dstRect->x = 0;
-    dstRect->y = 240 - doomCanvas->hud->statusBarHeight;
+    dstRect.h = tmpSurface->h;
+    dstRect.w = tmpSurface->w;
+    dstRect.x = 0;
+    dstRect.y = 240 - doomCanvas->hud->statusBarHeight;
 
-    SDL_BlitSurface(tmpSurface, srcRect, sdlVideo.screenSurface, dstRect);
+    SDL_BlitSurface(tmpSurface, &srcRect, sdlVideo.screenSurface, &dstRect);
     SDL_FreeSurface(tmpSurface);
-    SDL_free(dstRect);
-    SDL_free(srcRect);
 }
 void Hud_drawBottomBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
 {
@@ -646,22 +644,20 @@ void Hud_drawBottomBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
         SDL_FreeSurface(tmpSurface);
         return;
     }
-    SDL_Rect* srcRect = malloc(sizeof(*srcRect));
-    SDL_Rect* dstRect = malloc(sizeof(*dstRect));
-    srcRect->h = tmpSurface->h;
-    srcRect->w = tmpSurface->w;
-    srcRect->x = 0;
-    srcRect->y = 0;
+    SDL_Rect srcRect;
+    SDL_Rect dstRect;
+    srcRect.h = tmpSurface->h;
+    srcRect.w = tmpSurface->w;
+    srcRect.x = 0;
+    srcRect.y = 0;
 
-    dstRect->h = tmpSurface->h;
-    dstRect->w = tmpSurface->w;
-    dstRect->x = 0;
-    dstRect->y = 240 - doomCanvas->hud->statusBarHeight;
+    dstRect.h = tmpSurface->h;
+    dstRect.w = tmpSurface->w;
+    dstRect.x = 0;
+    dstRect.y = 240 - doomCanvas->hud->statusBarHeight;
 
-    SDL_BlitSurface(tmpSurface, srcRect, surface, dstRect);
+    SDL_BlitSurface(tmpSurface, &srcRect, surface, &dstRect);
     SDL_FreeSurface(tmpSurface);
-    SDL_free(dstRect);
-    SDL_free(srcRect);
 }
 #endif
 void Hud_drawEffects(DoomCanvas_t* doomCanvas)
@@ -813,22 +809,20 @@ void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
     }
 
     DoomCanvas_drawFontSur(doomCanvas, text, 1, (doomCanvas->hud->statusTopBarHeight >> 1) - 5, 0, strBeg, strEnd, false, tmpSurface);
-    SDL_Rect* srcRect = malloc(sizeof(*srcRect));
-    SDL_Rect* dstRect = malloc(sizeof(*dstRect));
-    srcRect->h = tmpSurface->h;
-    srcRect->w = tmpSurface->w;
-    srcRect->x = 0;
-    srcRect->y = 0;
+    SDL_Rect srcRect;
+    SDL_Rect dstRect;
+    srcRect.h = tmpSurface->h;
+    srcRect.w = tmpSurface->w;
+    srcRect.x = 0;
+    srcRect.y = 0;
 
-    dstRect->h = tmpSurface->h;
-    dstRect->w = tmpSurface->w;
-    dstRect->x = 0;
-    dstRect->y = 0;
+    dstRect.h = tmpSurface->h;
+    dstRect.w = tmpSurface->w;
+    dstRect.x = 0;
+    dstRect.y = 240 - doomCanvas->hud->statusBarHeight;
 
-    SDL_BlitSurface(tmpSurface, srcRect, sdlVideo.screenSurface, dstRect);
+    SDL_BlitSurface(tmpSurface, &srcRect, sdlVideo.screenSurface, &dstRect);
     SDL_FreeSurface(tmpSurface);
-    SDL_free(dstRect);
-    SDL_free(srcRect);
 }
 void Hud_drawTopBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
 {
@@ -917,22 +911,20 @@ void Hud_drawTopBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
     }
 
     DoomCanvas_drawFontSur(doomCanvas, text, 1, (doomCanvas->hud->statusTopBarHeight >> 1) - 5, 0, strBeg, strEnd, false, tmpSurface);
-    SDL_Rect* srcRect = malloc(sizeof(*srcRect));
-    SDL_Rect* dstRect = malloc(sizeof(*dstRect));
-    srcRect->h = tmpSurface->h;
-    srcRect->w = tmpSurface->w;
-    srcRect->x = 0;
-    srcRect->y = 0;
+    SDL_Rect srcRect;
+    SDL_Rect dstRect;
+    srcRect.h = tmpSurface->h;
+    srcRect.w = tmpSurface->w;
+    srcRect.x = 0;
+    srcRect.y = 0;
 
-    dstRect->h = tmpSurface->h;
-    dstRect->w = tmpSurface->w;
-    dstRect->x = 0;
-    dstRect->y = 0;
+    dstRect.h = tmpSurface->h;
+    dstRect.w = tmpSurface->w;
+    dstRect.x = 0;
+    dstRect.y = 240 - doomCanvas->hud->statusBarHeight;
 
-    SDL_BlitSurface(tmpSurface, srcRect, surface, dstRect);
+    SDL_BlitSurface(tmpSurface, &srcRect, surface, &dstRect);
     SDL_FreeSurface(tmpSurface);
-    SDL_free(dstRect);
-    SDL_free(srcRect);
 }
 
 void Hud_finishMessageBufferForce(DoomCanvas_t* doomCanvas, boolean force)

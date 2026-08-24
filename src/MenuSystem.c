@@ -48,6 +48,7 @@ MenuSystem_t* MenuSystem_init(MenuSystem_t* menuSystem, DoomRPG_t* doomRpg)
 	menuSystem->digitCount = 0;
 	menuSystem->field_0xc58 = 0x50;
 	menuSystem->setBind = false; // new
+	menuSystem->menuSurface = NULL; // allocated lazily on first paint
 
 	return menuSystem;
 }
@@ -58,6 +59,10 @@ void MenuSystem_free(MenuSystem_t* menuSystem, boolean freePtr)
 	DoomRPG_freeImage(menuSystem->doomRpg, &menuSystem->imgArrowUpDown);
 	DoomRPG_freeImage(menuSystem->doomRpg, &menuSystem->imgLogo);
 	menuSystem->imgBG = NULL;
+	if (menuSystem->menuSurface != NULL) {
+		SDL_FreeSurface(menuSystem->menuSurface);
+		menuSystem->menuSurface = NULL;
+	}
 	if (freePtr) {
 		SDL_free(menuSystem);
 	}
@@ -274,16 +279,18 @@ void MenuSystem_generateBg(DoomCanvas_t* doomCanvas, Hud_t* hud) {
 }
 void MenuSystem_paint(MenuSystem_t* menuSystem)
 {
-	SDL_Surface* menuSurface =
-			SDL_CreateRGBSurface(SDL_SWSURFACE,
-				sdlVideo.screenW,
-				240,
-				sdlVideo.screenSurface->format->BitsPerPixel,
+	SDL_Surface* menuSurface = menuSystem->menuSurface;
+	if (menuSurface == NULL) {
+		menuSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
+			sdlVideo.screenW,
+			240,
+			sdlVideo.screenSurface->format->BitsPerPixel,
 		sdlVideo.screenSurface->format->Rmask,
 		sdlVideo.screenSurface->format->Gmask,
 		sdlVideo.screenSurface->format->Bmask,
 		sdlVideo.screenSurface->format->Amask);
-
+		menuSystem->menuSurface = menuSurface;
+	}
 	int i, i2;
 
 	DoomRPG_t* doomRpg;
