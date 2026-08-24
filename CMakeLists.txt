@@ -1,4 +1,4 @@
-include("/opt/devkitpro/cmake/3ds.cmake" REQUIRED)
+include("/opt/devkitpro/cmake/3DS.cmake" REQUIRED)
 cmake_minimum_required(VERSION 3.25)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
 

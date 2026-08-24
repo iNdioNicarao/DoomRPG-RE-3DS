@@ -443,12 +443,6 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
         if (tmpSurface) SDL_FreeSurface(tmpSurface);
         return;
     }
-    if (srcRect == NULL || dstRect == NULL) {
-        if (srcRect) free(srcRect);
-        if (dstRect) free(dstRect);
-        SDL_FreeSurface(tmpSurface);
-        return;
-    }
     SDL_Rect srcRect;
     SDL_Rect dstRect;
     srcRect.h = tmpSurface->h;
@@ -636,12 +630,6 @@ void Hud_drawBottomBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
         // SDL_CreateRGBSurface can fail under memory pressure; dereferencing a
         // NULL surface here takes the game down. Skip this frame's bar instead.
         if (tmpSurface) SDL_FreeSurface(tmpSurface);
-        return;
-    }
-    if (srcRect == NULL || dstRect == NULL) {
-        if (srcRect) free(srcRect);
-        if (dstRect) free(dstRect);
-        SDL_FreeSurface(tmpSurface);
         return;
     }
     SDL_Rect srcRect;
