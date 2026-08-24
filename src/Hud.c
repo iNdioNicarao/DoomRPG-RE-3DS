@@ -437,6 +437,18 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
 
     DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->hud->imgStatusArrow, doomCanvas->hud->statusOrientationArrowXpos + cx, y - 3, 9, tmpSurface);
     DoomCanvas_drawFontSur(doomCanvas, dir, doomCanvas->hud->statusOrientationXpos + cx, y + 2, 9, 0, 1, doomCanvas->hud->largeHud, tmpSurface);
+    if (tmpSurface == NULL || tmpSurface->pixels == NULL) {
+        // SDL_CreateRGBSurface can fail under memory pressure; dereferencing a
+        // NULL surface here takes the game down. Skip this frame's bar instead.
+        if (tmpSurface) SDL_FreeSurface(tmpSurface);
+        return;
+    }
+    if (srcRect == NULL || dstRect == NULL) {
+        if (srcRect) free(srcRect);
+        if (dstRect) free(dstRect);
+        SDL_FreeSurface(tmpSurface);
+        return;
+    }
     SDL_Rect* srcRect = malloc(sizeof(*srcRect));
     SDL_Rect* dstRect = malloc(sizeof(*dstRect));
     srcRect->h = tmpSurface->h;
@@ -622,6 +634,18 @@ void Hud_drawBottomBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
 
     DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->hud->imgStatusArrow, doomCanvas->hud->statusOrientationArrowXpos + cx, y - 3, 9, tmpSurface);
     DoomCanvas_drawFontSur(doomCanvas, dir, doomCanvas->hud->statusOrientationXpos + cx, y + 2, 9, 0, 1, doomCanvas->hud->largeHud, tmpSurface);
+    if (tmpSurface == NULL || tmpSurface->pixels == NULL) {
+        // SDL_CreateRGBSurface can fail under memory pressure; dereferencing a
+        // NULL surface here takes the game down. Skip this frame's bar instead.
+        if (tmpSurface) SDL_FreeSurface(tmpSurface);
+        return;
+    }
+    if (srcRect == NULL || dstRect == NULL) {
+        if (srcRect) free(srcRect);
+        if (dstRect) free(dstRect);
+        SDL_FreeSurface(tmpSurface);
+        return;
+    }
     SDL_Rect* srcRect = malloc(sizeof(*srcRect));
     SDL_Rect* dstRect = malloc(sizeof(*dstRect));
     srcRect->h = tmpSurface->h;
@@ -720,6 +744,9 @@ void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
     sdlVideo.screenSurface->format->Bmask,
     sdlVideo.screenSurface->format->Amask
 );
+    if (tmpSurface == NULL) {
+        return;
+    }
     char* text;
     int len;
     int time, w;
@@ -775,6 +802,7 @@ void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
         text = doomCanvas->player->facingEntity->def->name;
     }
     else {
+        SDL_FreeSurface(tmpSurface); // avoid leaking tmpSurface
         return;
     }  
 
@@ -820,6 +848,9 @@ void Hud_drawTopBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
     sdlVideo.screenSurface->format->Bmask,
     sdlVideo.screenSurface->format->Amask
 );
+    if (tmpSurface == NULL) {
+        return;
+    }
     char* text;
     int len;
     int time, w;
@@ -875,6 +906,7 @@ void Hud_drawTopBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
         text = doomCanvas->player->facingEntity->def->name;
     }
     else {
+        SDL_FreeSurface(tmpSurface); // avoid leaking tmpSurface
         return;
     }
 
