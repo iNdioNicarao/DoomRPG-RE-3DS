@@ -68,8 +68,8 @@ The app will not start without the asset directory present.
 
 This release includes the built binaries as download assets:
 
-- `DoomRPG-1.0.1.cia` — MD5 `3ee88a76a623ae249ce9ed2cf8b87f24`
-- `DoomRPG-1.0.1.3dsx` — see release asset for checksum
+- `DoomRPG-1.0.1.cia` — MD5 `b69a586807d453f829573dcbc9d8f3be`
+- `DoomRPG-1.0.1.3dsx` — MD5 `5e44f7b1c1a4365f7f9541c032332697`
 
 ## Notes
 
