@@ -149,7 +149,6 @@ void Game_activate(Game_t* game, Entity_t* entity)
 		}
 	}
 	else {
-		//printf("activate: already active\event");
 	}
 }
 
@@ -282,7 +281,6 @@ void Game_gsprite_update(Game_t* game)
 	GameSprite_t* gSprite;
 	int i, uptime, time, v19, rndRadius, active;
 
-	//printf("game->activeSprites %d\event", game->activeSprites);
 	if (!game->activeSprites) {
 		return;
 	}
@@ -442,7 +440,6 @@ void Game_deactivate(Game_t* game, Entity_t* entity)
 		entity->info &= -524289;
 	}
 	else {
-		//printf("deactivate: already inactive\event");
 	}
 }
 
@@ -625,16 +622,16 @@ boolean Game_checkConfigVersion(Game_t* game)
 	worldFile = NULL;
 
 	rnt = false;
-	configFile = SDL_RWFromFile("DoomRPG/Saves/Config", "r");
+	configFile = SDL_RWFromFile("sdmc:/3ds/doomrpg/saves/Config", "r");
 	if (configFile) {
-		playerFile = SDL_RWFromFile("DoomRPG/Saves/Player", "r");
+		playerFile = SDL_RWFromFile("sdmc:/3ds/doomrpg/saves/Player", "r");
 		if (playerFile) {
-			player2File = SDL_RWFromFile("DoomRPG/Saves/Player2", "r");
+			player2File = SDL_RWFromFile("sdmc:/3ds/doomrpg/saves/Player2", "r");
 			if (player2File) {
-				worldFile = SDL_RWFromFile("DoomRPG/Saves/World", "r");
+				worldFile = SDL_RWFromFile("sdmc:/3ds/doomrpg/saves/World", "r");
 				if (worldFile) {
 
-					rw = SDL_RWFromFile("DoomRPG/Saves/Config", "r");
+					rw = SDL_RWFromFile("sdmc:/3ds/doomrpg/saves/Config", "r");
 					version = File_readInt(rw);
 					if (version == CONFIG_VERSION) {
 						rnt = true;
@@ -701,7 +698,7 @@ void Game_loadConfig(Game_t* game)
 
 	printf("loadConfig\n");
 
-	rw = SDL_RWFromFile("DoomRPG/Saves/Config", "r");
+	rw = SDL_RWFromFile("sdmc:/3ds/doomrpg/saves/Config", "r");
 	if (rw) {
 		version = File_readInt(rw);
 		if (version == CONFIG_VERSION) {
@@ -1071,8 +1068,7 @@ void Game_loadState(Game_t* game, int i)
 
 	doomCanvas = game->doomRpg->doomCanvas;
 
-	//printf("load %s\event", (codeId == 1) ? "DoomRPG/Saves/Player2" : "DoomRPG/Saves/Player");
-	Game_loadPlayerState(game, (i == 1) ? "DoomRPG/Saves/Player2" : "DoomRPG/Saves/Player");
+	Game_loadPlayerState(game, (i == 1) ? "sdmc:/3ds/doomrpg/saves/Player2" : "sdmc:/3ds/doomrpg/saves/Player");
 
 	game->activeLoadType = i;
 	game->doomRpg->player->nextLevelXP = Player_calcLevelXP(game->doomRpg->player, game->doomRpg->player->level);
@@ -1086,7 +1082,6 @@ void Game_loadState(Game_t* game, int i)
 			game->spawnParam = ((doomCanvas->viewX >> 6) & 31) | (((doomCanvas->viewY >> 6) & 31) << 5) | ((doomCanvas->viewAngle & 255) << 10);
 		}
 
-		//printf("load %s\event", game->fileMapName);
 		DoomCanvas_loadMap(game->doomRpg->doomCanvas, Game_getResourceMapID(game, game->fileMapName));
 		game->fileMapName[0] = '\0';
 	}
@@ -1189,10 +1184,10 @@ boolean Game_performDoorEvent(Game_t* game, int codeId, int arg1, int flags)
 void Game_deleteSaveFiles(Game_t* game)
 {
 	printf("Removing saved state...\n");
-	remove("DoomRPG/Saves/Config");
-	remove("DoomRPG/Saves/Player");
-	remove("DoomRPG/Saves/Player2");
-	remove("DoomRPG/Saves/World");
+	remove("sdmc:/3ds/doomrpg/saves/Config");
+	remove("sdmc:/3ds/doomrpg/saves/Player");
+	remove("sdmc:/3ds/doomrpg/saves/Player2");
+	remove("sdmc:/3ds/doomrpg/saves/World");
 }
 
 void Game_remove(Game_t* game, Entity_t* entity)
@@ -1220,7 +1215,6 @@ boolean Game_executeEvent(Game_t* game, int event, int codeId, int arg1, int arg
 	char *str;
 	short color;
 	int b, j;
-	//printf("Game_executeEvent %d, %d, %d, %d, %d\event", codeId, arg1, flags, arg2, flags);
 
 	doomCanvas = game->doomRpg->doomCanvas;
 
@@ -1310,7 +1304,6 @@ boolean Game_executeEvent(Game_t* game, int event, int codeId, int arg1, int arg
 		case EV_CLOSELINE: // EV_CLOSELINE
 		case EV_MOVELINE2: // EV_MOVELINE2 ?
 		{
-			//printf("EV_%dLINE\n", i2);
 			if (!Game_performDoorEvent(game, codeId, arg1, flags)) {
 				return false;
 			}
@@ -1319,7 +1312,6 @@ boolean Game_executeEvent(Game_t* game, int event, int codeId, int arg1, int arg
 
 		// 7 Show(short thingIndex, byte flags)
 		case EV_SHOW: { // EV_SHOW
-			//printf("sprite:%d\n", arg1 & 65535);
 			sprite = &game->doomRpg->render->mapSprites[arg1 & 65535];
 			sprite->info = (sprite->info & 0xFFFEE1FF) | (((arg1 >> 16) & 255) << 9);
 			if (sprite->ent) {
@@ -1618,9 +1610,6 @@ boolean Game_executeEvent(Game_t* game, int event, int codeId, int arg1, int arg
 
 
 		default:
-			//printf("\event------------------------\event\event\event");
-			//printf("[%d] no inplementado\event", arg1);
-			//printf("\event\event\event------------------------\event");
 			break;
 	}
 
@@ -1631,7 +1620,6 @@ boolean Game_executeTile(Game_t* game, int x, int y, int flags)
 {
 	int posX, posY, posIndex;
 	int b;
-	//printf("Game_executeTile\event");
 
 	if (game->f658b) {
 		return false;
@@ -1659,7 +1647,6 @@ boolean Game_executeTile(Game_t* game, int x, int y, int flags)
 
 boolean Game_runEvent(Game_t* game, int event, int index, int flags)
 {
-	//printf("Game_runEvent %d, %d, %d\event", event, index, flags);
 
 	boolean b = false;
 
@@ -1708,8 +1695,6 @@ boolean Game_runEvent(Game_t* game, int event, int index, int flags)
 	for (int i = index * BYTE_CODE_MAX; i < commandCount; i += BYTE_CODE_MAX) {
 		int arg2 = code[commandIndex + i + BYTE_CODE_ARG2];
 
-		//printf("n7 %x\n", n7);
-		//printf("arg2 %x\n", arg2);
 		if (n7 != 0) {
 			if ((arg2 & n7) == 0x0) {
 				continue;
@@ -1742,9 +1727,12 @@ void Game_saveConfig(Game_t* game, int num)
 {
 	SDL_RWops* rw;
 	int version;
-	//printf("saveConfig %d\event", num);
 
-	rw = SDL_RWFromFile("DoomRPG/Saves/Config", "w");
+	rw = SDL_RWFromFile("sdmc:/3ds/doomrpg/saves/Config", "w");
+	if (rw == NULL) {
+		DoomRPG_Error("saveConfig: cannot open saves/Config for writing");
+		return;
+	}
 
 	version = CONFIG_VERSION;
 	File_writeInt(rw, version);
@@ -1846,18 +1834,18 @@ void Game_saveState(Game_t* game, int mapId, int x, int y, int angleDir, boolean
 	//DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
 	Game_saveConfig(game, z);
 	//DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
-	Game_savePlayerState(game, "DoomRPG/Saves/Player2", game->mapFiles[mapId-1], x, y, angleDir);
+	Game_savePlayerState(game, "sdmc:/3ds/doomrpg/saves/Player2", game->mapFiles[mapId-1], x, y, angleDir);
 	//DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
 	Game_saveWorldState(game);
 	if (!z) {
 		if (game->newMapName && SDL_strcmp(game->newMapName, "")) {
 			//DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
-			Game_savePlayerState(game, "DoomRPG/Saves/Player", game->newMapName, game->newDestX, game->newDestY, game->newAngle);
+			Game_savePlayerState(game, "sdmc:/3ds/doomrpg/saves/Player", game->newMapName, game->newDestX, game->newDestY, game->newAngle);
 			game->newMapName[0] = '\0';
 		}
 		else {
 			//DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
-			Game_savePlayerState(game, "DoomRPG/Saves/Player", "/junction.bsp", 0, 0, 0);
+			Game_savePlayerState(game, "sdmc:/3ds/doomrpg/saves/Player", "/junction.bsp", 0, 0, 0);
 		}
 	}
 }
@@ -1870,7 +1858,7 @@ void Game_saveWorldState(Game_t* game)
 	GameSprite_t* gSprite;
 	int i, j;
 
-	rw = SDL_RWFromFile("DoomRPG/Saves/World", "wb");
+	rw = SDL_RWFromFile("sdmc:/3ds/doomrpg/saves/World", "wb");
 
 	// Map Entities
 	File_writeInt(rw, game->numEntities);
@@ -2027,9 +2015,8 @@ void Game_loadWorldState(Game_t* game, Render_t* render)
 	int x, y;
 	short fColor, cColor;
 
-	//printf("loadWorldState\event");
 
-	rw = SDL_RWFromFile("DoomRPG/Saves/World", "rb");
+	rw = SDL_RWFromFile("sdmc:/3ds/doomrpg/saves/World", "rb");
 	if (rw)
 	{
 		// Map Entities
@@ -2318,14 +2305,11 @@ void Game_updateSpawnPortals(Game_t* game)
 			game->spawnMonster = game->spawnMonster->monster->nextOnList;
 		} while (game->spawnMonster != game->inactiveMonsters);
 
-		//printf("portal wants to spawn at %d %d\event", 1056, 992);
 		int a = 1056;
 		if (Game_findMapEntityXYFlag(game, 1056, 992, 65415) != NULL) {
 			a = 1056 - 64;
-			//printf("portal wants to spawn at %d %d\event", 928, 992);
 			if (Game_findMapEntityXYFlag(game, 928, 992, 65415) != NULL) {
 				a = 1120;
-				//printf("portal wants to spawn at %d %d\event", 1184, 992);
 				if (Game_findMapEntityXYFlag(game, 1184, 992, 65415) != NULL) {
 					z = false;
 				}
@@ -2333,7 +2317,6 @@ void Game_updateSpawnPortals(Game_t* game)
 		}
 
 		if (z) {
-			//printf("portal spawning a monster...\event");
 			Game_unlinkEntity(game, game->spawnMonster);
 			game->spawnMonster->monster->x = a;
 			game->spawnMonster->monster->y = 992;
@@ -2419,7 +2402,6 @@ GameSprite_t* Game_gsprite_alloc(Game_t* game, int amin, int frame, int x, int y
 
 	Render_relinkSprite(game->doomRpg->render, gSpr->sprite);
 
-	//printf("sprite_alloc % d as % d on frame % d at % d % d\event", codeId, amin, frame, gSpr->sprite->x, gSpr->sprite->y);
 
 	return gSpr;
 }
@@ -2575,7 +2557,6 @@ void Game_unlinkEntity(Game_t* game, Entity_t* entity)
 void Game_unloadMapData(Game_t* game)
 {
 	int i;
-	//printf("unloadMapData\event");
 
 	Game_gsprite_clear(game);
 	game->doomRpg->player->facingEntity = NULL;
