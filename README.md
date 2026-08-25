@@ -6,13 +6,20 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
 
 ## How to install
 
-1. Get the original game assets: search "Doom RPG BREW" on
-   [archive.org](https://archive.org/) for `doomrpg.bar` (CRC32: d7cf11c5), then
-   convert it to `DoomRPG.zip` with `BarToZip.exe` (Windows, in the
-   [PC release](https://github.com/Erick194/DoomRPG-RE/releases/latest)).
+1. Get the original game data: the game reads its assets as **loose files** from
+   `sdmc:/3ds/doomrpg/` — the 3DS build never opens a zip (the loader code paths
+   are zip-named but actually read files directly from that folder). The data
+   lives inside the `doomrpg.bar` container, which is bundled in the
+   `doomrpg.zip` archive at the `doomrpg_brew` item on
+   [archive.org](https://archive.org/details/doomrpg_brew). Extract `doomrpg.bar`
+   (a BREW asset container; the upstream PC tools such as `BarToZip` turn it into
+   loose files) and copy those loose files — no further zip step is needed.
 2. Install `DoomRPG-1.0.1.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
-3. On the SD card, extract the **contents** of `DoomRPG.zip` into
-   `sdmc:/3ds/doomrpg/` so the game data files sit loose in that folder.
+3. On the SD card, copy the **extracted data files** into
+   `sdmc:/3ds/doomrpg/` so they sit loose in that folder. Required files
+   include the `*.bmp` sprites/UI, the `*.bsp` maps, `wtexels.bin`,
+   `stexels.bin`, `bitshapes.bin`, `palettes.bin`, `mappings.bin`, and
+   `sintable.bin`.
 4. Add audio next to the data, also under `sdmc:/3ds/doomrpg/`:
    - SFX as numbered `.wav` files (`001.wav`, `002.wav`, …) — these are the
      game's sound resources.
