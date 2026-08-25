@@ -142,7 +142,7 @@ DoomCanvas_t* DoomCanvas_init(DoomCanvas_t* doomCanvas, DoomRPG_t* doomRpg) // 0
 	doomCanvas->mouseYMove = true;
 	doomCanvas->sndPriority = false;
 	doomCanvas->vibrateEnabled = true;
-	doomCanvas->renderFloorCeilingTextures = true;
+	doomCanvas->renderFloorCeilingTextures = false; // default off: solid floor/ceiling is far cheaper than the per-pixel textured projection, matches the BREW original
 
 	return doomCanvas;
 }
