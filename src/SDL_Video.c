@@ -4,6 +4,7 @@
 #ifdef __3DS__
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
+#include <3ds.h>
 //#include <SDL/SDL_opengl.h>
 #include <SDL/SDL_audio.h>
 #include <stdio.h>
@@ -362,6 +363,26 @@ void SDL_CloseAudio(void) {
 
 int SDL_GameControllerGetButtonID(void)
 {
+#ifdef __3DS__
+	{
+		u32 keys = hidKeysDown();
+		if (keys & KEY_A) return CONTROLLER_BUTTON_A;
+		if (keys & KEY_B) return CONTROLLER_BUTTON_B;
+		if (keys & KEY_X) return CONTROLLER_BUTTON_X;
+		if (keys & KEY_Y) return CONTROLLER_BUTTON_Y;
+		if (keys & KEY_SELECT) return CONTROLLER_BUTTON_BACK;
+		if (keys & KEY_START) return CONTROLLER_BUTTON_START;
+		if (keys & KEY_L) return CONTROLLER_BUTTON_LEFT_BUMPER;
+		if (keys & KEY_R) return CONTROLLER_BUTTON_RIGHT_BUMPER;
+		if (keys & KEY_DUP) return CONTROLLER_BUTTON_DPAD_UP;
+		if (keys & KEY_DDOWN) return CONTROLLER_BUTTON_DPAD_DOWN;
+		if (keys & KEY_DLEFT) return CONTROLLER_BUTTON_DPAD_LEFT;
+		if (keys & KEY_DRIGHT) return CONTROLLER_BUTTON_DPAD_RIGHT;
+		if (keys & KEY_ZL) return CONTROLLER_BUTTON_LEFT_TRIGGER;
+		if (keys & KEY_ZR) return CONTROLLER_BUTTON_RIGHT_TRIGGER;
+		return CONTROLLER_BUTTON_INVALID;
+	}
+#endif
 	int deadZoneLeft, deadZoneRight;
 
 	deadZoneLeft = (sdlController.deadZoneLeft * 32768) / 100;
@@ -505,6 +526,26 @@ char *SDL_GameControllerGetNameButton(int id) {
 
 int SDL_JoystickGetButtonID(void)
 {
+#ifdef __3DS__
+	{
+		u32 keys = hidKeysDown();
+		if (keys & KEY_A) return CONTROLLER_BUTTON_A;
+		if (keys & KEY_B) return CONTROLLER_BUTTON_B;
+		if (keys & KEY_X) return CONTROLLER_BUTTON_X;
+		if (keys & KEY_Y) return CONTROLLER_BUTTON_Y;
+		if (keys & KEY_SELECT) return CONTROLLER_BUTTON_BACK;
+		if (keys & KEY_START) return CONTROLLER_BUTTON_START;
+		if (keys & KEY_L) return CONTROLLER_BUTTON_LEFT_BUMPER;
+		if (keys & KEY_R) return CONTROLLER_BUTTON_RIGHT_BUMPER;
+		if (keys & KEY_DUP) return CONTROLLER_BUTTON_DPAD_UP;
+		if (keys & KEY_DDOWN) return CONTROLLER_BUTTON_DPAD_DOWN;
+		if (keys & KEY_DLEFT) return CONTROLLER_BUTTON_DPAD_LEFT;
+		if (keys & KEY_DRIGHT) return CONTROLLER_BUTTON_DPAD_RIGHT;
+		if (keys & KEY_ZL) return CONTROLLER_BUTTON_LEFT_TRIGGER;
+		if (keys & KEY_ZR) return CONTROLLER_BUTTON_RIGHT_TRIGGER;
+		return CONTROLLER_BUTTON_INVALID;
+	}
+#endif
 	int numAxes, deadZoneLeft, deadZoneRight;
 
 	deadZoneLeft = (sdlController.deadZoneLeft * 32768) / 100;
