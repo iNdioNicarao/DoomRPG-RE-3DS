@@ -786,9 +786,14 @@ void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
         text = doomCanvas->player->facingEntity->def->name;
     }
     else {
-        SDL_FreeSurface(tmpSurface); // avoid leaking tmpSurface
+        // No status message: still paint the metallic strip at the top.
+        SDL_Rect sRect, dRect;
+        sRect.x = 0; sRect.y = 0; sRect.w = tmpSurface->w; sRect.h = tmpSurface->h;
+        dRect.x = 0; dRect.y = 0; dRect.w = tmpSurface->w; dRect.h = tmpSurface->h;
+        SDL_BlitSurface(tmpSurface, &sRect, sdlVideo.screenSurface, &dRect);
+        SDL_FreeSurface(tmpSurface);
         return;
-    }  
+    }
 
     strEnd = SDL_strlen(text);
     w = 400;
@@ -807,7 +812,7 @@ void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
     dstRect.h = tmpSurface->h;
     dstRect.w = tmpSurface->w;
     dstRect.x = 0;
-    dstRect.y = 240 - doomCanvas->hud->statusBarHeight;
+    dstRect.y = 0; // status/info text bar at the TOP, above the 3D view
 
     SDL_BlitSurface(tmpSurface, &srcRect, sdlVideo.screenSurface, &dstRect);
     SDL_FreeSurface(tmpSurface);
