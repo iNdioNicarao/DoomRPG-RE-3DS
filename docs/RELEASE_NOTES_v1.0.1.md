@@ -27,9 +27,10 @@ crashed or blanked the screen before gameplay. The fixes:
 | Menu | Keep repainting the active menu every frame after the intro spin stops, so the Enable-Sound / Main menu cursor tracks input. |
 | Input | D-pad turns; L/R are lateral movement (strafe). Weapons on ZL/ZR. Boot stack raised to 256 KB. |
 
-No copyrighted material is included. Game data (loose files from `DoomRPG.zip`,
-numbered `.wav` SFX, numbered `.mp3` music) must be supplied on the SD card
-under `sdmc:/3ds/doomrpg/`.
+No copyrighted material is included. Game data (loose files extracted from the
+`doomrpg.bar` archive, numbered `.wav` SFX, numbered `.mp3` music) must be
+supplied on the SD card under `sdmc:/3ds/doomrpg/`. The 3DS build reads these
+files directly — there is no `DoomRPG.zip` and none is needed.
 
 ## Build (from a checkout)
 
@@ -48,8 +49,11 @@ file controls the CIA filename; the Title ID / version byte comes from
 
 1. Install `DoomRPG-1.0.1.cia` with FBI (or run `DoomRPG.3dsx` from the
    Homebrew Menu).
-2. On the SD card, extract the **contents** of `DoomRPG.zip` into
-   `sdmc:/3ds/doomrpg/` so the game data files sit loose in that folder.
+2. On the SD card, copy the **extracted data files** into
+   `sdmc:/3ds/doomrpg/` so they sit loose in that folder. Required files
+   include the `*.bmp` sprites/UI, the `*.bsp` maps, `wtexels.bin`,
+   `stexels.bin`, `bitshapes.bin`, `palettes.bin`, `mappings.bin`, and
+   `sintable.bin`.
 3. Add audio next to the data, also under `sdmc:/3ds/doomrpg/`:
    - SFX as numbered `.wav` files (`001.wav`, `002.wav`, …).
    - Music as numbered `.mp3` files (`1.mp3`, `2.mp3`, …) by track ID.
