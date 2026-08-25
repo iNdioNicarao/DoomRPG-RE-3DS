@@ -550,6 +550,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Options", 0, MENU_INGAME_OPTIONS);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Main Menu", 0, MENU_INGAME_EXIT);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Debug", 0, MENU_DEBUG);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Controls", 0, MENU_INGAME_INPUT);
 			break;
 		}
 
@@ -1039,8 +1040,8 @@ void Menu_initMenu(Menu_t* menu, int i)
 		case MENU_INPUT:
 		case MENU_INGAME_INPUT: {
 			if (menuSystem->type == 1) {
-				strncpy(menu->doomRpg->hud->logMessage, "Input Options", sizeof(menu->doomRpg->hud->logMessage));
-				menuSystem->oldMenu = MENU_INGAME_OPTIONS;
+				strncpy(menu->doomRpg->hud->logMessage, "Controls", sizeof(menu->doomRpg->hud->logMessage));
+				menuSystem->oldMenu = MENU_INGAME;
 				menuSystem->type = 1;
 			}
 			else {
@@ -1050,8 +1051,6 @@ void Menu_initMenu(Menu_t* menu, int i)
 
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Back", 0, 0);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Bindings", 0, 0);
-			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Mouse", 0, 0);
-			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Controller", 0, 0);
 			break;
 		}
 
@@ -1108,6 +1107,8 @@ void Menu_initMenu(Menu_t* menu, int i)
 
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Back", 0, 0);
 
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Reset Binds", 0, 0);
+
 			textDivider = MenuSystem_buildDivider(menuSystem, "MOVEMENT");
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], textDivider, 3, 0);
 
@@ -1144,13 +1145,10 @@ void Menu_initMenu(Menu_t* menu, int i)
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Pass Turn:", NULL, 0, 9);
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "", NULL, 1 | 8, 9);
 
-			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Automap:", NULL, 0, 10);
-			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "", NULL, 1 | 8, 10);
 
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Menu Open/Back:", NULL, 0, 11);
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "", NULL, 1 | 8, 11);
 
-			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Reset Binds", 0, 0);
 			break;
 		}
 
@@ -1531,6 +1529,9 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			}
 			else if (itemId == 6) {
 				return MENU_DEBUG;
+			}
+			else if (itemId == 7) { // Controls
+				return MENU_INGAME_INPUT;
 			}
 
 			return action;
@@ -2091,9 +2092,10 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 					Game_saveConfig(menuSystem->doomRpg->game, 0);
 					return menuSystem->oldMenu;
 				}
-				else if (itemId == 27) {
-					// Apply changes to default
+				else if (itemId == 1) { // Reset Binds (first action item): restore defaults and persist immediately
 					SDL_memcpy(keyMappingTemp, keyMappingDefault, sizeof(keyMapping));
+					SDL_memcpy(keyMapping, keyMappingDefault, sizeof(keyMapping));
+					Game_saveConfig(menuSystem->doomRpg->game, 0);
 				}
 				else {
 					menuSystem->setBind = true;
