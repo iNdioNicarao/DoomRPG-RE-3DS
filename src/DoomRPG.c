@@ -237,26 +237,55 @@ int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
     int key = AVK_UNDEFINED;
     int i, j;
 
-    int buttonID = hidKeysDown();
+    int buttonID = hidKeysDown();              // raw HID key bits (default binds)
+    int ctrlID = SDL_JoystickGetButtonID();    // CONTROLLER_BUTTON_* (custom binds)
 
-    if (buttonID != -1)
+    // Gameplay uses the (possibly rebound) keyMapping. Menu navigation must always
+    // follow the DEFAULT keys (A = select, D-pad = navigate), so we resolve the
+    // menu-navigation bits from keyMappingDefault and force them on top of the
+    // gameplay key. This keeps custom gameplay binds from breaking the menus.
+    int menuBits = AVK_UNDEFINED;
+
+    if (buttonID != -1 || ctrlID != -1)
     {
         int bindCode = buttonID;
+        int ctrlCode = (ctrlID != -1) ? (ctrlID | IS_CONTROLLER_BUTTON) : -1;
 
+        // Gameplay key from the active (rebindable) mapping.
         for (i = 0; i < (sizeof(keyMapping) / sizeof(keyMapping_t)); ++i) {
             for (j = 0; j < KEYBINDS_MAX; j++) {
-                if ((keyMapping[i].keyBinds[j]))
-                {
-                    if (keyMapping[i].keyBinds[j] == bindCode) {
-                        key = keyMapping[i].avk_action;
-                        goto found_key; // Нашли бинд, переходим к концу
-                    }
+                int kb = keyMapping[i].keyBinds[j];
+                if (kb == 0) continue;
+                if (kb == bindCode) {
+                    key = keyMapping[i].avk_action;
+                    goto found_key;
+                }
+                if (ctrlCode != -1 && kb == ctrlCode) {
+                    key = keyMapping[i].avk_action;
+                    goto found_key;
                 }
             }
         }
     }
 
 found_key:
+    // Force menu-navigation bits from the default mapping so menus are never
+    // affected by a gameplay rebind (e.g. binding A to "Move Right").
+    if (buttonID != -1) {
+        for (i = 0; i < (sizeof(keyMappingDefault) / sizeof(keyMapping_t)); ++i) {
+            for (j = 0; j < KEYBINDS_MAX; j++) {
+                if (keyMappingDefault[i].keyBinds[j] == buttonID) {
+                    menuBits = keyMappingDefault[i].avk_action;
+                    goto found_menu;
+                }
+            }
+        }
+    }
+found_menu:
+    if (menuBits != AVK_UNDEFINED) {
+        key |= (menuBits & (AVK_MENU_UP | AVK_MENU_DOWN | AVK_MENU_PAGE_UP |
+                            AVK_MENU_PAGE_DOWN | AVK_MENU_SELECT | AVK_MENU_OPEN));
+    }
     return key;
 }
 #else
@@ -533,8 +562,7 @@ void DoomRPG_setBind(DoomRPG_t* doomrpg, int mouse_Button, const Uint8* state) {
 			// ВАЖНО: Мы добавляем смещение, чтобы игра могла отличить
 			// кнопку геймпада от клавиши клавиатуры. 512 - безопасное число,
 			// так как кодов клавиш меньше.
-			const int CONTROLLER_BIND_OFFSET = 512;
-			setBind(keyMappingTemp[keyMapId].keyBinds, buttonID + CONTROLLER_BIND_OFFSET);
+			setBind(keyMappingTemp[keyMapId].keyBinds, buttonID | IS_CONTROLLER_BUTTON);
 
 			// Сбрасываем флаги и выходим
 			doomrpg->menuSystem->setBind = false;
@@ -812,7 +840,7 @@ void DoomRPG_createImage(DoomRPG_t* doomrpg, const char* resourceName, boolean i
 	int fSize;
 	fdata = readZipFileEntry(fileName, &zipFile, &fSize);
 	if (!fdata) {
-		DoomRPG_Error("Failed to read file %s from zip.", fileName);
+		DoomRPG_Error("Failed to read file %s (sdmc:/3ds/doomrpg/).", fileName);
 		return;
 	}
 
@@ -866,7 +894,7 @@ void DoomRPG_createImageBerserkColor(DoomRPG_t* doomrpg, const char* resourceNam
 	int fSize;
 	fdata = readZipFileEntry(fileName, &zipFile, &fSize);
 	if (!fdata) {
-		DoomRPG_Error("Failed to read file %s from zip.", fileName);
+		DoomRPG_Error("Failed to read file %s (sdmc:/3ds/doomrpg/).", fileName);
 		img->width = 0;
 		img->height = 0;
 		img->imgBitmap = NULL;
@@ -1013,7 +1041,7 @@ byte *DoomRPG_fileOpenRead(DoomRPG_t* doomrpg, const char* resourceName)
 		fdata = readZipFileEntry(fileName, &zipFile, &fSize);
 		if (fdata != NULL) return fdata;
 		if (attempt == 0) {
-			DoomRPG_Error("Failed to read file %s from zip.", fileName);
+			DoomRPG_Error("Failed to read file %s (sdmc:/3ds/doomrpg/).", fileName);
 		}
 		svcSleepThread(100 * 1000 * 1000ULL); /* 100ms */
 	}
