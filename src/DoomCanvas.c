@@ -609,6 +609,11 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
 	{
 		/* clear bottom screen automap area and set clipping */
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+		// NOTE: the 3DS automap background clear via SDL_FillRect is a no-op on
+		// this hardware surface (SDL_FillRect does not paint it; only SDL_BlitSurface
+		// does). The bottom-screen strip is cleared every frame in
+		// SDL_RenderPresent (SDL_Video.c) via an opaque-black blit. Do NOT re-enable
+		// this FillRect clear -- it paints nothing.
 		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, screenOffsetY, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 		DoomRPG_setClipTrue(doomCanvas->doomRpg, 0, screenOffsetY, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
 
@@ -1704,9 +1709,7 @@ void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 	}
 #ifdef __3DS__
 	//DarkenSurface(doomCanvas->render->piDIB, 0.3);
-	memcpy(doomCanvas->render->piDIB->pixels,
-	   doomCanvas->render->framebuffer,
-	   sdlVideo.screenW * 240 * 2);
+	// Scene was rendered straight into piDIB by Render_render (3DS), so just blit -- no framebuffer memcpy.
 	//gspWaitForVBlank();
 	SDL_BlitSurface(doomCanvas->render->piDIB, &clip, sdlVideo.screenSurface, &renderQuad);
 	//SDL_Flip(SDL_GetVideoSurface());

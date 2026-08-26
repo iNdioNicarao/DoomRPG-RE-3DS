@@ -203,18 +203,24 @@ int Render_startup(Render_t* render)
 	h = sdlVideo.rendererH;
 #endif
 #ifdef __3DS__
-	render->piDIB = SDL_CreateRGBSurface(
-	SDL_SWSURFACE | SDL_DOUBLEBUF,
-	w,
-	h,
-	16,
-	0xF800,
-	0x07E0,
-	0x001F,
-	0);
-	if (render->piDIB) {
-		render->pitch = render->piDIB->pitch;
-	} else {
+	// Allocate the framebuffer first, then wrap it with piDIB so that
+	// piDIB->pixels IS render->framebuffer. Every 3D draw path (walls,
+	// floor/ceiling, intro, level-completion, fade) writes into
+	// framebuffer, so this lands those writes directly in the blit
+	// surface -- no 192KB framebuffer->piDIB memcpy per frame.
+	render->pitch = w * 2;
+	render->framebuffer = SDL_calloc(1, render->pitch * h);
+	render->piDIB = SDL_CreateRGBSurfaceFrom(
+		render->framebuffer,
+		w,
+		h,
+		16,
+		render->pitch,
+		0xF800,
+		0x07E0,
+		0x001F,
+		0);
+	if (!render->piDIB) {
 		render->pitch = 0;
 	}
 #else
@@ -222,8 +228,8 @@ int Render_startup(Render_t* render)
 		SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, w, h);
 
 	render->pitch = (((w * SDL_BYTESPERPIXEL(SDL_PIXELFORMAT_RGB565)) + 3) & ~3);
-#endif
 	render->framebuffer = SDL_calloc(1, render->pitch * h);
+#endif
 
 	memset(render->framebuffer, 0xff, render->pitch * h);// test
 
@@ -2986,9 +2992,7 @@ void Render_setBerserkColor(Render_t* render) {
 		renderQuad.h = clip.h;
 	}
 #ifdef __3DS__
-	memcpy(render->piDIB->pixels,
-	   render->framebuffer,
-	   sdlVideo.screenW * sdlVideo.screenH * 2);
+	// render->pixels already points into piDIB (set in Render_render), so the scene is already there -- just blit.
 	//gspWaitForVBlank();
 	SDL_BlitSurface(render->piDIB, &clip, SDL_GetVideoSurface(), &renderQuad);
 	//SDL_Flip(SDL_GetVideoSurface());
