@@ -233,6 +233,32 @@ void SDL_SetRenderDrawColor(SDL_Surface *surface, Uint8 r, Uint8 g, Uint8 b, Uin
 
 void SDL_RenderPresent(SDL_Surface *surface)
 {
+    /* Clear the bottom-screen top (empty automap region) to opaque black
+       every frame. The 3DS automap background clear via SDL_FillRect is
+       unreliable on this hardware surface (and only ran on movement), so
+       the white framebuffer init showed through as a strip. Reset the
+       clip and blit an opaque-black surface instead -- blits present
+       reliably. Tiles are drawn lower (y>=363) so this never hides them. */
+    {
+        SDL_SetClipRect(surface, NULL);
+        static SDL_Surface* clrSurf = NULL;
+        if (clrSurf == NULL) {
+            clrSurf = SDL_CreateRGBSurface(SDL_SWSURFACE, 400, 120, 32,
+                surface->format->Rmask, surface->format->Gmask,
+                surface->format->Bmask, surface->format->Amask);
+            if (clrSurf) {
+                Uint32* cp = (Uint32*)clrSurf->pixels;
+                if (cp) {
+                    Uint32 black = SDL_MapRGBA(clrSurf->format, 0, 0, 0, 255);
+                    for (int i = 0; i < 400 * 120; i++) cp[i] = black;
+                }
+            }
+        }
+        if (clrSurf) {
+            SDL_Rect dr = { 0, 240, 400, 120 };
+            SDL_BlitSurface(clrSurf, NULL, surface, &dr);
+        }
+    }
     SDL_Flip(surface);
 }
 
