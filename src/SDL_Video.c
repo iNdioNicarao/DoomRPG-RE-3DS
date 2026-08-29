@@ -40,6 +40,19 @@ static u32 g_botW = 320, g_botH = 240;  /* real bottom framebuffer size */
 static volatile int g_gfx_suspended = 0;  /* set by APT hook; skip present (no gfx flush) during HOME */
 static aptHookCookie g_apt_cookie;
 
+/* STEREO 3D (real hardware auto-stereoscopic, top screen).
+   The top framebuffer is allocated 240x800 (GSP_SCREEN_HEIGHT_TOP_2X) by gfxInitDefault.
+   In MODE_2D (gfxSet3D(false)) GFX_LEFT == GFX_RIGHT pointer and only the first 400 rows
+   are shown. In MODE_3D (gfxSet3D(true)) GFX_LEFT = rows 0..399, GFX_RIGHT = rows 400..799,
+   each a full 240x400 portrait eye; the parallax barrier shows the two as one 3D image.
+   We render the scene twice (angles viewAngle +/- sep) into two 400x240 capture buffers
+   (g_topEyeL/R), then transpose each into its eye half of the top framebuffer.
+   gfxSet3D is toggled ONLY on the main thread (never in the APT hook) to stay crash-free. */
+static Uint32* g_topEyeL = NULL;  /* 400x240 scene capture, left eye  */
+static Uint32* g_topEyeR = NULL;  /* 400x240 scene capture, right eye */
+static int g_top3D = 0;          /* 1 => stereo enabled this frame (slider > 0) */
+static float g_stereoSep = 0.0f; /* angular separation (degrees); 0 = eyes identical (test build) */
+
 /* Flag-only APT hook: do NOT call any gfx function here (GPU state is invalid
    in the hook context and faults). Just record suspend so the present loop
    skips gfxFlushBuffers() while the applet owns the screen -- this stops our
@@ -81,7 +94,11 @@ void SDL_InitVideo(void) {
 	gfxInitDefault();           /* default top=BGR8, bottom=BGR8; libctru owns the GSP/suspend lifecycle (ctrWolfen method) */
 	gfxSetDoubleBuffering(GFX_TOP, false);
 	gfxSetDoubleBuffering(GFX_BOTTOM, false);
-	gfxSet3D(false);                 /* stereo deferred; gfxSet3D(true) triggers a GSP-thread crash on HOME (dump 98/99/100) -- ctrWolfen uses false and is crash-free */
+	gfxSet3D(false);                 /* start flat. 3D is toggled on the MAIN THREAD later (slider),
+	                                     never in the APT hook (unsafe context -> FAR 0xf4). */
+	/* Stereo eye-capture buffers: 400x240 scene per eye (matches the 3D view region). */
+	g_topEyeL = (Uint32*)SDL_calloc(1, (size_t)400 * 240 * sizeof(Uint32));
+	g_topEyeR = (Uint32*)SDL_calloc(1, (size_t)400 * 240 * sizeof(Uint32));
 	if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0)
 	{
 		DoomRPG_Error("Could not initialize SDL: %s", SDL_GetError());
@@ -337,19 +354,30 @@ static inline u16 rgba32_to_rgb565(Uint32 px) {
     int b = (px >> 0)  & 0xFF;
     return (u16)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3));
 }
-/* BUILD 712015: CRASH+FLICKER reconcile. 712013 (per-frame live memset) = graceful but
-   CRT-flashed; 712014 (memset removed) = no flash but crash returned (dump 125, FAR 0xf4).
-   Root cause traced: the GSP thread needs a FULL contiguous bottom-buffer write each
-   frame (the memset provided it); the flash was the torn black frame visible while the
-   live buffer was slowly overwritten. Fix: render the rotated bottom into an OFF-SCREEN
-   scratch (g_botTmp) and memcpy it to the live buffer ONCE. Keeps the full contiguous
-   write (graceful) and shows no half-black intermediate (no flash). */
+/* BUILD 712018: STEREO suspend-crash fix (dump 127, FAR 0xf4 = same GSP class as 122-126).
+   Root cause: with the slider up, the last present before HOME committed a 3D (800-tall)
+   transfer; aptMainLoop() then blocked and the GSP thread faulted servicing it. Fix: in the
+   main-thread present, if aptShouldJumpToHome() is true, FORCE FLAT so the present commits a
+   400-tall single-eye transfer that the suspend path handles gracefully. APT hook stays gfx-free.
+   Slider-gate + identical-eye 3D present pipeline unchanged from 712017. */
 static void SDL_PresentGfx(SDL_Surface* surface) {
 #ifdef __3DS__
     (void)surface;
     if (g_gfx_suspended) return;  /* HOME menu owns the GPU; skip present+flush */
     if (!g_topFbL || !g_topFbR || !g_botFb || !sdlVideo.screenSurface) return;
     const Uint32* src = (const Uint32*)sdlVideo.screenSurface->pixels;  /* 400x480 RGBA32 */
+
+    /* Slider gate (main thread only): enable stereo when the 3D slider is pushed past
+       the detent. This is read HERE (present runs on the main thread), never in the APT
+       hook, so gfxSet3D() is never called from the unsafe hook context.
+       CRASH FIX (dump 127): if HOME was pressed this frame, FORCE FLAT. aptMainLoop() will
+       block right after this present and tear down the GSP transfer; a pending 3D (800-tall)
+       transfer faults the GSP thread (FAR 0xf4). Forcing flat here makes the present commit a
+       400-tall single-eye transfer, which the suspend path handles gracefully. */
+    if (aptShouldJumpToHome())
+        g_top3D = 0;
+    else
+        g_top3D = (osGet3DSliderState() > 0.0f) ? 1 : 0;
 
     /* Re-fetch the live framebuffers EVERY frame. The 3DS display buffer can
        differ from the one cached at init / after resume, so writing a cached
@@ -359,9 +387,17 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
     {
         u16 tw = 0, th = 0, bw = 0, bh = 0;
         g_topFbL = (u8*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &tw, &th);
-        g_topFbR = g_topFbL;  /* alias LEFT; 3D off => right eye unused (see reacquire note) */
-        g_botFb  = (u8*)gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &bw, &bh);
         g_topW = tw ? tw : 240;  g_topH = th ? th : 400;
+        if (g_top3D) {
+            /* Stereo: top buffer is 240x800 (GSP_SCREEN_HEIGHT_TOP_2X). GFX_LEFT = rows
+               0..399, GFX_RIGHT (=second half) = rows 400..799. We derive the right-half
+               pointer by offset into the SAME allocated buffer (no gfx call -> crash-safe;
+               the 712016 fault was the gfxSet3D() inside the APT hook, not this write). */
+            g_topFbR = g_topFbL + (size_t)400 * g_topW * 3;
+        } else {
+            g_topFbR = g_topFbL;  /* alias LEFT; 3D off => right eye unused */
+        }
+        g_botFb  = (u8*)gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &bw, &bh);
         g_botW = bw ? bw : 240;  g_botH = bh ? bh : 320;
     }
     if (!g_topFbL || !g_topFbR || !g_botFb) return;
@@ -434,10 +470,22 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
         }
     }
 
-    /* Single buffer: flush pushes the frame. NO gfxSwapBuffers() -- that strobes
-       the single-buffered bottom and leaves a pending GSP transfer that faults at
-       HOME teardown (dump 117). flush-only = graceful (build 711999 proved it). */
-    gfxFlushBuffers();
+    /* Commit the frame. On the MAIN THREAD, toggle 3D in lockstep with the present so the
+       GSP display transfer always matches the current buffer layout:
+         - flat:  gfxSet3D(false) + gfxScreenSwapBuffers(GFX_TOP, false)  (single 400-tall eye)
+         - 3D:    gfxSet3D(true)  + gfxScreenSwapBuffers(GFX_TOP, true)   (800-tall two-eye transfer)
+       (DXX-3DS / PrBoom-Plus-3DS lockstep rule: never leave 3D set without the matching present.)
+       On suspend the APT hook only sets g_gfx_suspended=1 (no gfx call) and we skip this, so the
+       GSP transfer is never torn down mid-3D -> no FAR 0xf4 fault. */
+    if (g_top3D) {
+        gfxSet3D(true);
+        gfxFlushBuffers();
+        gfxScreenSwapBuffers(GFX_TOP, true);
+    } else {
+        gfxSet3D(false);
+        gfxFlushBuffers();
+        gfxScreenSwapBuffers(GFX_TOP, false);
+    }
 #endif
 }
 
