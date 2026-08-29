@@ -2994,7 +2994,7 @@ void Render_setBerserkColor(Render_t* render) {
 #ifdef __3DS__
 	// render->pixels already points into piDIB (set in Render_render), so the scene is already there -- just blit.
 	//gspWaitForVBlank();
-	SDL_BlitSurface(render->piDIB, &clip, SDL_GetVideoSurface(), &renderQuad);
+	SDL_BlitSurface(render->piDIB, &clip, sdlVideo.screenSurface, &renderQuad);
 	//SDL_Flip(SDL_GetVideoSurface());
 #else
 	SDL_UpdateTexture(render->piDIB, NULL, render->framebuffer, sdlVideo.rendererW * 2);
