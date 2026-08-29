@@ -1,10 +1,12 @@
 
 
 //Using SDL and standard IO
+
 #ifdef __3DS__
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
 #include <3ds.h>
+#include <citro3d.h>
 //#include <SDL/SDL_opengl.h>
 #include <SDL/SDL_audio.h>
 #include <stdio.h>
@@ -19,47 +21,103 @@
 #include "Game.h"
 #include "SDL_Video.h"
 
+/* Global instances (declared extern in SDL_Video.h). */
+#ifdef __3DS__
+#define MARK(s) ((void)0)
+#endif
 SDLVideo_t sdlVideo;
 SDLController_t sdlController;
-#ifdef __3DS__
-#else
-FluidSynth_t fluidSynth;
-#endif
 
-SDLVidModes_t sdlVideoModes[14] =
-{
-	{128, 128},
-	{128, 160},
-	{160, 128},
-	{176, 208},
-	{176, 220},
-	{220, 176},
-	{240, 320},
-	{320, 200},
-	{320, 240},
-	{352, 416},
-	{416, 352},
-	{640, 360},
-	{640, 480},
-	{800, 600}
-};
+#ifdef __3DS__
+/* Raw gfx framebuffers for BOTH screens (we own gfx directly; SDL video does
+   NOT claim any screen). Top = stereoscopic (both eyes); bottom = raw. */
+static u8* g_topFbL = NULL;   /* GFX_TOP/GFX_LEFT  (left eye)  */
+static u8* g_topFbR = NULL;   /* GFX_TOP/GFX_RIGHT (right eye) */
+static u8* g_botFb  = NULL;   /* GFX_BOTTOM/GFX_LEFT */
+static u8* g_botTmp = NULL;   /* off-screen scratch for the bottom; present = render here, then memcpy once */
+static u32 g_topW = 240, g_topH = 400;  /* real top-eye stride (from gfx) */
+static u32 g_botW = 320, g_botH = 240;  /* real bottom framebuffer size */
+static volatile int g_gfx_suspended = 0;  /* set by APT hook; skip present (no gfx flush) during HOME */
+static aptHookCookie g_apt_cookie;
+
+/* Flag-only APT hook: do NOT call any gfx function here (GPU state is invalid
+   in the hook context and faults). Just record suspend so the present loop
+   skips gfxFlushBuffers() while the applet owns the screen -- this stops our
+   flush from racing libctru's GSP event thread (dump 98..105: gspEventThreadMain,
+   FAR 0xf4). This is the exact setup that made build 711500 graceful on HOME. */
+static void stereo_apt_gfx_reacquire(void) {
+    /* On resume the OS hands back a DIFFERENT framebuffer address than the one
+       cached at init (proven DXX-3DS behavior). Re-fetch so we write live memory
+       instead of a dead buffer (which would show stale garbage = the bar). */
+    u16 tw=0, th=0, bw=0, bh=0;
+    g_topFbL = (u8*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &tw, &th);
+    g_topFbR = g_topFbL;  /* gfxSet3D(false): right eye unused; alias LEFT so we never
+                             hand the GSP display-transfer thread a bogus RIGHT pointer
+                             (that triggers FAR 0xf4 Data Abort at HOME suspend, dump 122).
+                             ctrWolfen (crash-free) writes LEFT only. */
+    g_botFb  = (u8*)gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &bw, &bh);
+    g_topW = tw ? tw : 240;  g_topH = th ? th : 400;
+    g_botW = bw ? bw : 240;  g_botH = bh ? bh : 320;
+}
+
+static void stereo_apt_hook(APT_HookType hook, void* param) {
+    (void)param;
+    if (hook == APTHOOK_ONSUSPEND) g_gfx_suspended = 1;
+    else if (hook == APTHOOK_ONRESTORE || hook == APTHOOK_ONWAKEUP) {
+        g_gfx_suspended = 0;
+        stereo_apt_gfx_reacquire();
+    }
+}
+
+#endif /* __3DS__ */
+
 void SDL_InitVideo(void) {
 #ifdef __3DS__
 	putenv("SDL_N3DS_CONSOLE=");
 	SDL_memset(&sdlVideo, 0, sizeof(sdlVideo));
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
+	/* NO SDL_INIT_VIDEO. We OWN gfx raw via gfxInit() below. SDL_Init with VIDEO
+	   calls gfxInitDefault() internally and claims the screens (SDL_DUALSCR
+	   blue-collision) -- that is what we must NOT do. SDL is input/audio only. */
+	gfxInitDefault();           /* default top=BGR8, bottom=BGR8; libctru owns the GSP/suspend lifecycle (ctrWolfen method) */
+	gfxSetDoubleBuffering(GFX_TOP, false);
+	gfxSetDoubleBuffering(GFX_BOTTOM, false);
+	gfxSet3D(false);                 /* stereo deferred; gfxSet3D(true) triggers a GSP-thread crash on HOME (dump 98/99/100) -- ctrWolfen uses false and is crash-free */
+	if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0)
 	{
 		DoomRPG_Error("Could not initialize SDL: %s", SDL_GetError());
 	}
-	SDL_SetVideoMode(400, 480, 32, SDL_HWSURFACE | SDL_DUALSCR |SDL_DOUBLEBUF
-| SDL_FULLSCREEN);
-	sdlVideo.screenSurface = SDL_GetVideoSurface();
+	/* Software offscreen draw surface ONLY (400x480). SDL does NOT claim any
+	   hardware screen (no SDL_DUALSCR / no SDL_SetVideoMode) -- we own gfx raw.
+	   This is the 705472 config that rendered the top NORMALLY. A separate
+	   surface avoids the 768KB double-alloc vs SDL_SetVideoMode; RAM stays at
+	   the single-alloc level. The game composites 3D view + HUD + automap here. */
+	sdlVideo.screenSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, 400, 480, 32,
+		0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+	if (!sdlVideo.screenSurface) {
+		DoomRPG_Error("Could not create video surface: %s", SDL_GetError());
+	}
 	sdlVideo.screenW = sdlVideo.screenSurface->w;
 	sdlVideo.screenH = sdlVideo.screenSurface->h;
-	printf("3DS video initialized: %dx%d\n", sdlVideo.screenW, sdlVideo.screenH);
-	//SDL_FillRect(sdlVideo.screenSurface, NULL, SDL_MapRGB(sdlVideo.screenSurface->format, 0, 0, 0));
-	//SDL_Flip(sdlVideo.screenSurface);
-#else
+		/* Grab raw framebuffers (RGB565, pitch = 240*2 for top eyes / 240*2 bottom). */
+		{ u16 tw=0, th=0, bw=0, bh=0;
+		  g_topFbL = (u8*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &tw, &th);
+		  g_topFbR = g_topFbL;  /* alias LEFT; 3D off => right eye unused (see reacquire note) */
+		  g_botFb  = (u8*)gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &bw, &bh);
+	  g_topW = tw ? tw : 240;  g_topH = th ? th : 400;
+	  g_botW = bw ? bw : 240;  g_botH = bh ? bh : 320;
+	  }
+	  if (!g_topFbL || !g_topFbR || !g_botFb) DoomRPG_Error("Could not get framebuffers");
+	  /* Off-screen scratch for the bottom blit: we render the rotated map into g_botTmp,
+	     then memcpy it to the live framebuffer in ONE contiguous copy. This keeps the
+	     GSP-happy "full contiguous buffer write" each frame (no memcpy+transpose-dotted
+	     gaps) while never showing a half-black intermediate frame -> no CRT flash. */
+	  if (!g_botTmp) g_botTmp = (u8*)malloc((size_t)g_botW * g_botH * 3);
+	  if (g_botFb) SDL_memset(g_botFb, 0, (size_t)g_botW * g_botH * 3);
+	  if (g_botTmp) SDL_memset(g_botTmp, 0, (size_t)g_botW * g_botH * 3);
+	  printf("3DS gfx video: top=raw stereo BGR8, bottom=raw BGR8\n");
+	  printf("3DS video initialized: %dx%d\n", sdlVideo.screenW, sdlVideo.screenH);
+	  aptHook(&g_apt_cookie, stereo_apt_hook, NULL);
+	  #else
 	Uint32 flags;
 	int video_w, video_h;
 
@@ -211,6 +269,19 @@ void SDL_Close(void)
 	}
 #endif
 
+    MARK("Q0 QUIT_ENTRY\n");
+#ifdef __3DS__
+    MARK("C0 CLEANUP_START\n");
+    /* We own gfx raw (no SDL_INIT_VIDEO), so SDL_Quit() will NOT tear down
+       libctru's GSP/framebuffers for us. We MUST call gfxExit() explicitly,
+       or libctru's GSP event thread (gspEventThreadMain) keeps running with
+       our framebuffer state after the applet is closed (HOME->FTP) and faults
+       at teardown (dump 98..107: Data Abort FAR=0xf4 @ GSP region 0x8043a70).
+       ctrWolfen calls gfxExit() here for exactly this reason. */
+    g_topFbL = NULL; g_topFbR = NULL; g_botFb = NULL;
+    gfxExit();
+    MARK("C1 CLEANUP_DONE\n");
+#endif
     //Quit SDL subsystems
     SDL_Quit();
 }
@@ -231,6 +302,145 @@ void SDL_SetRenderDrawColor(SDL_Surface *surface, Uint8 r, Uint8 g, Uint8 b, Uin
     curColor = (uintptr_t)color;
 }
 
+/* PHASE 1 (Option A): blit the offscreen 400x480 RGBA32 surface into the gfx
+   top/bottom framebuffers. Per DXX-3DS (bottom_screen.c), the gfx framebuffer
+   is GSP_RGB565_OES: 16-bit, ONE u16 PER PIXEL, stride = width*2 (NOT RGBA8).
+   gfx TOP is 240x400, BOTTOM is 240x320 (confirmed: bs_dims.txt bw=240 bh=320).
+   The 3DS LCD rotates the buffer 90deg CCW on display, so our landscape
+   offscreen (top: 400x240; bottom: 400x240) must rotate into the portrait
+   buffer. DXX-3DS mapping (logical x in [0,320) w, y in [0,240) h):
+       fx = 239 - y   (logical y -> buffer x)
+       fy = x         (logical x -> buffer y)
+       idx = fx + fy * g_w
+   We replicate that for both screens, converting RGBA32 -> RGB565. */
+/* Top/bottom framebuffers are GSP_BGR8_OES (3 bytes/px), allocated by
+   SDL_Init(VIDEO)->gfxInitDefault(). GL_BGR byte order: byte0=B,byte1=G,byte2=R.
+   Pack RGBA32 (R=0x00FF0000,G=0x0000FF00,B=0x000000FF) into that order. */
+static inline Uint32 rgba32_to_bgr8(Uint32 px) {
+	int r = (px >> 16) & 0xFF;
+	int g = (px >> 8)  & 0xFF;
+	int b = (px >> 0)  & 0xFF;
+	return (Uint32)(((Uint32)b) | ((Uint32)g << 8) | ((Uint32)r << 16));
+}
+static inline void put_bgr8(u8* base, Uint32 v) {
+	base[0] = (u8)(v & 0xFF);
+	base[1] = (u8)((v >> 8) & 0xFF);
+	base[2] = (u8)((v >> 16) & 0xFF);
+}
+
+static inline u16 rgba32_to_rgb565(Uint32 px) {
+    /* SDL surface mask 0x00FF0000/0x0000FF00/0x000000FF/0xFF000000 :
+       little-endian => R at byte2, G byte1, B byte0. Swap so RGB565
+       gets true R/G/B (previously R/B swapped -> blue/magenta). */
+    int r = (px >> 16) & 0xFF;
+    int g = (px >> 8)  & 0xFF;
+    int b = (px >> 0)  & 0xFF;
+    return (u16)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3));
+}
+/* BUILD 712015: CRASH+FLICKER reconcile. 712013 (per-frame live memset) = graceful but
+   CRT-flashed; 712014 (memset removed) = no flash but crash returned (dump 125, FAR 0xf4).
+   Root cause traced: the GSP thread needs a FULL contiguous bottom-buffer write each
+   frame (the memset provided it); the flash was the torn black frame visible while the
+   live buffer was slowly overwritten. Fix: render the rotated bottom into an OFF-SCREEN
+   scratch (g_botTmp) and memcpy it to the live buffer ONCE. Keeps the full contiguous
+   write (graceful) and shows no half-black intermediate (no flash). */
+static void SDL_PresentGfx(SDL_Surface* surface) {
+#ifdef __3DS__
+    (void)surface;
+    if (g_gfx_suspended) return;  /* HOME menu owns the GPU; skip present+flush */
+    if (!g_topFbL || !g_topFbR || !g_botFb || !sdlVideo.screenSurface) return;
+    const Uint32* src = (const Uint32*)sdlVideo.screenSurface->pixels;  /* 400x480 RGBA32 */
+
+    /* Re-fetch the live framebuffers EVERY frame. The 3DS display buffer can
+       differ from the one cached at init / after resume, so writing a cached
+       pointer paints a buffer the display is NOT showing -> stale bar + flicker.
+       Re-fetching guarantees we always write the currently-displayed buffer.
+       Single-buffered + flush-only (gfxSetDoubleBuffering(false) at init). */
+    {
+        u16 tw = 0, th = 0, bw = 0, bh = 0;
+        g_topFbL = (u8*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &tw, &th);
+        g_topFbR = g_topFbL;  /* alias LEFT; 3D off => right eye unused (see reacquire note) */
+        g_botFb  = (u8*)gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &bw, &bh);
+        g_topW = tw ? tw : 240;  g_topH = th ? th : 400;
+        g_botW = bw ? bw : 240;  g_botH = bh ? bh : 320;
+    }
+    if (!g_topFbL || !g_topFbR || !g_botFb) return;
+
+    /* BOTTOM: 240x320 portrait framebuffer. The working SDL config (devkitPro
+       3DS driver, SDL_DUALSCR 400x480) maps the surface LOWER HALF (rows 240..479)
+       onto the bottom screen UPRIGHT (NO rotation). The LCD optically rotates the
+       portrait buffer 90deg, so an upright landscape must be written rotated 90deg
+       CW into the buffer. Proven mapping (dxx / SDL driver):
+           buffer_col = g_botW-1 - (src_row - 240)   (src_row 240..479 -> col 239..0)
+           buffer_row = src_col * g_botH / 400         (src_col 0..399 -> row 0..319)
+       The original bar was killed by clearing SOURCE rows 240..359 (the blank strip
+       above the automap tiles, which start at y>=363) to opaque black EVERY frame
+       -- the automap bg clear (SDL_FillRect) is a no-op on this surface, so without
+       this the stale/garbage strip showed through. We replicate that here. */
+    {
+        /* 1) Clear the source strip rows 240..359 to opaque black (author fix). */
+        Uint32* sp = (Uint32*)sdlVideo.screenSurface->pixels;
+        for (int sy = 240; sy < 360; sy++)
+            for (int sx = 0; sx < 400; sx++)
+                sp[sy * 400 + sx] = 0xFF000000u;  /* A=255, RGB=0 */
+    }
+    /* NOTE: we render the rotated bottom into the OFF-SCREEN g_botTmp scratch, then
+       memcpy it to the live g_botFb in ONE contiguous copy. This keeps the GSP-happy
+       "full contiguous buffer write" each frame (removing the per-frame live memset is
+       what brought dump 125 back), while never showing a half-black intermediate frame
+       -> no CRT flash (the flash was the torn black frame visible mid-rewrite). */
+    {
+        /* 2) Blit the FULL lower half (rows 240..479) into g_botTmp, rotated 90deg so it
+           appears UPRIGHT on screen. CRASH FIX: 709/10/11/12 used a ROW-FLIP (dest written
+           row-major) and EVERY one crashed (FAR 0xf4 GSP Data Abort at HOME suspend). The
+           proven-graceful rotation is the COL-FLIP write-order (build 712002): dest written
+           column-by-column: dx = g_botW-1 - (sy-240), dy = sx * g_botH / 400. This maps
+           source rows->dest cols (vertical flip) + source cols->dest rows, i.e. the SAME
+           upright orientation as the row-flip but in the graceful write order.
+           (709's "180deg" was the g_botH shift-bug, not the rotation direction.) */
+        u8* dst = g_botTmp ? g_botTmp : g_botFb;
+        for (int sy = 240; sy < 480; sy++) {
+            int dx = g_botW - 1 - (sy - 240);
+            const Uint32* row = src + sy * 400;
+            for (int sx = 0; sx < 400; sx++) {
+                int dy = (sx * g_botH) / 400;
+                if (dy < 0) dy = 0; else if (dy >= g_botH) dy = g_botH - 1;
+                int bi = (dy * g_botW + dx) * 3;
+                put_bgr8(&dst[bi], rgba32_to_bgr8(row[sx]));
+            }
+        }
+    }
+    if (g_botTmp && g_botFb) SDL_memcpy(g_botFb, g_botTmp, (size_t)g_botW * g_botH * 3);
+    /* For reference, the TOP screen (rows 0..239) maps the same way: */
+    /* TOP: 400x240 landscape 3D view + HUD (screenSurface rows 0..239) into the
+       240x400 portrait top framebuffer, DIRECT upright (LCD rotates 90deg itself).
+       Scale source 400-wide -> g_topW (240), 240-tall -> g_topH (400). gfxSet3D(false)
+       => only GFX_LEFT shown; write both eyes anyway (harmless). */
+    {
+        /* TOP: 400x240 landscape 3D view + HUD (surface rows 0..239) into the 240x400
+           portrait top framebuffer, rotated 90deg UPRIGHT via the proven-graceful COL-FLIP
+           write-order (same as bottom; build 712002 was graceful with this order, row-flip
+           crashed). dx = g_topW-1 - sy ; dy = sx * g_topH / 400. */
+        for (int sy = 0; sy < 240; sy++) {
+            int dx = g_topW - 1 - sy;
+            const Uint32* row = src + sy * 400;
+            for (int sx = 0; sx < 400; sx++) {
+                int dy = (sx * g_topH) / 400;
+                if (dy < 0) dy = 0; else if (dy >= g_topH) dy = g_topH - 1;
+                int bi = (dy * g_topW + dx) * 3;
+                put_bgr8(&g_topFbL[bi], rgba32_to_bgr8(row[sx]));
+                put_bgr8(&g_topFbR[bi], rgba32_to_bgr8(row[sx]));
+            }
+        }
+    }
+
+    /* Single buffer: flush pushes the frame. NO gfxSwapBuffers() -- that strobes
+       the single-buffered bottom and leaves a pending GSP transfer that faults at
+       HOME teardown (dump 117). flush-only = graceful (build 711999 proved it). */
+    gfxFlushBuffers();
+#endif
+}
+
 void SDL_RenderPresent(SDL_Surface *surface)
 {
     /* Clear the bottom-screen top (empty automap region) to opaque black
@@ -239,31 +449,26 @@ void SDL_RenderPresent(SDL_Surface *surface)
        the white framebuffer init showed through as a strip. Reset the
        clip and blit an opaque-black surface instead -- blits present
        reliably. Tiles are drawn lower (y>=363) so this never hides them. */
-    {
-        SDL_SetClipRect(surface, NULL);
-        static SDL_Surface* clrSurf = NULL;
-        if (clrSurf == NULL) {
-            clrSurf = SDL_CreateRGBSurface(SDL_SWSURFACE, 400, 120, 32,
-                surface->format->Rmask, surface->format->Gmask,
-                surface->format->Bmask, surface->format->Amask);
-            if (clrSurf) {
-                Uint32* cp = (Uint32*)clrSurf->pixels;
-                if (cp) {
-                    Uint32 black = SDL_MapRGBA(clrSurf->format, 0, 0, 0, 255);
-                    for (int i = 0; i < 400 * 120; i++) cp[i] = black;
-                }
-            }
-        }
-        if (clrSurf) {
-            SDL_Rect dr = { 0, 240, 400, 120 };
-            SDL_BlitSurface(clrSurf, NULL, surface, &dr);
-        }
-    }
-    SDL_Flip(surface);
+    /* The offscreen surface is no longer displayed (gfx owns the screens),
+       so the old SDL-surface strip-clear is dead code. It also dereferenced
+       surface->map (NULL) -> Data Abort 0x5c on present. Present via gfx only. */
+    SDL_PresentGfx(surface);
 }
 
 void SDL_RenderClear(SDL_Surface *surface)
 {
+    /* The game calls SDL_RenderClear(screenSurface) every frame expecting a full
+       clear. SDL_FillRect is a no-op on this software surface, so the bottom region
+       (and the automap interior) kept stale pixels -> the "bar". We clear ONLY the
+       real screenSurface here, sized to its exact buffer (400x480x4) so it cannot
+       overrun. Other surfaces (menu, etc.) keep the no-op FillRect -- an earlier
+       unconditional memset overran THOSE surfaces' allocations and corrupted the heap
+       (HOME crash, dumps 102/110). Guarding to screenSurface avoids that. */
+    if (surface && surface == sdlVideo.screenSurface && surface->pixels) {
+        int bpp = surface->format ? surface->format->BytesPerPixel : 4;
+        SDL_memset(surface->pixels, 0, (size_t)surface->w * surface->h * bpp);
+        return;
+    }
     Uint32 color = (Uint32)(uintptr_t)curColor;
     SDL_FillRect(surface, NULL, color);
 }
@@ -554,6 +759,7 @@ int SDL_JoystickGetButtonID(void)
 {
 #ifdef __3DS__
 	{
+		hidScanInput();
 		u32 keys = hidKeysDown();
 		if (keys & KEY_A) return CONTROLLER_BUTTON_A;
 		if (keys & KEY_B) return CONTROLLER_BUTTON_B;
