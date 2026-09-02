@@ -31,7 +31,6 @@ unsigned int __stacksize__ = 0x40000; // 256KB
 // Build identity - bump on every build so we can verify what is actually running.
 static const char* BUILD_VERSION = "DOOMRPG-3DS v1.0.1 (persistent menuSurface fix)";
 
-
 int main(int argc, char* args[])
 {
     printf("\n=== %s ===\n", BUILD_VERSION);
@@ -159,7 +158,11 @@ int main(int argc, char* args[])
 #endif
     // closeZipFile(&zipFile);
     //DoomRPG_FreeAppData(doomRpg);
+#ifdef __3DS__
+    SDL_Close();
+#else
     SDL_Quit();
+#endif
 
     return 0;
 }
