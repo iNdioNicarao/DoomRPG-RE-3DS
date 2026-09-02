@@ -134,7 +134,10 @@ void SDL_InitVideo(void) {
 	C3D_TexSetWrap(&g_topTex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
 	g_topScratch = (u16*)linearAlloc(512 * 256 * 2);
 	memset(g_topScratch, 0, 512 * 256 * 2);
-	g_topSub = (Tex3DS_SubTexture){ 400, 240, 0.0f, 240.0f/256.0f, 400.0f/512.0f, 0.0f };
+	/* PICA200 texture coordinates: V=1.0 is row 0 (top of texture), V=0.0 is row 255.
+	   Rows 0..239 contain our active image, rows 240..255 are 16px of POT padding.
+	   Subtexture top is 1.0f (row 0), bottom is (256-240)/256 = 16/256 = 0.0625f (row 239). */
+	g_topSub = (Tex3DS_SubTexture){ 400, 240, 0.0f, 1.0f, 400.0f/512.0f, (256.0f - 240.0f)/256.0f };
 	g_topImg.tex = &g_topTex; g_topImg.subtex = &g_topSub;
 	g_topCitroInited = (g_topTargetL && g_topTargetR && g_topScratch);
 	/* Stereo eye-capture buffers: 400x240 scene per eye (matches the 3D view region). */
@@ -517,11 +520,11 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
        so no manual software rotation is needed. citro3d owns the dual-eye present and suspend lifecycle. */
     if (g_topCitroInited && !g_gfx_suspended) {
         /* PICA200 GPU textures require 8x8 Morton (Z-order) tiled pixel data.
-           We tile the 400x240 RGB565 source into 512x256 POT texture memory.
-           g_topSub has top=240/256 and bottom=0 (top >= bottom, unrotated).
+           We tile the 400x240 RGB565 source into 512x256 POT texture memory (rows 0..239).
+           g_topSub has top=1.0f (row 0) and bottom=(256-240)/256=16/256 (row 239).
            In GPU texture space, mapping source row sy = by + py displays the
            entire 400x240 scene right-side up with status bar at top (y=0..20)
-           and HUD at bottom (y=192..240). */
+           and HUD at bottom (y=192..240) spanning the entire 240-height screen with no vertical offset. */
         static const u8 s_morton8x8[64] = {
              0,  1,  4,  5, 16, 17, 20, 21,
              2,  3,  6,  7, 18, 19, 22, 23,
