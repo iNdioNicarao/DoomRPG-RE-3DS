@@ -99,6 +99,8 @@ static void stereo_apt_hook(APT_HookType hook, void* param) {
     else if (hook == APTHOOK_ONRESTORE || hook == APTHOOK_ONWAKEUP) {
         g_gfx_suspended = 0;
         stereo_apt_gfx_reacquire();
+    } else if (hook == APTHOOK_ONEXIT) {
+        g_gfx_suspended = 1;
     }
 }
 
@@ -331,12 +333,36 @@ void SDL_Close(void)
 #ifdef __3DS__
     MARK("C0 CLEANUP_START\n");
     /* We own gfx raw (no SDL_INIT_VIDEO), so SDL_Quit() will NOT tear down
-       libctru's GSP/framebuffers for us. We MUST call gfxExit() explicitly,
-       or libctru's GSP event thread (gspEventThreadMain) keeps running with
-       our framebuffer state after the applet is closed (HOME->FTP) and faults
-       at teardown (dump 98..107: Data Abort FAR=0xf4 @ GSP region 0x8043a70).
-       ctrWolfen calls gfxExit() here for exactly this reason. */
+       libctru's GSP/framebuffers for us. We MUST call C2D_Fini(), C3D_Fini(),
+       and gfxExit() explicitly so the GPU and GSP event thread (gspEventThreadMain)
+       are stopped before process memory is unmapped on exit (dumps 98..144). */
     g_topFbL = NULL; g_topFbR = NULL; g_botFb = NULL;
+    if (g_topScratch) {
+        linearFree(g_topScratch);
+        g_topScratch = NULL;
+    }
+    if (g_topEyeL) {
+        SDL_free(g_topEyeL);
+        g_topEyeL = NULL;
+    }
+    if (g_topEyeR) {
+        SDL_free(g_topEyeR);
+        g_topEyeR = NULL;
+    }
+    if (g_stereoRight) {
+        SDL_FreeSurface(g_stereoRight);
+        g_stereoRight = NULL;
+    }
+    if (g_botTmp) {
+        SDL_free(g_botTmp);
+        g_botTmp = NULL;
+    }
+    if (g_topCitroInited) {
+        C2D_Fini();
+        C3D_Fini();
+        g_topCitroInited = false;
+    }
+    aptUnhook(&g_apt_cookie);
     gfxExit();
     MARK("C1 CLEANUP_DONE\n");
 #endif
@@ -483,7 +509,7 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
             }
         }
     }
-    if (g_botTmp && g_botFb) SDL_memcpy(g_botFb, g_botTmp, (size_t)g_botW * g_botH * 3);
+    if (g_botTmp && g_botFb && !g_gfx_suspended) SDL_memcpy(g_botFb, g_botTmp, (size_t)g_botW * g_botH * 3);
 
     /* TOP screen: hand to citro2d. Copy the top region (screenSurface rows 0..239, 400x240)
        directly into 512x256 RGB565 scratch texture, upload, and draw to BOTH stereo eye targets.
@@ -493,9 +519,9 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
         /* PICA200 GPU textures require 8x8 Morton (Z-order) tiled pixel data.
            We tile the 400x240 RGB565 source into 512x256 POT texture memory.
            g_topSub has top=240/256 and bottom=0 (top >= bottom, unrotated).
-           In GPU texture space, v=0 is at row 0 (bottom of screen) and v=240/256
-           is at row 239 (top of screen). We map source row sy = 239 - (by + py)
-           so the image displays right-side up without rotation or squishing. */
+           In GPU texture space, mapping source row sy = by + py displays the
+           entire 400x240 scene right-side up with status bar at top (y=0..20)
+           and HUD at bottom (y=192..240). */
         static const u8 s_morton8x8[64] = {
              0,  1,  4,  5, 16, 17, 20, 21,
              2,  3,  6,  7, 18, 19, 22, 23,
@@ -513,7 +539,7 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
                 int tx = bx / 8;
                 u16* tileDst = dst + (ty * (512 / 8) + tx) * 64;
                 for (int py = 0; py < 8; py++) {
-                    int sy = 239 - (by + py);
+                    int sy = by + py;
                     const Uint32* rowSrc = src + sy * 400 + bx;
                     const u8* mRow = &s_morton8x8[py * 8];
                     tileDst[mRow[0]] = rgba32_to_rgb565(rowSrc[0]);
