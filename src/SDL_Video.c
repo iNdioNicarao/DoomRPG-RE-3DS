@@ -6,7 +6,9 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
 #include <3ds.h>
+#include <3ds/console.h>
 #include <citro3d.h>
+#include <citro2d.h>
 //#include <SDL/SDL_opengl.h>
 #include <SDL/SDL_audio.h>
 #include <stdio.h>
@@ -36,7 +38,7 @@ static u8* g_topFbR = NULL;   /* GFX_TOP/GFX_RIGHT (right eye) */
 static u8* g_botFb  = NULL;   /* GFX_BOTTOM/GFX_LEFT */
 static u8* g_botTmp = NULL;   /* off-screen scratch for the bottom; present = render here, then memcpy once */
 static u32 g_topW = 240, g_topH = 400;  /* real top-eye stride (from gfx) */
-static u32 g_botW = 320, g_botH = 240;  /* real bottom framebuffer size */
+static u32 g_botW = 240, g_botH = 320;  /* real bottom framebuffer size (portrait 240x320) */
 static volatile int g_gfx_suspended = 0;  /* set by APT hook; skip present (no gfx flush) during HOME */
 static aptHookCookie g_apt_cookie;
 
@@ -50,8 +52,23 @@ static aptHookCookie g_apt_cookie;
    gfxSet3D is toggled ONLY on the main thread (never in the APT hook) to stay crash-free. */
 static Uint32* g_topEyeL = NULL;  /* 400x240 scene capture, left eye  */
 static Uint32* g_topEyeR = NULL;  /* 400x240 scene capture, right eye */
-static int g_top3D = 0;          /* 1 => stereo enabled this frame (slider > 0) */
-static float g_stereoSep = 0.0f; /* angular separation (degrees); 0 = eyes identical (test build) */
+SDL_Surface* g_stereoRight = NULL;  /* 400x240 RGBA32 right-eye capture (legacy, unused now) */
+int g_stereoRightValid = 0;
+int g_top3D = 0;          /* 1 => stereo enabled this frame (slider > 0) */
+float g_stereoSep = 0.0f;
+
+/* citro2d top-screen present (suspend-safe stereo path). The TOP screen is handed to citro2d
+   render targets; citro3d owns the present + suspend lifecycle (devkitPro stereoscopic_2d example
+   survives aptMainLoop+HOME). BOTTOM stays raw-gfx (separate screen, no conflict). */
+static C3D_Tex      g_topTex;        /* 512x256 RGB565 texture (padded POT from 400x240 landscape) */
+static C2D_Image    g_topImg;        /* citro2d image wrapper around g_topTex */
+static C3D_RenderTarget* g_topTargetL = NULL;  /* GFX_TOP LEFT eye */
+static C3D_RenderTarget* g_topTargetR = NULL;  /* GFX_TOP RIGHT eye */
+u16*         g_topScratch = NULL;  /* 512x256 RGB565 top region (POT-padded) */
+Tex3DS_SubTexture g_topSub;    /* subtexture region (400x240 within 512x256 tex) */
+bool         g_topCitroInited = false;
+int          g_topProbed = 0;        /* one-shot measurement probe fired (in Main loop, not present) */
+volatile int g_topProbePending = 0;  /* set by present (safe: plain int write); drained in Main loop */
 
 /* Flag-only APT hook: do NOT call any gfx function here (GPU state is invalid
    in the hook context and faults). Just record suspend so the present loop
@@ -75,6 +92,9 @@ static void stereo_apt_gfx_reacquire(void) {
 
 static void stereo_apt_hook(APT_HookType hook, void* param) {
     (void)param;
+    /* SAFE hook (71218-style): do NOT call any gfx function here. The 71221/71222 gspWaitForVBlank()
+       in this hook faulted at suspend (dump 130, FAR 0xf4). Just flag suspend so the present loop
+       force-flats before aptMainLoop blocks. */
     if (hook == APTHOOK_ONSUSPEND) g_gfx_suspended = 1;
     else if (hook == APTHOOK_ONRESTORE || hook == APTHOOK_ONWAKEUP) {
         g_gfx_suspended = 0;
@@ -92,13 +112,34 @@ void SDL_InitVideo(void) {
 	   calls gfxInitDefault() internally and claims the screens (SDL_DUALSCR
 	   blue-collision) -- that is what we must NOT do. SDL is input/audio only. */
 	gfxInitDefault();           /* default top=BGR8, bottom=BGR8; libctru owns the GSP/suspend lifecycle (ctrWolfen method) */
-	gfxSetDoubleBuffering(GFX_TOP, false);
-	gfxSetDoubleBuffering(GFX_BOTTOM, false);
-	gfxSet3D(false);                 /* start flat. 3D is toggled on the MAIN THREAD later (slider),
-	                                     never in the APT hook (unsafe context -> FAR 0xf4). */
+	gfxSetDoubleBuffering(GFX_TOP, true);    /* TOP is citro2d-owned -> must be double-buffered so C3D_FrameEnd swaps the
+	                                           stereo eye buffers to the display (the stereoscopic_2d reference leaves this
+	                                           at default ON; forcing false left the GPU target undisplayed = black top). */
+	gfxSetDoubleBuffering(GFX_BOTTOM, false); /* bottom stays raw-gfx single-buffer (its flush is direct, works). */
+	gfxSet3D(true);              /* stereo ON at the gfx layer; citro2d render targets present both
+	                            eyes and own the suspend-safe stereo transfer (dumps 122-134 were
+	                            caused by raw gfxSet3D + gfxSwapBuffers 800-tall transfers). */
+	/* citro2d top-screen present: software scene -> RGB565 texture -> GPU dual-eye targets.
+	   This is the devkitPro stereoscopic_2d pattern and is suspend-safe. */
+	C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
+	C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
+	C2D_Prepare();
+	g_topTargetL = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
+	g_topTargetR = C2D_CreateScreenTarget(GFX_TOP, GFX_RIGHT);
+	/* 400x240 RGB565 texture padded to POT 512x256 (tex3ds requires POT). */
+	C3D_TexInit(&g_topTex, 512, 256, GPU_RGB565);
+	C3D_TexSetFilter(&g_topTex, GPU_NEAREST, GPU_NEAREST);
+	C3D_TexSetWrap(&g_topTex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
+	g_topScratch = (u16*)linearAlloc(512 * 256 * 2);
+	memset(g_topScratch, 0, 512 * 256 * 2);
+	g_topSub = (Tex3DS_SubTexture){ 400, 240, 0.0f, 240.0f/256.0f, 400.0f/512.0f, 0.0f };
+	g_topImg.tex = &g_topTex; g_topImg.subtex = &g_topSub;
+	g_topCitroInited = (g_topTargetL && g_topTargetR && g_topScratch);
 	/* Stereo eye-capture buffers: 400x240 scene per eye (matches the 3D view region). */
 	g_topEyeL = (Uint32*)SDL_calloc(1, (size_t)400 * 240 * sizeof(Uint32));
 	g_topEyeR = (Uint32*)SDL_calloc(1, (size_t)400 * 240 * sizeof(Uint32));
+	g_stereoRight = SDL_CreateRGBSurface(SDL_SWSURFACE, 400, 240, 16,
+		0xF800, 0x07E0, 0x001F, 0);  /* RGB565, matches piDIB 1:1 (blit = memcpy, no convert) */
 	if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0)
 	{
 		DoomRPG_Error("Could not initialize SDL: %s", SDL_GetError());
@@ -339,6 +380,12 @@ static inline Uint32 rgba32_to_bgr8(Uint32 px) {
 	int b = (px >> 0)  & 0xFF;
 	return (Uint32)(((Uint32)b) | ((Uint32)g << 8) | ((Uint32)r << 16));
 }
+/* g_stereoRight holds RGB565 (matches piDIB 1:1). Convert RGB565 -> BGR8 for the top fb. */
+static inline void put_bgr8_from565(u8* base, Uint16 px) {
+	int r = (px >> 11) & 0x1F, g = (px >> 5) & 0x3F, b = px & 0x1F;
+	r = (r << 3) | (r >> 2); g = (g << 2) | (g >> 4); b = (b << 3) | (b >> 2);
+	base[0] = (u8)b; base[1] = (u8)g; base[2] = (u8)r;
+}
 static inline void put_bgr8(u8* base, Uint32 v) {
 	base[0] = (u8)(v & 0xFF);
 	base[1] = (u8)((v >> 8) & 0xFF);
@@ -354,12 +401,13 @@ static inline u16 rgba32_to_rgb565(Uint32 px) {
     int b = (px >> 0)  & 0xFF;
     return (u16)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3));
 }
-/* BUILD 712018: STEREO suspend-crash fix (dump 127, FAR 0xf4 = same GSP class as 122-126).
-   Root cause: with the slider up, the last present before HOME committed a 3D (800-tall)
-   transfer; aptMainLoop() then blocked and the GSP thread faulted servicing it. Fix: in the
-   main-thread present, if aptShouldJumpToHome() is true, FORCE FLAT so the present commits a
-   400-tall single-eye transfer that the suspend path handles gracefully. APT hook stays gfx-free.
-   Slider-gate + identical-eye 3D present pipeline unchanged from 712017. */
+/* BUILD 712029: STEREO via citro2d (suspend-safe). Top screen handed to citro2d dual-eye
+   render targets (devkitPro stereoscopic_2d pattern); the software scene is rotated 90deg into a
+   240x400 RGB565 texture and drawn to GFX_TOP LEFT/RIGHT. citro3d owns the present + suspend
+   lifecycle, so HOME no longer faults (dumps 122-134 were raw-gfx 800-tall transfers). BOTTOM
+   stays raw-gfx (separate screen). 3D gated on the real slider (hidScanInput refreshes HID mem,
+   which is why the earlier probe read 0.0). HUD/weapon/status bar live in the top region -> both
+   eyes get them (no disorienting half-3D). Parallax = per-eye horizontal offset (slider * sep). */
 static void SDL_PresentGfx(SDL_Surface* surface) {
 #ifdef __3DS__
     (void)surface;
@@ -367,40 +415,29 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
     if (!g_topFbL || !g_topFbR || !g_botFb || !sdlVideo.screenSurface) return;
     const Uint32* src = (const Uint32*)sdlVideo.screenSurface->pixels;  /* 400x480 RGBA32 */
 
-    /* Slider gate (main thread only): enable stereo when the 3D slider is pushed past
-       the detent. This is read HERE (present runs on the main thread), never in the APT
-       hook, so gfxSet3D() is never called from the unsafe hook context.
-       CRASH FIX (dump 127): if HOME was pressed this frame, FORCE FLAT. aptMainLoop() will
-       block right after this present and tear down the GSP transfer; a pending 3D (800-tall)
-       transfer faults the GSP thread (FAR 0xf4). Forcing flat here makes the present commit a
-       400-tall single-eye transfer, which the suspend path handles gracefully. */
-    if (aptShouldJumpToHome())
-        g_top3D = 0;
-    else
-        g_top3D = (osGet3DSliderState() > 0.0f) ? 1 : 0;
+    /* Slider gate (main thread): enable 3D when the slider is pushed. hidScanInput() refreshes
+       the HID shared mem that osGet3DSliderState() reads -- without it the slider reads stale 0.0
+       (that's why the earlier probe reported sliderRaw=0.0000 even with the slider up). */
+    hidScanInput();
+    {
+        float s = osGet3DSliderState();  /* 0.0 off .. 1.0 full */
+        if (s > 0.0f) { g_top3D = 1; g_stereoSep = s; }
+        else          { g_top3D = 0; g_stereoSep = 0.0f; }
+    }
 
     /* Re-fetch the live framebuffers EVERY frame. The 3DS display buffer can
        differ from the one cached at init / after resume, so writing a cached
        pointer paints a buffer the display is NOT showing -> stale bar + flicker.
        Re-fetching guarantees we always write the currently-displayed buffer.
-       Single-buffered + flush-only (gfxSetDoubleBuffering(false) at init). */
+       Double-buffered top (citro2d); single-buffered bottom (raw-gfx). */
     {
         u16 tw = 0, th = 0, bw = 0, bh = 0;
         g_topFbL = (u8*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &tw, &th);
         g_topW = tw ? tw : 240;  g_topH = th ? th : 400;
-        if (g_top3D) {
-            /* Stereo: top buffer is 240x800 (GSP_SCREEN_HEIGHT_TOP_2X). GFX_LEFT = rows
-               0..399, GFX_RIGHT (=second half) = rows 400..799. We derive the right-half
-               pointer by offset into the SAME allocated buffer (no gfx call -> crash-safe;
-               the 712016 fault was the gfxSet3D() inside the APT hook, not this write). */
-            g_topFbR = g_topFbL + (size_t)400 * g_topW * 3;
-        } else {
-            g_topFbR = g_topFbL;  /* alias LEFT; 3D off => right eye unused */
-        }
-        g_botFb  = (u8*)gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &bw, &bh);
+        g_botFb = (u8*)gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &bw, &bh);
         g_botW = bw ? bw : 240;  g_botH = bh ? bh : 320;
     }
-    if (!g_topFbL || !g_topFbR || !g_botFb) return;
+    (void)g_topFbR;
 
     /* BOTTOM: 240x320 portrait framebuffer. The working SDL config (devkitPro
        3DS driver, SDL_DUALSCR 400x480) maps the surface LOWER HALF (rows 240..479)
@@ -447,59 +484,71 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
         }
     }
     if (g_botTmp && g_botFb) SDL_memcpy(g_botFb, g_botTmp, (size_t)g_botW * g_botH * 3);
-    /* For reference, the TOP screen (rows 0..239) maps the same way: */
-    /* TOP: 400x240 landscape 3D view + HUD (screenSurface rows 0..239) into the
-       240x400 portrait top framebuffer, DIRECT upright (LCD rotates 90deg itself).
-       Scale source 400-wide -> g_topW (240), 240-tall -> g_topH (400). gfxSet3D(false)
-       => only GFX_LEFT shown; write both eyes anyway (harmless). */
-    {
-        /* TOP: 400x240 landscape 3D view + HUD (surface rows 0..239) into the 240x400
-           portrait top framebuffer, rotated 90deg UPRIGHT via the proven-graceful COL-FLIP
-           write-order (same as bottom; build 712002 was graceful with this order, row-flip
-           crashed). dx = g_topW-1 - sy ; dy = sx * g_topH / 400. */
-        for (int sy = 0; sy < 240; sy++) {
-            int dx = g_topW - 1 - sy;
-            const Uint32* row = src + sy * 400;
-            for (int sx = 0; sx < 400; sx++) {
-                int dy = (sx * g_topH) / 400;
-                if (dy < 0) dy = 0; else if (dy >= g_topH) dy = g_topH - 1;
-                int bi = (dy * g_topW + dx) * 3;
-                put_bgr8(&g_topFbL[bi], rgba32_to_bgr8(row[sx]));
-                put_bgr8(&g_topFbR[bi], rgba32_to_bgr8(row[sx]));
+
+    /* TOP screen: hand to citro2d. Copy the top region (screenSurface rows 0..239, 400x240)
+       directly into 512x256 RGB565 scratch texture, upload, and draw to BOTH stereo eye targets.
+       citro2d's scene target automatically applies the 3DS screen rotation tilt via Mtx_OrthoTilt,
+       so no manual software rotation is needed. citro3d owns the dual-eye present and suspend lifecycle. */
+    if (g_topCitroInited && !g_gfx_suspended) {
+        /* PICA200 GPU textures require 8x8 Morton (Z-order) tiled pixel data.
+           We tile the 400x240 RGB565 source into 512x256 POT texture memory.
+           g_topSub has top=240/256 and bottom=0 (top >= bottom, unrotated).
+           In GPU texture space, v=0 is at row 0 (bottom of screen) and v=240/256
+           is at row 239 (top of screen). We map source row sy = 239 - (by + py)
+           so the image displays right-side up without rotation or squishing. */
+        static const u8 s_morton8x8[64] = {
+             0,  1,  4,  5, 16, 17, 20, 21,
+             2,  3,  6,  7, 18, 19, 22, 23,
+             8,  9, 12, 13, 24, 25, 28, 29,
+            10, 11, 14, 15, 26, 27, 30, 31,
+            32, 33, 36, 37, 48, 49, 52, 53,
+            34, 35, 38, 39, 50, 51, 54, 55,
+            40, 41, 44, 45, 56, 57, 60, 61,
+            42, 43, 46, 47, 58, 59, 62, 63
+        };
+        u16* dst = g_topScratch;
+        for (int by = 0; by < 240; by += 8) {
+            int ty = by / 8;
+            for (int bx = 0; bx < 400; bx += 8) {
+                int tx = bx / 8;
+                u16* tileDst = dst + (ty * (512 / 8) + tx) * 64;
+                for (int py = 0; py < 8; py++) {
+                    int sy = 239 - (by + py);
+                    const Uint32* rowSrc = src + sy * 400 + bx;
+                    const u8* mRow = &s_morton8x8[py * 8];
+                    tileDst[mRow[0]] = rgba32_to_rgb565(rowSrc[0]);
+                    tileDst[mRow[1]] = rgba32_to_rgb565(rowSrc[1]);
+                    tileDst[mRow[2]] = rgba32_to_rgb565(rowSrc[2]);
+                    tileDst[mRow[3]] = rgba32_to_rgb565(rowSrc[3]);
+                    tileDst[mRow[4]] = rgba32_to_rgb565(rowSrc[4]);
+                    tileDst[mRow[5]] = rgba32_to_rgb565(rowSrc[5]);
+                    tileDst[mRow[6]] = rgba32_to_rgb565(rowSrc[6]);
+                    tileDst[mRow[7]] = rgba32_to_rgb565(rowSrc[7]);
+                }
             }
         }
-    }
+        C3D_TexUpload(&g_topTex, g_topScratch);
 
-    /* Commit the frame. On the MAIN THREAD, toggle 3D in lockstep with the present so the
-       GSP display transfer always matches the current buffer layout:
-         - flat:  gfxSet3D(false) + gfxScreenSwapBuffers(GFX_TOP, false)  (single 400-tall eye)
-         - 3D:    gfxSet3D(true)  + gfxScreenSwapBuffers(GFX_TOP, true)   (800-tall two-eye transfer)
-       (DXX-3DS / PrBoom-Plus-3DS lockstep rule: never leave 3D set without the matching present.)
-       On suspend the APT hook only sets g_gfx_suspended=1 (no gfx call) and we skip this, so the
-       GSP transfer is never torn down mid-3D -> no FAR 0xf4 fault. */
-    if (g_top3D) {
-        gfxSet3D(true);
-        gfxFlushBuffers();
-        gfxScreenSwapBuffers(GFX_TOP, true);
-    } else {
-        gfxSet3D(false);
-        gfxFlushBuffers();
-        gfxScreenSwapBuffers(GFX_TOP, false);
+        float sep = 0.0f;
+        if (g_top3D) sep = 8.0f * (g_stereoSep > 0.0f ? g_stereoSep : 1.0f);  /* px per eye; 0 = flat */
+
+        C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+        {
+            C2D_TargetClear(g_topTargetL, C2D_Color32(0, 0, 0, 255));
+            C2D_SceneBegin(g_topTargetL);
+            C2D_DrawImageAt(g_topImg, 0.0f + sep, 0.0f, 0.0f, NULL, 1.0f, 1.0f);
+
+            C2D_TargetClear(g_topTargetR, C2D_Color32(0, 0, 0, 255));
+            C2D_SceneBegin(g_topTargetR);
+            C2D_DrawImageAt(g_topImg, 0.0f - sep, 0.0f, 0.0f, NULL, 1.0f, 1.0f);
+        }
+        C3D_FrameEnd(0);
     }
 #endif
 }
 
 void SDL_RenderPresent(SDL_Surface *surface)
 {
-    /* Clear the bottom-screen top (empty automap region) to opaque black
-       every frame. The 3DS automap background clear via SDL_FillRect is
-       unreliable on this hardware surface (and only ran on movement), so
-       the white framebuffer init showed through as a strip. Reset the
-       clip and blit an opaque-black surface instead -- blits present
-       reliably. Tiles are drawn lower (y>=363) so this never hides them. */
-    /* The offscreen surface is no longer displayed (gfx owns the screens),
-       so the old SDL-surface strip-clear is dead code. It also dereferenced
-       surface->map (NULL) -> Data Abort 0x5c on present. Present via gfx only. */
     SDL_PresentGfx(surface);
 }
 
