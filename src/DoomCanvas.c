@@ -469,8 +469,21 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 		return;
 	}
 
+#ifdef __3DS__
+	/* On 3DS: render the informational dialog / terminal / password popup
+	   on the BOTTOM SCREEN (rows 240..479) so the top screen retains an
+	   unobstructed, full stereoscopic 3D view of the world and NPC.
+	   Center vertically at y = 240 + (240 - 54)/2 = 333. */
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_fillRect(doomCanvas->doomRpg, doomCanvas->SCR_CX - 64, doomCanvas->displayRect.h - 54, 128, 54);
+	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 240, 400, 240);
+
+	int boxY = 240 + ((240 - 54) / 2);
+#else
+	int boxY = doomCanvas->displayRect.h - 54;
+#endif
+
+	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+	DoomRPG_fillRect(doomCanvas->doomRpg, doomCanvas->SCR_CX - 64, boxY, 128, 54);
 
 	if (doomCanvas->player->facingEntity != NULL && 
 		doomCanvas->player->facingEntity->def->eType == 7 && 
@@ -484,15 +497,15 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 	if (doomCanvas->displayRect.w <= 128) {
 
 		DoomRPG_drawLine(doomCanvas->doomRpg, 
-			doomCanvas->SCR_CX - 64, doomCanvas->displayRect.h - 55, 
-			doomCanvas->SCR_CX + 63, doomCanvas->displayRect.h - 55);
+			doomCanvas->SCR_CX - 64, boxY - 1, 
+			doomCanvas->SCR_CX + 63, boxY - 1);
 
 		DoomRPG_drawLine(doomCanvas->doomRpg,
-			doomCanvas->SCR_CX - 64, doomCanvas->displayRect.h - 1,
-			doomCanvas->SCR_CX + 63, doomCanvas->displayRect.h - 1);
+			doomCanvas->SCR_CX - 64, boxY + 53,
+			doomCanvas->SCR_CX + 63, boxY + 53);
 	}
 	else {
-		DoomRPG_drawRect(doomCanvas->doomRpg, doomCanvas->SCR_CX - 65, doomCanvas->displayRect.h - 55, 129, 54);
+		DoomRPG_drawRect(doomCanvas->doomRpg, doomCanvas->SCR_CX - 65, boxY - 1, 129, 54);
 	}
 
 	if (doomCanvas->state == ST_DIALOGPASSWORD) {
@@ -514,7 +527,7 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 		}
 	}
 
-	posY = doomCanvas->displayRect.h - 52;
+	posY = boxY + 2;
 	for (i = 0; i < 4 && doomCanvas->currentDialogLine + i < doomCanvas->numDialogLines; ++i) {
 		strBeg = doomCanvas->dialogIndexes[((doomCanvas->currentDialogLine + i) * 2) + 0];
 		strNxt = doomCanvas->dialogIndexes[((doomCanvas->currentDialogLine + i) * 2) + 1];
@@ -539,15 +552,14 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 		DoomCanvas_drawString2(doomCanvas, 
 			doomCanvas->strPassCode, 
 			(doomCanvas->SCR_CX - 64) + ((doomCanvas->dialogIndexes[((doomCanvas->numDialogLines - 1) * 2) + 1] + 1) * 7),
-			//doomCanvas->SCR_CX + (doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) - 1] * 7) - 57,
 			posY - 12, 0, -1);
 	}
 	if (doomCanvas->numDialogLines > 4) {
 		if (doomCanvas->currentDialogLine + 4 == doomCanvas->numDialogLines) {
-			DoomCanvas_drawScrollBar(doomCanvas, doomCanvas->displayRect.h - 54, 53, doomCanvas->currentDialogLine, doomCanvas->numDialogLines, doomCanvas->numDialogLines);
+			DoomCanvas_drawScrollBar(doomCanvas, boxY, 53, doomCanvas->currentDialogLine, doomCanvas->numDialogLines, doomCanvas->numDialogLines);
 		}
 		else {
-			DoomCanvas_drawScrollBar(doomCanvas, doomCanvas->displayRect.h - 54, 53, doomCanvas->currentDialogLine, doomCanvas->currentDialogLine + 4, doomCanvas->numDialogLines + 4);
+			DoomCanvas_drawScrollBar(doomCanvas, boxY, 53, doomCanvas->currentDialogLine, doomCanvas->currentDialogLine + 4, doomCanvas->numDialogLines + 4);
 		}
 	}
 }
