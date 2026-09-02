@@ -7,7 +7,9 @@
 #include <SDL.h>
 #include <SDL_mixer.h>
 #endif
+#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "DoomRPG.h"
@@ -3389,7 +3391,7 @@ void DoomCanvas_renderOnlyState(DoomCanvas_t* doomCanvas)
 
 	doomCanvas->lastFrameTime = doomCanvas->time;
 	Render_render(doomCanvas->render, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewZ, doomCanvas->viewAngle);
-	DoomCanvas_invalidateRectAndUpdateView(doomCanvas); 
+	DoomCanvas_invalidateRectAndUpdateView(doomCanvas);
 	DoomCanvas_drawRGB(doomCanvas);
 
 	if (doomCanvas->benchmarkString) {
@@ -3418,10 +3420,52 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 {
 	doomCanvas->lastFrameTime = doomCanvas->time;
 	doomCanvas->beforeRender = DoomRPG_GetUpTimeMS();
+#ifdef __3DS__
+	extern SDL_Surface* g_stereoRight;
+	extern int g_top3D;
+	extern float g_stereoSep;
+	extern int g_stereoRightValid;
+
+	if (g_top3D && g_stereoSep > 0.01f && g_stereoRight) {
+		float halfSep = g_stereoSep * 2.5f; /* 0..2.5 world units per eye */
+		int dx = (int)(halfSep * sinf((float)angle * 3.14159265f / 128.0f));
+		int dy = (int)(halfSep * cosf((float)angle * 3.14159265f / 128.0f));
+
+		/* 1. Render RIGHT EYE at (x + dx, y + dy) into piDIB */
+		Render_render(doomCanvas->render, x + dx, y + dy, doomCanvas->viewZ, angle);
+		if (doomCanvas->state != ST_CAST) {
+			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
+		}
+		/* Blit RIGHT EYE to g_stereoRight (matches screen region y=20..212) */
+		SDL_Rect clip, rq;
+		clip.x = doomCanvas->render->screenX; clip.y = doomCanvas->render->screenY;
+		clip.w = doomCanvas->render->screenWidth; clip.h = doomCanvas->render->screenHeight;
+		rq.x = clip.x; rq.y = clip.y; rq.w = clip.w; rq.h = clip.h;
+		if (clip.w <= rq.w) rq.w = clip.w;
+		if (clip.h <= rq.h) rq.h = clip.h;
+		SDL_BlitSurface(doomCanvas->render->piDIB, &clip, g_stereoRight, &rq);
+		g_stereoRightValid = 1;
+
+		/* 2. Render LEFT EYE at (x - dx, y - dy) into piDIB */
+		Render_render(doomCanvas->render, x - dx, y - dy, doomCanvas->viewZ, angle);
+		if (doomCanvas->state != ST_CAST) {
+			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
+		}
+		/* Caller's DoomCanvas_drawRGB will blit piDIB (Left Eye) into sdlVideo.screenSurface */
+	}
+	else {
+		g_stereoRightValid = 0;
+		Render_render(doomCanvas->render, x, y, doomCanvas->viewZ, angle);
+		if (doomCanvas->state != ST_CAST) {
+			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
+		}
+	}
+#else
 	Render_render(doomCanvas->render, x, y, doomCanvas->viewZ, angle);
 	if (doomCanvas->state != ST_CAST) {
 		Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
 	}
+#endif
 	doomCanvas->afterRender = DoomRPG_GetUpTimeMS();
 }
 
