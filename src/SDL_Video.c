@@ -492,27 +492,9 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
        above the automap tiles, which start at y>=363) to opaque black EVERY frame
        -- the automap bg clear (SDL_FillRect) is a no-op on this surface, so without
        this the stale/garbage strip showed through. We replicate that here. */
+    /* Blit the FULL lower half (rows 240..479) into g_botTmp, rotated 90deg so it
+       appears UPRIGHT on screen. */
     {
-        /* 1) Clear the source strip rows 240..359 to opaque black (author fix). */
-        Uint32* sp = (Uint32*)sdlVideo.screenSurface->pixels;
-        for (int sy = 240; sy < 360; sy++)
-            for (int sx = 0; sx < 400; sx++)
-                sp[sy * 400 + sx] = 0xFF000000u;  /* A=255, RGB=0 */
-    }
-    /* NOTE: we render the rotated bottom into the OFF-SCREEN g_botTmp scratch, then
-       memcpy it to the live g_botFb in ONE contiguous copy. This keeps the GSP-happy
-       "full contiguous buffer write" each frame (removing the per-frame live memset is
-       what brought dump 125 back), while never showing a half-black intermediate frame
-       -> no CRT flash (the flash was the torn black frame visible mid-rewrite). */
-    {
-        /* 2) Blit the FULL lower half (rows 240..479) into g_botTmp, rotated 90deg so it
-           appears UPRIGHT on screen. CRASH FIX: 709/10/11/12 used a ROW-FLIP (dest written
-           row-major) and EVERY one crashed (FAR 0xf4 GSP Data Abort at HOME suspend). The
-           proven-graceful rotation is the COL-FLIP write-order (build 712002): dest written
-           column-by-column: dx = g_botW-1 - (sy-240), dy = sx * g_botH / 400. This maps
-           source rows->dest cols (vertical flip) + source cols->dest rows, i.e. the SAME
-           upright orientation as the row-flip but in the graceful write order.
-           (709's "180deg" was the g_botH shift-bug, not the rotation direction.) */
         u8* dst = g_botTmp ? g_botTmp : g_botFb;
         for (int sy = 240; sy < 480; sy++) {
             int dx = g_botW - 1 - (sy - 240);
@@ -526,6 +508,14 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
         }
     }
     if (g_botTmp && g_botFb && !g_gfx_suspended) SDL_memcpy(g_botFb, g_botTmp, (size_t)g_botW * g_botH * 3);
+
+    /* Clear source strip rows 240..359 to opaque black for NEXT frame so stale strip doesn't linger */
+    {
+        Uint32* sp = (Uint32*)sdlVideo.screenSurface->pixels;
+        for (int sy = 240; sy < 360; sy++)
+            for (int sx = 0; sx < 400; sx++)
+                sp[sy * 400 + sx] = 0xFF000000u;  /* A=255, RGB=0 */
+    }
 
     /* TOP screen: hand to citro2d. Copy the top region (screenSurface rows 0..239, 400x240)
        directly into 512x256 RGB565 scratch texture, upload, and draw to BOTH stereo eye targets.
