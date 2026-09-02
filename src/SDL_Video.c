@@ -60,11 +60,14 @@ float g_stereoSep = 0.0f;
 /* citro2d top-screen present (suspend-safe stereo path). The TOP screen is handed to citro2d
    render targets; citro3d owns the present + suspend lifecycle (devkitPro stereoscopic_2d example
    survives aptMainLoop+HOME). BOTTOM stays raw-gfx (separate screen, no conflict). */
-static C3D_Tex      g_topTex;        /* 512x256 RGB565 texture (padded POT from 400x240 landscape) */
+static C3D_Tex      g_topTex;        /* 512x256 RGB565 texture (Left eye) */
+static C3D_Tex      g_topTexR;       /* 512x256 RGB565 texture (Right eye) */
 static C2D_Image    g_topImg;        /* citro2d image wrapper around g_topTex */
+static C2D_Image    g_topImgR;       /* citro2d image wrapper around g_topTexR */
 static C3D_RenderTarget* g_topTargetL = NULL;  /* GFX_TOP LEFT eye */
 static C3D_RenderTarget* g_topTargetR = NULL;  /* GFX_TOP RIGHT eye */
-u16*         g_topScratch = NULL;  /* 512x256 RGB565 top region (POT-padded) */
+u16*         g_topScratch = NULL;    /* 512x256 RGB565 top region (Left eye) */
+u16*         g_topScratchR = NULL;   /* 512x256 RGB565 top region (Right eye) */
 Tex3DS_SubTexture g_topSub;    /* subtexture region (400x240 within 512x256 tex) */
 bool         g_topCitroInited = false;
 int          g_topProbed = 0;        /* one-shot measurement probe fired (in Main loop, not present) */
@@ -132,14 +135,20 @@ void SDL_InitVideo(void) {
 	C3D_TexInit(&g_topTex, 512, 256, GPU_RGB565);
 	C3D_TexSetFilter(&g_topTex, GPU_NEAREST, GPU_NEAREST);
 	C3D_TexSetWrap(&g_topTex, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
+	C3D_TexInit(&g_topTexR, 512, 256, GPU_RGB565);
+	C3D_TexSetFilter(&g_topTexR, GPU_NEAREST, GPU_NEAREST);
+	C3D_TexSetWrap(&g_topTexR, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
 	g_topScratch = (u16*)linearAlloc(512 * 256 * 2);
 	memset(g_topScratch, 0, 512 * 256 * 2);
+	g_topScratchR = (u16*)linearAlloc(512 * 256 * 2);
+	memset(g_topScratchR, 0, 512 * 256 * 2);
 	/* PICA200 texture coordinates: V=1.0 is row 0 (top of texture), V=0.0 is row 255.
 	   Rows 0..239 contain our active image, rows 240..255 are 16px of POT padding.
 	   Subtexture top is 1.0f (row 0), bottom is (256-240)/256 = 16/256 = 0.0625f (row 239). */
 	g_topSub = (Tex3DS_SubTexture){ 400, 240, 0.0f, 1.0f, 400.0f/512.0f, (256.0f - 240.0f)/256.0f };
 	g_topImg.tex = &g_topTex; g_topImg.subtex = &g_topSub;
-	g_topCitroInited = (g_topTargetL && g_topTargetR && g_topScratch);
+	g_topImgR.tex = &g_topTexR; g_topImgR.subtex = &g_topSub;
+	g_topCitroInited = (g_topTargetL && g_topTargetR && g_topScratch && g_topScratchR);
 	/* Stereo eye-capture buffers: 400x240 scene per eye (matches the 3D view region). */
 	g_topEyeL = (Uint32*)SDL_calloc(1, (size_t)400 * 240 * sizeof(Uint32));
 	g_topEyeR = (Uint32*)SDL_calloc(1, (size_t)400 * 240 * sizeof(Uint32));
@@ -343,6 +352,10 @@ void SDL_Close(void)
     if (g_topScratch) {
         linearFree(g_topScratch);
         g_topScratch = NULL;
+    }
+    if (g_topScratchR) {
+        linearFree(g_topScratchR);
+        g_topScratchR = NULL;
     }
     if (g_topEyeL) {
         SDL_free(g_topEyeL);
@@ -558,18 +571,49 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
         }
         C3D_TexUpload(&g_topTex, g_topScratch);
 
-        float sep = 0.0f;
-        if (g_top3D) sep = 8.0f * (g_stereoSep > 0.0f ? g_stereoSep : 1.0f);  /* px per eye; 0 = flat */
+        /* If 3D slider is active and Right Eye scene was rendered, construct Right Eye texture */
+        if (g_top3D && g_stereoRightValid && g_stereoRight && g_topScratchR) {
+            /* Copy status bar (0..19) and HUD (212..239) from Left Eye */
+            memcpy(g_topScratchR, g_topScratch, 512 * 256 * 2);
+            /* Overlay Right Eye 3D scene (rows 20..211) from g_stereoRight (RGB565) */
+            const u16* rSrc = (const u16*)g_stereoRight->pixels;
+            for (int by = 16; by < 216; by += 8) {
+                int ty = by / 8;
+                for (int bx = 0; bx < 400; bx += 8) {
+                    int tx = bx / 8;
+                    u16* tileDst = g_topScratchR + (ty * (512 / 8) + tx) * 64;
+                    for (int py = 0; py < 8; py++) {
+                        int sy = by + py;
+                        if (sy < 20 || sy >= 212) continue;
+                        const u16* rRow = rSrc + sy * 400 + bx;
+                        const u8* mRow = &s_morton8x8[py * 8];
+                        tileDst[mRow[0]] = rRow[0];
+                        tileDst[mRow[1]] = rRow[1];
+                        tileDst[mRow[2]] = rRow[2];
+                        tileDst[mRow[3]] = rRow[3];
+                        tileDst[mRow[4]] = rRow[4];
+                        tileDst[mRow[5]] = rRow[5];
+                        tileDst[mRow[6]] = rRow[6];
+                        tileDst[mRow[7]] = rRow[7];
+                    }
+                }
+            }
+            C3D_TexUpload(&g_topTexR, g_topScratchR);
+        }
 
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
         {
             C2D_TargetClear(g_topTargetL, C2D_Color32(0, 0, 0, 255));
             C2D_SceneBegin(g_topTargetL);
-            C2D_DrawImageAt(g_topImg, 0.0f + sep, 0.0f, 0.0f, NULL, 1.0f, 1.0f);
+            C2D_DrawImageAt(g_topImg, 0.0f, 0.0f, 0.0f, NULL, 1.0f, 1.0f);
 
             C2D_TargetClear(g_topTargetR, C2D_Color32(0, 0, 0, 255));
             C2D_SceneBegin(g_topTargetR);
-            C2D_DrawImageAt(g_topImg, 0.0f - sep, 0.0f, 0.0f, NULL, 1.0f, 1.0f);
+            if (g_top3D && g_stereoRightValid) {
+                C2D_DrawImageAt(g_topImgR, 0.0f, 0.0f, 0.0f, NULL, 1.0f, 1.0f);
+            } else {
+                C2D_DrawImageAt(g_topImg, 0.0f, 0.0f, 0.0f, NULL, 1.0f, 1.0f);
+            }
         }
         C3D_FrameEnd(0);
     }
