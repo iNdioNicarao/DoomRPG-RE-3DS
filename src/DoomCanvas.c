@@ -3632,14 +3632,15 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 		int dx = (int)(halfSep * sinf((float)angle * 3.14159265f / 128.0f));
 		int dy = (int)(halfSep * cosf((float)angle * 3.14159265f / 128.0f));
 
-		/* Soften 3D effect on gun: give weapon slight positive parallax so it rests
-		   comfortably inside screen depth rather than sticking out at the player */
-		int gunSep = (int)(g_stereoSep * 2.0f);
+		/* Subtle 1px positive depth offset matching the world's parallax direction:
+		   Right eye shifts slightly LEFT (-1px) when 3D slider is active, Left eye at 0.
+		   This seats the weapon naturally into the screen without causing ghosting/doubling. */
+		int gunOffsetR = (g_stereoSep > 0.35f) ? 1 : 0;
 
 		/* 1. Render RIGHT EYE at (x + dx, y + dy) into piDIB */
 		Render_render(doomCanvas->render, x + dx, y + dy, doomCanvas->viewZ, angle);
 		if (doomCanvas->state != ST_CAST) {
-			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX + gunSep, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
+			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX - gunOffsetR, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
 		}
 		/* Blit RIGHT EYE to g_stereoRight (matches screen region y=20..212) */
 		SDL_Rect clip, rq;
@@ -3654,7 +3655,7 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 		/* 2. Render LEFT EYE at (x - dx, y - dy) into piDIB */
 		Render_render(doomCanvas->render, x - dx, y - dy, doomCanvas->viewZ, angle);
 		if (doomCanvas->state != ST_CAST) {
-			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX - gunSep, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
+			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
 		}
 		/* Caller's DoomCanvas_drawRGB will blit piDIB (Left Eye) into sdlVideo.screenSurface */
 	}
