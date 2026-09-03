@@ -1,10 +1,10 @@
 #!/bin/sh
 # Build a CIA from a built DoomRPG.elf.
-# This script does NOT bump the version — bump VERSION yourself.
+# This script does NOT bump the version — bump tools/cia/VERSION yourself, exactly once per real build.
 #
-# Usage (run from inside vibe/cia/):
+# Usage (run from inside tools/cia/):
 #   ./make_cia.sh [path/to/DoomRPG.elf]
-# ELF defaults to ../../public/build/src/DoomRPG.elf (CMake out-dir).
+# ELF defaults to ../../build/src/DoomRPG.elf (CMake out-dir).
 #
 # Requires DEVKITPRO on PATH (bannertool, makerom in $DEVKITPRO/tools/bin).
 set -e
@@ -20,10 +20,10 @@ else
 fi
 
 # --- locate the built ELF (HERE-based so cwd doesn't matter) ---
-ELF="${1:-$HERE/../../public/build/src/DoomRPG.elf}"
+ELF="${1:-$HERE/../../build/src/DoomRPG.elf}"
 if [ ! -f "$ELF" ]; then
     echo "ERROR: ELF not found at: $ELF" >&2
-    echo "  Build first (from public/):" >&2
+    echo "  Build first:" >&2
     echo "    cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/3DS.cmake" >&2
     echo "    cmake --build build" >&2
     exit 1
