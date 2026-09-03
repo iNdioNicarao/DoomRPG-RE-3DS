@@ -65,6 +65,9 @@ int main(int argc, char* args[])
     int mouse_Button = MOUSE_BUTTON_INVALID;
     while (aptMainLoop() && !doomRpg->closeApplet)
     {
+#ifdef __3DS__
+        hidScanInput();
+#endif
         int currentTimeMillis = DoomRPG_GetUpTimeMS();
         mouse_Button = MOUSE_BUTTON_INVALID;
 

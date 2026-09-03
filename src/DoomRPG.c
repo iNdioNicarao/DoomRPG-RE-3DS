@@ -32,10 +32,10 @@ DoomRPG_t* doomRpg = NULL;
 keyMapping_t keyMapping[12];
 keyMapping_t keyMappingTemp[12];
 keyMapping_t keyMappingDefault[12] = {
-	{AVK_UP | AVK_MENU_UP,				{KEY_DUP,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Move forward
-	{AVK_DOWN | AVK_MENU_DOWN,			{KEY_DDOWN,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Move backward
-	{AVK_LEFT | AVK_MENU_PAGE_UP,		{KEY_DLEFT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Turn left/page up
-	{AVK_RIGHT | AVK_MENU_PAGE_DOWN,	{KEY_DRIGHT,-1,-1,-1,-1,-1,-1,-1,-1,-1}},	// Turn right/page down
+	{AVK_UP | AVK_MENU_UP,				{KEY_DUP, KEY_CPAD_UP, -1,-1,-1,-1,-1,-1,-1,-1}},	// Move forward
+	{AVK_DOWN | AVK_MENU_DOWN,			{KEY_DDOWN, KEY_CPAD_DOWN, -1,-1,-1,-1,-1,-1,-1,-1}},	// Move backward
+	{AVK_LEFT | AVK_MENU_PAGE_UP,		{KEY_DLEFT, KEY_CPAD_LEFT, -1,-1,-1,-1,-1,-1,-1,-1}},	// Turn left/page up
+	{AVK_RIGHT | AVK_MENU_PAGE_DOWN,	{KEY_DRIGHT, KEY_CPAD_RIGHT, -1,-1,-1,-1,-1,-1,-1,-1}},	// Turn right/page down
 	{AVK_MOVELEFT,						{KEY_L,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Move left
 	{AVK_MOVERIGHT,					{KEY_R,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Move right
 	{AVK_NEXTWEAPON,						{KEY_ZR,-1,-1,-1,-1,-1,-1,-1,-1,-1}},		// Next weapon
@@ -237,51 +237,46 @@ int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
     int key = AVK_UNDEFINED;
     int i, j;
 
-    int buttonID = hidKeysDown();              // raw HID key bits (default binds)
-    int ctrlID = SDL_JoystickGetButtonID();    // CONTROLLER_BUTTON_* (custom binds)
+    u32 buttonID = hidKeysHeld() | hidKeysDown();
+    int ctrlID = SDL_JoystickGetButtonID();
 
-    // Gameplay uses the (possibly rebound) keyMapping. Menu navigation must always
-    // follow the DEFAULT keys (A = select, D-pad = navigate), so we resolve the
-    // menu-navigation bits from keyMappingDefault and force them on top of the
-    // gameplay key. This keeps custom gameplay binds from breaking the menus.
     int menuBits = AVK_UNDEFINED;
 
-    if (buttonID != -1 || ctrlID != -1)
+    if (buttonID != 0 || ctrlID != -1)
     {
-        int bindCode = buttonID;
         int ctrlCode = (ctrlID != -1) ? (ctrlID | IS_CONTROLLER_BUTTON) : -1;
 
         // Gameplay key from the active (rebindable) mapping.
         for (i = 0; i < (sizeof(keyMapping) / sizeof(keyMapping_t)); ++i) {
             for (j = 0; j < KEYBINDS_MAX; j++) {
                 int kb = keyMapping[i].keyBinds[j];
-                if (kb == 0) continue;
-                if (kb == bindCode) {
-                    key = keyMapping[i].avk_action;
-                    goto found_key;
+                if (kb <= 0) continue;
+                if ((buttonID & (u32)kb) == (u32)kb) {
+                    key |= keyMapping[i].avk_action;
+                    break;
                 }
                 if (ctrlCode != -1 && kb == ctrlCode) {
-                    key = keyMapping[i].avk_action;
-                    goto found_key;
+                    key |= keyMapping[i].avk_action;
+                    break;
                 }
             }
         }
     }
 
-found_key:
     // Force menu-navigation bits from the default mapping so menus are never
     // affected by a gameplay rebind (e.g. binding A to "Move Right").
-    if (buttonID != -1) {
+    if (buttonID != 0) {
         for (i = 0; i < (sizeof(keyMappingDefault) / sizeof(keyMapping_t)); ++i) {
             for (j = 0; j < KEYBINDS_MAX; j++) {
-                if (keyMappingDefault[i].keyBinds[j] == buttonID) {
-                    menuBits = keyMappingDefault[i].avk_action;
-                    goto found_menu;
+                int kb = keyMappingDefault[i].keyBinds[j];
+                if (kb <= 0) continue;
+                if ((buttonID & (u32)kb) == (u32)kb) {
+                    menuBits |= keyMappingDefault[i].avk_action;
+                    break;
                 }
             }
         }
     }
-found_menu:
     if (menuBits != AVK_UNDEFINED) {
         key |= (menuBits & (AVK_MENU_UP | AVK_MENU_DOWN | AVK_MENU_PAGE_UP |
                             AVK_MENU_PAGE_DOWN | AVK_MENU_SELECT | AVK_MENU_OPEN));
