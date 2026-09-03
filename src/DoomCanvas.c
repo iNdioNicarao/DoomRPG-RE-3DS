@@ -664,16 +664,16 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
         Hud_drawBarTiles(doomCanvas, 0, 240, 400, false);
 
         if (player) {
-            // Level and Credits
-            SDL_snprintf(text, sizeof(text), "LVL %d  $%d", player->level, player->credits);
-            DoomCanvas_drawString1(doomCanvas, text, 8, 244, 0);
+            // Level and Credits (matching top status bar spacing)
+            SDL_snprintf(text, sizeof(text), "LEVEL %d   CREDITS: %d", player->level, player->credits);
+            DoomCanvas_drawString1(doomCanvas, text, 8, 245, 0);
 
             // Keycard Badges
-            int kx = 160;
-            if (player->keys & 1) { DoomCanvas_drawString1(doomCanvas, "B", kx, 244, 0); kx += 18; }
-            if (player->keys & 2) { DoomCanvas_drawString1(doomCanvas, "R", kx, 244, 0); kx += 18; }
-            if (player->keys & 4) { DoomCanvas_drawString1(doomCanvas, "Y", kx, 244, 0); kx += 18; }
-            if (player->keys & 8) { DoomCanvas_drawString1(doomCanvas, "U", kx, 244, 0); }
+            int kx = 210;
+            if (player->keys & 1) { DoomCanvas_drawString1(doomCanvas, "[B]", kx, 245, 0); kx += 24; }
+            if (player->keys & 2) { DoomCanvas_drawString1(doomCanvas, "[R]", kx, 245, 0); kx += 24; }
+            if (player->keys & 4) { DoomCanvas_drawString1(doomCanvas, "[Y]", kx, 245, 0); kx += 24; }
+            if (player->keys & 8) { DoomCanvas_drawString1(doomCanvas, "[U]", kx, 245, 0); }
         }
 
         // [ MENU ] Button on Top-Right with beveled divider
@@ -681,7 +681,7 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
         DoomRPG_drawLine(doomCanvas->doomRpg, 334, 240, 334, 259);
         DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
         DoomRPG_drawLine(doomCanvas->doomRpg, 335, 240, 335, 259);
-        DoomCanvas_drawString1(doomCanvas, "MENU", 367, 244, 16);
+        DoomCanvas_drawString1(doomCanvas, "MENU", 367, 245, 16);
 
         // --- BOTTOM METALLIC QUICK-ACCESS BAR (Y = 460..479, 20px tall) ---
         Hud_drawBarTiles(doomCanvas, 0, 460, 400, false);
@@ -714,9 +714,9 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
             if (hotbar[b].itemIndex >= 0) {
                 int count = player ? player->inventory[hotbar[b].itemIndex] : 0;
                 SDL_snprintf(text, sizeof(text), "%s:%d", hotbar[b].name, count);
-                DoomCanvas_drawString1(doomCanvas, text, centerX, 464, 16);
+                DoomCanvas_drawString1(doomCanvas, text, centerX, 245 + 220, 16);
             } else {
-                DoomCanvas_drawString1(doomCanvas, (char*)hotbar[b].name, centerX, 464, 16);
+                DoomCanvas_drawString1(doomCanvas, (char*)hotbar[b].name, centerX, 245 + 220, 16);
             }
         }
     }
@@ -2342,12 +2342,20 @@ void DoomCanvas_drawFont(DoomCanvas_t* doomCanvas, char* text, int x, int y, int
     // Select font size and parameters
     if (isLargerFont == 0) {
         imgFont = &doomCanvas->imgFont;
+#ifdef __3DS__
+        charAdvanceWidth = (y >= 240) ? 9 : 7;
+#else
         charAdvanceWidth = 7;
+#endif
         charCellWidth = 9;
         charCellHeight = 12;
     } else {
         imgFont = &doomCanvas->imgLargerFont;
+#ifdef __3DS__
+        charAdvanceWidth = (y >= 240) ? 12 : 10;
+#else
         charAdvanceWidth = 10;
+#endif
         charCellWidth = 13;
         charCellHeight = 17;
     }
@@ -2456,12 +2464,20 @@ void DoomCanvas_drawFontSur(DoomCanvas_t* doomCanvas, char* text, int x, int y, 
     // Select font size and parameters
     if (isLargerFont == 0) {
         imgFont = &doomCanvas->imgFont;
+#ifdef __3DS__
+        charAdvanceWidth = (y >= 240) ? 9 : 7;
+#else
         charAdvanceWidth = 7;
+#endif
         charCellWidth = 9;
         charCellHeight = 12;
     } else {
         imgFont = &doomCanvas->imgLargerFont;
+#ifdef __3DS__
+        charAdvanceWidth = (y >= 240) ? 12 : 10;
+#else
         charAdvanceWidth = 10;
+#endif
         charCellWidth = 13;
         charCellHeight = 17;
     }
