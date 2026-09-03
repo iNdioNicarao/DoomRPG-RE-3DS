@@ -664,16 +664,9 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
         Hud_drawBarTiles(doomCanvas, 0, 240, 400, false);
 
         if (player) {
-            // Level and Credits (matching top status bar spacing)
-            SDL_snprintf(text, sizeof(text), "LEVEL %d   $%d", player->level, player->credits);
+            // Level and Credits (matching top status bar styling and full word CREDITS)
+            SDL_snprintf(text, sizeof(text), "LEVEL %d    CREDITS: %d", player->level, player->credits);
             DoomCanvas_drawString1(doomCanvas, text, 8, 245, 0);
-
-            // Keycard Badges
-            int kx = 180;
-            if (player->keys & 1) { DoomCanvas_drawString1(doomCanvas, "[B]", kx, 245, 0); kx += 24; }
-            if (player->keys & 2) { DoomCanvas_drawString1(doomCanvas, "[R]", kx, 245, 0); kx += 24; }
-            if (player->keys & 4) { DoomCanvas_drawString1(doomCanvas, "[Y]", kx, 245, 0); kx += 24; }
-            if (player->keys & 8) { DoomCanvas_drawString1(doomCanvas, "[U]", kx, 245, 0); }
         }
 
         // [ PASS ] Button on Top Bar with beveled divider
@@ -1951,7 +1944,7 @@ void DoomCanvas_drawImageSpecial(DoomCanvas_t* doomCanvas, Image_t* img, int xSr
 #ifdef __3DS__
             SDL_BlitSurface(img->imgBitmap, &src_rect, sdlVideo.screenSurface, &dst_rect);
             if (g_top3D && g_stereoRight && g_stereoSep > 0.01f && dst_rect.y < 212) {
-                int partOffset = (int)(g_stereoSep * 2.0f);
+                int partOffset = (int)(g_stereoSep * 1.8f);
                 SDL_Rect r_dst = dst_rect;
                 r_dst.x -= partOffset; /* Right eye matches world depth */
                 SDL_BlitSurface(img->imgBitmap, &src_rect, g_stereoRight, &r_dst);
@@ -2720,7 +2713,7 @@ void DoomCanvas_handleDialogEvents(DoomCanvas_t* doomCanvas, int i)
 
 	key = DoomCanvas_getKeyAction(doomCanvas, i);
 
-	if (key == SELECT || key == 15) {
+	if (key == SELECT || key == 15 || key == PASSTURN || i == AVK_PASSTURN) {
 		if (doomCanvas->dialogTypeLineIdx < 4 && doomCanvas->dialogTypeLineIdx < doomCanvas->numDialogLines - doomCanvas->currentDialogLine) {
 			doomCanvas->dialogTypeLineIdx = 4;
 			return;
@@ -2957,6 +2950,13 @@ void DoomCanvas_handleMenuEvents(DoomCanvas_t* doomCanvas, int i) {
 	int k, keyAction, menuKey;
 
 	menuKey = i;
+
+	// B button on 3DS (AVK_PASSTURN): back / return in menus
+	if (menuKey == AVK_PASSTURN) {
+		MenuSystem_back(doomCanvas->doomRpg->menuSystem);
+		return;
+	}
+
 	i &= ~(AVK_MENU_UP | AVK_MENU_DOWN | AVK_MENU_PAGE_UP | AVK_MENU_PAGE_DOWN | AVK_MENU_SELECT | AVK_MENU_OPEN);
 
 	k = (i - AVK_0);
@@ -2986,6 +2986,7 @@ void DoomCanvas_handleMenuEvents(DoomCanvas_t* doomCanvas, int i) {
 			break;
 		case MENUOPEN:
 		case MENU_OPEN: // Old MENUOPEN
+		case PASSTURN:  // B button action
 			MenuSystem_back(doomCanvas->doomRpg->menuSystem);
 			break;
 		default:
@@ -3849,7 +3850,7 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 	extern int g_stereoRightValid;
 
 	if (g_top3D && g_stereoSep > 0.01f && g_stereoRight) {
-		float halfSep = g_stereoSep * 2.25f; /* 0..2.25 world units per eye (10% reduction) */
+		float halfSep = g_stereoSep * 2.0f; /* 0..2.0 world units per eye (~11% reduction) */
 		int dx = (int)(halfSep * sinf((float)angle * 3.14159265f / 128.0f));
 		int dy = (int)(halfSep * cosf((float)angle * 3.14159265f / 128.0f));
 
