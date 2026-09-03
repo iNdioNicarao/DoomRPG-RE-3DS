@@ -49,12 +49,19 @@ Render/debug toggles (`r_frames`, `r_speeds`, `r_skipCull`, `s_debug`, …),
 Benchmark, and memory/state inspectors. Intended for development; harmless
 to toggle.
 
+### Touch Keypad & Passcode Entry (v1.0.3)
+
+While the mobile version required physical phone digit keys to enter door passcodes, v1.0.3 introduces an on-screen **Touch Keypad** on the 3DS bottom screen. Whenever a locked door prompts for a security code, you can tap digits `0`–`9`, `C` (clear), and `OK` directly on the screen.
+
+### Play Coins Exchange (v1.0.3)
+
+You can exchange your Nintendo 3DS system **Play Coins** for in-game Credits at terminals and vending stations. Each Play Coin converts into **$50 Credits**, allowing you to put your 3DS steps toward ammo, armor, and medkits!
+
 ### Note on the old keypad codes
 
 The upstream mobile port opened this menu with digit sequences such as
 `3666` (open debug) — those refer to the phone's 0–9 keys and do not apply
-to the 3DS, which has no numeric keypad. Use the in-game **Debug** menu entry
-instead.
+to the 3DS. Use the in-game **Debug** menu entry instead.
 
 ## Controls (rebinding)
 
