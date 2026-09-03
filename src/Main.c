@@ -33,6 +33,10 @@ static const char* BUILD_VERSION = "DOOMRPG-3DS v1.0.1 (persistent menuSurface f
 
 int main(int argc, char* args[])
 {
+#ifdef __3DS__
+    /* Enable 804MHz CPU clock + L2 cache on New 3DS (safe no-op on Old 3DS) */
+    osSetSpeedupEnable(true);
+#endif
     printf("\n=== %s ===\n", BUILD_VERSION);
     {
         FILE* bv = fopen("sdmc:/3ds/doomrpg/version.log", "w");
