@@ -57,6 +57,43 @@ keyMapping_t keyMappingDefault[12] = {
 
 #ifdef __3DS__
 #include <3ds.h>
+
+int Hardware_getPlayCoins(void) {
+    Handle fileHandle;
+    const u32 extdataArchive[3] = { MEDIATYPE_NAND, 0x0000000B, 0xF000000B };
+    FS_Path archPath = { PATH_BINARY, 12, (const u8*)extdataArchive };
+    FS_Path filePath = fsMakePath(PATH_ASCII, "/gamecoin.dat");
+    Result res = FSUSER_OpenFileDirectly(&fileHandle, ARCHIVE_SHARED_EXTDATA, archPath, filePath, FS_OPEN_READ, 0);
+    if (R_SUCCEEDED(res)) {
+        u16 coins = 0;
+        u32 bytesRead = 0;
+        FSFILE_Read(fileHandle, &bytesRead, 4, &coins, sizeof(coins));
+        FSFILE_Close(fileHandle);
+        return (int)coins;
+    }
+    return -1;
+}
+
+int Hardware_setPlayCoins(int newCoins) {
+    if (newCoins < 0) newCoins = 0;
+    if (newCoins > 300) newCoins = 300;
+    Handle fileHandle;
+    const u32 extdataArchive[3] = { MEDIATYPE_NAND, 0x0000000B, 0xF000000B };
+    FS_Path archPath = { PATH_BINARY, 12, (const u8*)extdataArchive };
+    FS_Path filePath = fsMakePath(PATH_ASCII, "/gamecoin.dat");
+    Result res = FSUSER_OpenFileDirectly(&fileHandle, ARCHIVE_SHARED_EXTDATA, archPath, filePath, FS_OPEN_WRITE, 0);
+    if (R_SUCCEEDED(res)) {
+        u16 coins = (u16)newCoins;
+        u32 bytesWritten = 0;
+        FSFILE_Write(fileHandle, &bytesWritten, 4, &coins, sizeof(coins), FS_WRITE_FLUSH);
+        FSFILE_Close(fileHandle);
+        return (bytesWritten == sizeof(coins)) ? 0 : -1;
+    }
+    return -1;
+}
+#else
+int Hardware_getPlayCoins(void) { return -1; }
+int Hardware_setPlayCoins(int newCoins) { (void)newCoins; return -1; }
 #endif
 
 void DoomRPG_Error(const char* fmt, ...)

@@ -433,6 +433,7 @@ void DoomCanvas_combatState(DoomCanvas_t* doomCanvas)
 	Hud_drawBottomBar(doomCanvas);
 #ifdef __3DS__
 	DoomCanvas_drawAutomap(doomCanvas, true);
+	DoomCanvas_drawBottomTouchHUD(doomCanvas);
 #endif
 }
 
@@ -620,6 +621,132 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 			DoomCanvas_drawScrollBar(doomCanvas, boxY, 53, doomCanvas->currentDialogLine, doomCanvas->currentDialogLine + 4, doomCanvas->numDialogLines + 4);
 		}
 	}
+#endif
+#ifdef __3DS__
+	DoomCanvas_drawBottomTouchHUD(doomCanvas);
+#endif
+}
+
+void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
+{
+#ifdef __3DS__
+    if (!doomCanvas || !doomCanvas->doomRpg) return;
+    Player_t* player = doomCanvas->player;
+    char text[32];
+
+    if (doomCanvas->state == ST_DIALOGPASSWORD) {
+        static const char* r1Labels[6] = { "1", "2", "3", "4", "5", "<" };
+        static const char* r2Labels[6] = { "6", "7", "8", "9", "0", "OK" };
+
+        for (int k = 0; k < 6; k++) {
+            int x = 31 + k * 58;
+            // Row 1
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+            DoomRPG_fillRect(doomCanvas->doomRpg, x, 420, 48, 24);
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x3FBF00);
+            DoomRPG_drawRect(doomCanvas->doomRpg, x, 420, 48, 24);
+            DoomRPG_drawRect(doomCanvas->doomRpg, x - 1, 419, 50, 26);
+            DoomCanvas_drawString1(doomCanvas, (char*)r1Labels[k], x + (k == 5 ? 20 : 19), 427, 0);
+
+            // Row 2
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+            DoomRPG_fillRect(doomCanvas->doomRpg, x, 450, 48, 24);
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x3FBF00);
+            DoomRPG_drawRect(doomCanvas->doomRpg, x, 450, 48, 24);
+            DoomRPG_drawRect(doomCanvas->doomRpg, x - 1, 449, 50, 26);
+            DoomCanvas_drawString1(doomCanvas, (char*)r2Labels[k], x + (k == 5 ? 16 : 19), 457, 0);
+        }
+        return;
+    }
+
+    if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
+        // Bottom-Left: [ + MED (count) ]
+        int medCount = player ? (player->inventory[0] + player->inventory[1]) : 0;
+        DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+        DoomRPG_fillRect(doomCanvas->doomRpg, 8, 442, 92, 30);
+        DoomRPG_setColor(doomCanvas->doomRpg, medCount > 0 ? 0x3FBF00 : 0x777777);
+        DoomRPG_drawRect(doomCanvas->doomRpg, 8, 442, 92, 30);
+        DoomRPG_drawRect(doomCanvas->doomRpg, 7, 441, 94, 32);
+        SDL_snprintf(text, sizeof(text), "+MED(%d)", medCount);
+        DoomCanvas_drawString1(doomCanvas, text, 14, 451, 0);
+
+        // Bottom-Right: [ PASS ]
+        DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+        DoomRPG_fillRect(doomCanvas->doomRpg, 306, 442, 86, 30);
+        DoomRPG_setColor(doomCanvas->doomRpg, 0xDDDDDD);
+        DoomRPG_drawRect(doomCanvas->doomRpg, 306, 442, 86, 30);
+        DoomRPG_drawRect(doomCanvas->doomRpg, 305, 441, 88, 32);
+        DoomCanvas_drawString1(doomCanvas, "PASS", 330, 451, 0);
+
+        // Top-Right: [ MENU ]
+        DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+        DoomRPG_fillRect(doomCanvas->doomRpg, 306, 246, 86, 28);
+        DoomRPG_setColor(doomCanvas->doomRpg, 0xDDDDDD);
+        DoomRPG_drawRect(doomCanvas->doomRpg, 306, 246, 86, 28);
+        DoomRPG_drawRect(doomCanvas->doomRpg, 305, 245, 88, 30);
+        DoomCanvas_drawString1(doomCanvas, "MENU", 330, 252, 0);
+
+        // Top-Left: Player Level & Credits
+        if (player) {
+            SDL_snprintf(text, sizeof(text), "LVL %d  $%d", player->level, player->credits);
+            DoomCanvas_drawString1(doomCanvas, text, 10, 252, 0);
+        }
+    }
+#endif
+}
+
+void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
+{
+#ifdef __3DS__
+    if (!doomCanvas || !doomCanvas->doomRpg) return;
+    Player_t* player = doomCanvas->player;
+
+    if (doomCanvas->state == ST_DIALOGPASSWORD) {
+        if (touchY >= 418 && touchY <= 446) {
+            if (touchX >= 28 && touchX <= 82)        DoomCanvas_keyPressed(doomCanvas, AVK_1);
+            else if (touchX >= 86 && touchX <= 140)  DoomCanvas_keyPressed(doomCanvas, AVK_2);
+            else if (touchX >= 144 && touchX <= 198) DoomCanvas_keyPressed(doomCanvas, AVK_3);
+            else if (touchX >= 202 && touchX <= 256) DoomCanvas_keyPressed(doomCanvas, AVK_4);
+            else if (touchX >= 260 && touchX <= 314) DoomCanvas_keyPressed(doomCanvas, AVK_5);
+            else if (touchX >= 318 && touchX <= 372) DoomCanvas_keyPressed(doomCanvas, AVK_LEFT);
+        }
+        else if (touchY >= 448 && touchY <= 476) {
+            if (touchX >= 28 && touchX <= 82)        DoomCanvas_keyPressed(doomCanvas, AVK_6);
+            else if (touchX >= 86 && touchX <= 140)  DoomCanvas_keyPressed(doomCanvas, AVK_7);
+            else if (touchX >= 144 && touchX <= 198) DoomCanvas_keyPressed(doomCanvas, AVK_8);
+            else if (touchX >= 202 && touchX <= 256) DoomCanvas_keyPressed(doomCanvas, AVK_9);
+            else if (touchX >= 260 && touchX <= 314) DoomCanvas_keyPressed(doomCanvas, AVK_0);
+            else if (touchX >= 318 && touchX <= 372) DoomCanvas_keyPressed(doomCanvas, AVK_SELECT);
+        }
+        return;
+    }
+
+    if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
+        // [ + MED ] button: bottom-left
+        if (touchX >= 6 && touchX <= 102 && touchY >= 438 && touchY <= 476) {
+            if (player) {
+                if (player->inventory[1] > 0) {
+                    Player_useItem(player, 26);
+                } else if (player->inventory[0] > 0) {
+                    Player_useItem(player, 25);
+                } else {
+                    Hud_addMessage(doomCanvas, "No medkits!");
+                    Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
+                }
+            }
+            return;
+        }
+        // [ PASS ] button: bottom-right
+        if (touchX >= 304 && touchX <= 394 && touchY >= 438 && touchY <= 476) {
+            DoomCanvas_keyPressed(doomCanvas, AVK_PASSTURN);
+            return;
+        }
+        // [ MENU ] button: top-right
+        if (touchX >= 304 && touchX <= 394 && touchY >= 244 && touchY <= 276) {
+            DoomCanvas_keyPressed(doomCanvas, AVK_MENUOPEN);
+            return;
+        }
+    }
 #endif
 }
 
@@ -1754,6 +1881,12 @@ void DoomCanvas_drawImageSpecial(DoomCanvas_t* doomCanvas, Image_t* img, int xSr
             // Drawing
 #ifdef __3DS__
             SDL_BlitSurface(img->imgBitmap, &src_rect, sdlVideo.screenSurface, &dst_rect);
+            if (g_top3D && g_stereoRight && g_stereoSep > 0.01f && dst_rect.y < 212) {
+                int partOffset = (int)(g_stereoSep * 2.0f);
+                SDL_Rect r_dst = dst_rect;
+                r_dst.x -= partOffset; /* Right eye matches world depth */
+                SDL_BlitSurface(img->imgBitmap, &src_rect, g_stereoRight, &r_dst);
+            }
 #else
             SDL_RenderCopy(sdlVideo.renderer, img->imgBitmap, &src_rect, &dst_rect);
 #endif
@@ -3454,6 +3587,7 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 			Hud_drawEffects(doomCanvas);
 #ifdef __3DS__
 			DoomCanvas_drawAutomap(doomCanvas, true);
+			DoomCanvas_drawBottomTouchHUD(doomCanvas);
 #endif
 
 			activeMonsters = doomCanvas->game->activeMonsters;
