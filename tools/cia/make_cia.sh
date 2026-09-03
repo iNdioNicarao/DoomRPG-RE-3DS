@@ -33,8 +33,17 @@ if [ ! -s ./DoomRPG.elf ] && [ "$ELF" != "./DoomRPG.elf" ]; then
     cp "$ELF" ./DoomRPG.elf
 fi
 
-if [ -f banner_assets/banner.cgfx ] && [ -f banner_assets/banner_audio.wav ]; then
-    bannertool makebanner -ci banner_assets/banner.cgfx -a banner_assets/banner_audio.wav -o banner.bnr
+if [ -f banner_assets/banner.cgfx ]; then
+    if [ -f banner_assets/banner_audio.wav ]; then
+        bannertool makecwav -i banner_assets/banner_audio.wav -o banner_assets/banner_audio.bcwav
+    fi
+    if [ -f banner_assets/banner_audio.bcwav ]; then
+        bannertool makebanner -ci banner_assets/banner.cgfx -ca banner_assets/banner_audio.bcwav -o banner.bnr
+    elif [ -f banner_assets/banner_audio.wav ]; then
+        bannertool makebanner -ci banner_assets/banner.cgfx -a banner_assets/banner_audio.wav -o banner.bnr
+    else
+        bannertool makebanner -ci banner_assets/banner.cgfx -a silence.wav -o banner.bnr
+    fi
     bannertool makesmdh -s "Doom RPG" -l "Doom RPG RE - 3DS" -p "Dennis Isaac Gutierrez Zeledon" -i banner_assets/icon.png -f allow3d,extendedbanner,visible -o icon.icn
 elif [ -f banner.png ]; then
     bannertool makebanner -i banner.png -a silence.wav -o banner.bnr
