@@ -665,45 +665,51 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
 
         if (player) {
             // Level and Credits (matching top status bar spacing)
-            SDL_snprintf(text, sizeof(text), "LEVEL %d   CREDITS: %d", player->level, player->credits);
+            SDL_snprintf(text, sizeof(text), "LEVEL %d   $%d", player->level, player->credits);
             DoomCanvas_drawString1(doomCanvas, text, 8, 245, 0);
 
             // Keycard Badges
-            int kx = 210;
+            int kx = 180;
             if (player->keys & 1) { DoomCanvas_drawString1(doomCanvas, "[B]", kx, 245, 0); kx += 24; }
             if (player->keys & 2) { DoomCanvas_drawString1(doomCanvas, "[R]", kx, 245, 0); kx += 24; }
             if (player->keys & 4) { DoomCanvas_drawString1(doomCanvas, "[Y]", kx, 245, 0); kx += 24; }
             if (player->keys & 8) { DoomCanvas_drawString1(doomCanvas, "[U]", kx, 245, 0); }
         }
 
+        // [ PASS ] Button on Top Bar with beveled divider
+        DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+        DoomRPG_drawLine(doomCanvas->doomRpg, 279, 240, 279, 259);
+        DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+        DoomRPG_drawLine(doomCanvas->doomRpg, 280, 240, 280, 259);
+        DoomCanvas_drawString1(doomCanvas, "PASS", 310, 245, 16);
+
         // [ MENU ] Button on Top-Right with beveled divider
         DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-        DoomRPG_drawLine(doomCanvas->doomRpg, 334, 240, 334, 259);
+        DoomRPG_drawLine(doomCanvas->doomRpg, 339, 240, 339, 259);
         DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-        DoomRPG_drawLine(doomCanvas->doomRpg, 335, 240, 335, 259);
-        DoomCanvas_drawString1(doomCanvas, "MENU", 367, 245, 16);
+        DoomRPG_drawLine(doomCanvas->doomRpg, 340, 240, 340, 259);
+        DoomCanvas_drawString1(doomCanvas, "MENU", 370, 245, 16);
 
         // --- BOTTOM METALLIC QUICK-ACCESS BAR (Y = 460..479, 20px tall) ---
         Hud_drawBarTiles(doomCanvas, 0, 460, 400, false);
 
         static const struct {
             const char* name;
-            int itemIndex; // 0..4 for inventory, -1 for PASS
-        } hotbar[6] = {
+            int itemIndex; // 0..4 for inventory
+        } hotbar[5] = {
             { "S.MED", 0 },
             { "L.MED", 1 },
             { "SOUL",  2 },
             { "BRSK",  3 },
-            { "DOG",   4 },
-            { "PASS", -1 }
+            { "DOG",   4 }
         };
 
-        for (int b = 0; b < 6; b++) {
-            int centerX = 33 + b * 67;
+        for (int b = 0; b < 5; b++) {
+            int centerX = 40 + b * 80;
 
             // Draw metallic beveled divider between buttons
             if (b > 0) {
-                int divX = b * 67;
+                int divX = b * 80;
                 DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
                 DoomRPG_drawLine(doomCanvas->doomRpg, divX - 1, 460, divX - 1, 479);
                 DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
@@ -711,13 +717,9 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
             }
 
             // Draw single-line item label + count in authentic white status font
-            if (hotbar[b].itemIndex >= 0) {
-                int count = player ? player->inventory[hotbar[b].itemIndex] : 0;
-                SDL_snprintf(text, sizeof(text), "%s:%d", hotbar[b].name, count);
-                DoomCanvas_drawString1(doomCanvas, text, centerX, 245 + 220, 16);
-            } else {
-                DoomCanvas_drawString1(doomCanvas, (char*)hotbar[b].name, centerX, 245 + 220, 16);
-            }
+            int count = player ? player->inventory[hotbar[b].itemIndex] : 0;
+            SDL_snprintf(text, sizeof(text), "%s: %d", hotbar[b].name, count);
+            DoomCanvas_drawString1(doomCanvas, text, centerX, 465, 16);
         }
     }
 #endif
@@ -750,11 +752,11 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
     }
 
     if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
-        // Bottom Metallic Hotbar (Y in 452..480)
+        // Bottom Metallic Hotbar (Y in 452..480, 5 buttons, 80px each)
         if (touchY >= 452 && touchY <= 480) {
-            int btn = touchX / 67;
+            int btn = touchX / 80;
             if (btn < 0) btn = 0;
-            if (btn > 5) btn = 5;
+            if (btn > 4) btn = 4;
 
             switch (btn) {
                 case 0: // Small Medkit
@@ -797,16 +799,21 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
                         Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
                     }
                     return;
-                case 5: // Pass Turn
-                    DoomCanvas_keyPressed(doomCanvas, AVK_PASSTURN);
-                    return;
             }
         }
 
-        // Top-Right: [ MENU ] (touchX in 330..400, touchY in 240..265)
-        if (touchX >= 330 && touchX <= 400 && touchY >= 240 && touchY <= 265) {
-            DoomCanvas_keyPressed(doomCanvas, AVK_MENUOPEN);
-            return;
+        // Top Bar Buttons (touchY in 240..265)
+        if (touchY >= 240 && touchY <= 265) {
+            // [ PASS ] (touchX in 275..338)
+            if (touchX >= 275 && touchX <= 338) {
+                DoomCanvas_keyPressed(doomCanvas, AVK_PASSTURN);
+                return;
+            }
+            // [ MENU ] (touchX in 339..400)
+            if (touchX >= 339 && touchX <= 400) {
+                DoomCanvas_keyPressed(doomCanvas, AVK_MENUOPEN);
+                return;
+            }
         }
     }
 #endif
@@ -2402,6 +2409,7 @@ void DoomCanvas_drawFont(DoomCanvas_t* doomCanvas, char* text, int x, int y, int
         printf("Failed to create font surface: %s\n", SDL_GetError());
         return;
     }
+    SDL_SetColorKey(fontSurface, SDL_SRCCOLORKEY, 0);
 
     int xpos = 0; // horizontal offset on fontSurface
     int ypos = 0; // vertical offset for new lines
@@ -2524,6 +2532,7 @@ void DoomCanvas_drawFontSur(DoomCanvas_t* doomCanvas, char* text, int x, int y, 
         printf("Failed to create font surface: %s\n", SDL_GetError());
         return;
     }
+    SDL_SetColorKey(fontSurface, SDL_SRCCOLORKEY, 0);
 
     int xpos = 0; // horizontal offset on fontSurface
     int ypos = 0; // vertical offset for new lines
