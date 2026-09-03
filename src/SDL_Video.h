@@ -69,6 +69,11 @@ typedef struct SDLController_s
 } SDLController_t;
 
 extern SDLController_t sdlController;
+extern SDL_Surface* g_stereoRight;  /* right-eye capture surface (SDL_Video.c) */
+extern int g_top3D;                /* stereo enabled this frame (SDL_Video.c) */
+extern float g_stereoSep;          /* eye angular separation, degrees (SDL_Video.c) */
+extern volatile int g_topProbePending;  /* set by SDL_Video.c present; drained in Main loop */
+extern int g_topProbed;
 
 typedef struct SDLVidModes_s
 {
