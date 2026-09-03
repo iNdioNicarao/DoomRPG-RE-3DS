@@ -3928,7 +3928,34 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 	extern int g_stereoRightValid;
 
 	if (g_top3D && g_stereoSep > 0.01f && g_stereoRight) {
-		float halfSep = g_stereoSep * 2.0f; /* 0..2.0 world units per eye (~11% reduction) */
+		/* Dynamic Motion-Damped Stereoscopy:
+		   Rapid parallax shearing during movement and turning causes disorientation and eye fatigue.
+		   We scale down separation during active movement/rotation and smoothly
+		   restore full 3D separation when the player settles onto a tile. */
+		static float s_motion3DScale = 1.0f;
+		static int s_lastViewX = 0, s_lastViewY = 0, s_lastViewAngle = 0;
+
+		int isMoving = (doomCanvas->viewX != doomCanvas->destX ||
+		                doomCanvas->viewY != doomCanvas->destY ||
+		                x != s_lastViewX || y != s_lastViewY);
+		int isRotating = (doomCanvas->viewAngle != doomCanvas->destAngle ||
+		                  angle != s_lastViewAngle);
+		s_lastViewX = x;
+		s_lastViewY = y;
+		s_lastViewAngle = angle;
+
+		float targetScale = 1.0f;
+		if (isRotating) {
+			targetScale = 0.30f; /* 70% reduction during rotation - eliminates turning shear */
+		} else if (isMoving) {
+			targetScale = 0.45f; /* 55% reduction during translation */
+		}
+
+		/* Asymmetric filter: quickly soften 3D on motion start, smoothly bloom back when stationary */
+		float rate = (targetScale < s_motion3DScale) ? 0.35f : 0.18f;
+		s_motion3DScale += (targetScale - s_motion3DScale) * rate;
+
+		float halfSep = g_stereoSep * 2.0f * s_motion3DScale;
 		int dx = (int)(halfSep * sinf((float)angle * 3.14159265f / 128.0f));
 		int dy = (int)(halfSep * cosf((float)angle * 3.14159265f / 128.0f));
 
