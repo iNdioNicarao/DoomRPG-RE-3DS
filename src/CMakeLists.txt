@@ -31,6 +31,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 		ogg
 		mikmod
 		${SDL_LIBRARIES}
+		citro2d
 		${CITRO3D_LIB}
 		${CTRU_LIB}
 		${ZLIB_LIBRARIES}

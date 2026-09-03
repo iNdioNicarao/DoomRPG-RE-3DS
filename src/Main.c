@@ -29,7 +29,7 @@ unsigned int __stacksize__ = 0x40000; // 256KB
 #endif
 
 // Build identity - bump on every build so we can verify what is actually running.
-static const char* BUILD_VERSION = "DOOMRPG-3DS v1.0.1 (persistent menuSurface fix)";
+static const char* BUILD_VERSION = "DOOMRPG-3DS v1.0.3";
 
 int main(int argc, char* args[])
 {
