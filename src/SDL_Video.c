@@ -80,7 +80,7 @@ volatile int g_topProbePending = 0;  /* set by present (safe: plain int write); 
    FAR 0xf4). This is the exact setup that made build 711500 graceful on HOME. */
 static void stereo_apt_gfx_reacquire(void) {
     /* On resume the OS hands back a DIFFERENT framebuffer address than the one
-       cached at init (proven DXX-3DS behavior). Re-fetch so we write live memory
+       cached at init (standard 3DS OS behavior). Re-fetch so we write live memory
        instead of a dead buffer (which would show stale garbage = the bar). */
     u16 tw=0, th=0, bw=0, bh=0;
     g_topFbL = (u8*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &tw, &th);
@@ -402,17 +402,15 @@ void SDL_SetRenderDrawColor(SDL_Surface *surface, Uint8 r, Uint8 g, Uint8 b, Uin
     curColor = (uintptr_t)color;
 }
 
-/* PHASE 1 (Option A): blit the offscreen 400x480 RGBA32 surface into the gfx
-   top/bottom framebuffers. Per DXX-3DS (bottom_screen.c), the gfx framebuffer
-   is GSP_RGB565_OES: 16-bit, ONE u16 PER PIXEL, stride = width*2 (NOT RGBA8).
-   gfx TOP is 240x400, BOTTOM is 240x320 (confirmed: bs_dims.txt bw=240 bh=320).
+/* PHASE 1: blit the offscreen 400x480 RGBA32 surface into the gfx
+   top/bottom framebuffers. The 3DS gfx framebuffer is GSP_RGB565_OES: 16-bit,
+   ONE u16 PER PIXEL, stride = width*2.
+   gfx TOP is 240x400, BOTTOM is 240x320.
    The 3DS LCD rotates the buffer 90deg CCW on display, so our landscape
-   offscreen (top: 400x240; bottom: 400x240) must rotate into the portrait
-   buffer. DXX-3DS mapping (logical x in [0,320) w, y in [0,240) h):
+   offscreen must rotate into the portrait buffer. Standard 3DS mapping:
        fx = 239 - y   (logical y -> buffer x)
        fy = x         (logical x -> buffer y)
-       idx = fx + fy * g_w
-   We replicate that for both screens, converting RGBA32 -> RGB565. */
+       idx = fx + fy * g_w */
 /* Top/bottom framebuffers are GSP_BGR8_OES (3 bytes/px), allocated by
    SDL_Init(VIDEO)->gfxInitDefault(). GL_BGR byte order: byte0=B,byte1=G,byte2=R.
    Pack RGBA32 (R=0x00FF0000,G=0x0000FF00,B=0x000000FF) into that order. */
@@ -483,7 +481,7 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
        3DS driver, SDL_DUALSCR 400x480) maps the surface LOWER HALF (rows 240..479)
        onto the bottom screen UPRIGHT (NO rotation). The LCD optically rotates the
        portrait buffer 90deg, so an upright landscape must be written rotated 90deg
-       CW into the buffer. Proven mapping (dxx / SDL driver):
+       CW into the buffer. 3DS portrait rotation mapping:
            buffer_col = g_botW-1 - (src_row - 240)   (src_row 240..479 -> col 239..0)
            buffer_row = src_col * g_botH / 400         (src_col 0..399 -> row 0..319)
        The original bar was killed by clearing SOURCE rows 240..359 (the blank strip

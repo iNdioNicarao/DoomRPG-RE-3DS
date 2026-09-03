@@ -1,6 +1,5 @@
 # Toolchain image for building DoomRPG-RE-3DS .3dsx + .cia.
-# Mirrors the dxx-3ds Dockerfile CIA steps (makerom from source, bannertool
-# from release). DoomRPG has no PHYSFS/picaGL dependency, so those are dropped.
+# Uses makerom from source and bannertool from release.
 #
 FROM devkitpro/devkitarm:latest
 
@@ -12,9 +11,7 @@ RUN cd /Project_CTR/makerom && make deps && make
 ENV PATH="/Project_CTR/makerom/bin:${PATH}"
 
 # bannertool: the upstream release is a prebuilt linux-x86_64 binary. On an
-# aarch64 host (colima on Apple Silicon) run it under qemu by adding the amd64
-# dynamic loader + libc. This mirrors how the dxx-3ds pipeline used the same
-# prebuilt bannertool on x86_64 hosts.
+# aarch64 host run it under qemu by adding the amd64 dynamic loader + libc.
 RUN dpkg --add-architecture amd64 && \
     apt-get update && \
     apt-get install -y --no-install-recommends libc6:amd64 libstdc++6:amd64 qemu-user && \
