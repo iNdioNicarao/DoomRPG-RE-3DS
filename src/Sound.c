@@ -530,6 +530,9 @@ int Sound_addVolume(Sound_t* sound, int volume)
 	Mix_AllocateChannels(MAX_SOUNDCHANNELS);
 	Mix_Volume(-1, (sound->volume * MIX_MAX_VOLUME) / 100);
 	Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
+#ifdef __3DS__
+	MusicStream_setVolume((sound->volume * 128) / 100);
+#endif
 
 
 #if INIT_ALLSOUNDS
@@ -741,6 +744,9 @@ void Sound_readySound(Sound_t* sound, int chan)
 
     	if (sChannel->flags & SND_FLG_ISMUSIC) {
     		Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
+#ifdef __3DS__
+    		MusicStream_setVolume((sound->volume * 128) / 100);
+#endif
     	} else {
     		if (sChannel->mediaAudioSound) {
     			Mix_VolumeChunk(sChannel->mediaAudioSound, (sound->volume * MIX_MAX_VOLUME) / 100);
@@ -828,6 +834,9 @@ void Sound_updateVolume(Sound_t* sound)
 
 
     Mix_VolumeMusic(new_volume);
+#ifdef __3DS__
+    MusicStream_setVolume(new_volume);
+#endif
     Mix_Volume(-1, new_volume);
 
     // if need update volume for already loaded mp3 chunks
