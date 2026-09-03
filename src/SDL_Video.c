@@ -457,10 +457,8 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
     if (!g_topFbL || !g_topFbR || !g_botFb || !sdlVideo.screenSurface) return;
     const Uint32* src = (const Uint32*)sdlVideo.screenSurface->pixels;  /* 400x480 RGBA32 */
 
-    /* Slider gate (main thread): enable 3D when the slider is pushed. hidScanInput() refreshes
-       the HID shared mem that osGet3DSliderState() reads -- without it the slider reads stale 0.0
-       (that's why the earlier probe reported sliderRaw=0.0000 even with the slider up). */
-    hidScanInput();
+    /* Slider gate (main thread): enable 3D when the slider is pushed.
+       Refreshed by hidScanInput() called once per frame in Main.c. */
     {
         float s = osGet3DSliderState();  /* 0.0 off .. 1.0 full */
         if (s > 0.0f) { g_top3D = 1; g_stereoSep = s; }
@@ -919,8 +917,7 @@ int SDL_JoystickGetButtonID(void)
 {
 #ifdef __3DS__
 	{
-		hidScanInput();
-		u32 keys = hidKeysDown();
+		u32 keys = hidKeysHeld() | hidKeysDown();
 		if (keys & KEY_A) return CONTROLLER_BUTTON_A;
 		if (keys & KEY_B) return CONTROLLER_BUTTON_B;
 		if (keys & KEY_X) return CONTROLLER_BUTTON_X;
@@ -929,10 +926,10 @@ int SDL_JoystickGetButtonID(void)
 		if (keys & KEY_START) return CONTROLLER_BUTTON_START;
 		if (keys & KEY_L) return CONTROLLER_BUTTON_LEFT_BUMPER;
 		if (keys & KEY_R) return CONTROLLER_BUTTON_RIGHT_BUMPER;
-		if (keys & KEY_DUP) return CONTROLLER_BUTTON_DPAD_UP;
-		if (keys & KEY_DDOWN) return CONTROLLER_BUTTON_DPAD_DOWN;
-		if (keys & KEY_DLEFT) return CONTROLLER_BUTTON_DPAD_LEFT;
-		if (keys & KEY_DRIGHT) return CONTROLLER_BUTTON_DPAD_RIGHT;
+		if (keys & (KEY_DUP | KEY_CPAD_UP)) return CONTROLLER_BUTTON_DPAD_UP;
+		if (keys & (KEY_DDOWN | KEY_CPAD_DOWN)) return CONTROLLER_BUTTON_DPAD_DOWN;
+		if (keys & (KEY_DLEFT | KEY_CPAD_LEFT)) return CONTROLLER_BUTTON_DPAD_LEFT;
+		if (keys & (KEY_DRIGHT | KEY_CPAD_RIGHT)) return CONTROLLER_BUTTON_DPAD_RIGHT;
 		if (keys & KEY_ZL) return CONTROLLER_BUTTON_LEFT_TRIGGER;
 		if (keys & KEY_ZR) return CONTROLLER_BUTTON_RIGHT_TRIGGER;
 		return CONTROLLER_BUTTON_INVALID;
