@@ -944,19 +944,17 @@ void Menu_initMenu(Menu_t* menu, int i)
 #ifdef __3DS__
 			if (i18 == 5) {
 				int curCoins = Hardware_getPlayCoins();
-				if (curCoins < 5) {
+				if (curCoins >= 0 && curCoins < 5) {
 					strncpy(menu->doomRpg->hud->logMessage, "Need 5 Play Coins", MS_PER_CHAR);
-					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "You need 5 Play", 3, 0);
-					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Coins to exchange!", 3, 0);
+					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Need 5 Play Coins!", 3, 0);
 					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Back", 2, 0);
-					menuSystem->selectedIndex = 3;
+					menuSystem->selectedIndex = 2;
 					menuSystem->type = 6;
 				}
 				else {
 					strncpy(menu->doomRpg->hud->logMessage, "Play Coin Exch.", MS_PER_CHAR);
-					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Spend 5 Coins for", 3, 0);
-					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "+100 Credits?", 3, 0);
+					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Buy 100 Credits?", 3, 0);
 					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Yes", 2, 0);
 					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "No ", 2, 0);
@@ -1914,6 +1912,18 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 				int i9 = menu->mArg1 & 0xff;
 				int i10 = (unsigned int)(menu->mArg1 << 8) >> 0x18;
 
+#ifdef __3DS__
+				if (i9 == 5) {
+					int curCoins = Hardware_getPlayCoins();
+					if (curCoins >= 5) {
+						Hardware_setPlayCoins(curCoins - 5);
+					}
+					Player_addCredits(menu->doomRpg->player, 100);
+					Sound_playSound(menu->doomRpg->sound, 5062, SND_FLG_NOFORCESTOP, 3);
+					return MENU_STORE;
+				}
+#endif
+
 				Player_addCredits(menu->doomRpg->player, - menu->mArg2);
 
 				if (i9 == 1) {
@@ -1943,16 +1953,6 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 						break;
 					}
 				}
-#ifdef __3DS__
-				else if (i9 == 5) {
-					int curCoins = Hardware_getPlayCoins();
-					if (curCoins >= 5) {
-						Hardware_setPlayCoins(curCoins - 5);
-						Player_addCredits(menu->doomRpg->player, 100);
-						Sound_playSound(menu->doomRpg->sound, 5062, SND_FLG_NOFORCESTOP, 3);
-					}
-				}
-#endif
 			}
 			return MENU_STORE;
 			break;

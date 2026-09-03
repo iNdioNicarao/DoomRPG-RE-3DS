@@ -659,60 +659,85 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
         return;
     }
 
-    if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
+    boolean inGameMenu = (doomCanvas->state == ST_MENU && doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME);
+
+    if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT || inGameMenu) {
         // --- TOP METALLIC STATUS BAR (Y = 240..259, 20px tall) ---
         Hud_drawBarTiles(doomCanvas, 0, 240, 400, false);
 
         if (player) {
-            // Level and Credits (matching top status bar styling and full word CREDITS)
-            SDL_snprintf(text, sizeof(text), "LEVEL %d    CREDITS: %d", player->level, player->credits);
+            int pc = Hardware_getPlayCoins();
+            if (inGameMenu) {
+                if (pc >= 0) {
+                    SDL_snprintf(text, sizeof(text), "CREDITS: %d    COINS: %d", player->credits, pc);
+                } else {
+                    SDL_snprintf(text, sizeof(text), "CREDITS: %d", player->credits);
+                }
+            } else {
+                if (pc >= 0) {
+                    SDL_snprintf(text, sizeof(text), "LV %d   CREDITS: %d   COINS: %d", player->level, player->credits, pc);
+                } else {
+                    SDL_snprintf(text, sizeof(text), "LEVEL %d    CREDITS: %d", player->level, player->credits);
+                }
+            }
             DoomCanvas_drawString1(doomCanvas, text, 8, 245, 0);
         }
 
-        // [ PASS ] Button on Top Bar with beveled divider
-        DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-        DoomRPG_drawLine(doomCanvas->doomRpg, 279, 240, 279, 259);
-        DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-        DoomRPG_drawLine(doomCanvas->doomRpg, 280, 240, 280, 259);
-        DoomCanvas_drawString1(doomCanvas, "PASS", 310, 245, 16);
+        if (inGameMenu) {
+            // [ BACK ] Button on Top-Right with beveled divider
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 339, 240, 339, 259);
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 340, 240, 340, 259);
+            DoomCanvas_drawString1(doomCanvas, "BACK", 370, 245, 16);
+        } else {
+            // [ PASS ] Button on Top Bar with beveled divider
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 279, 240, 279, 259);
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 280, 240, 280, 259);
+            DoomCanvas_drawString1(doomCanvas, "PASS", 310, 245, 16);
 
-        // [ MENU ] Button on Top-Right with beveled divider
-        DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-        DoomRPG_drawLine(doomCanvas->doomRpg, 339, 240, 339, 259);
-        DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-        DoomRPG_drawLine(doomCanvas->doomRpg, 340, 240, 340, 259);
-        DoomCanvas_drawString1(doomCanvas, "MENU", 370, 245, 16);
+            // [ MENU ] Button on Top-Right with beveled divider
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 339, 240, 339, 259);
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 340, 240, 340, 259);
+            DoomCanvas_drawString1(doomCanvas, "MENU", 370, 245, 16);
+        }
 
         // --- BOTTOM METALLIC QUICK-ACCESS BAR (Y = 460..479, 20px tall) ---
         Hud_drawBarTiles(doomCanvas, 0, 460, 400, false);
 
-        static const struct {
-            const char* name;
-            int itemIndex; // 0..4 for inventory
-        } hotbar[5] = {
-            { "S.MED", 0 },
-            { "L.MED", 1 },
-            { "SOUL",  2 },
-            { "BRSK",  3 },
-            { "DOG",   4 }
-        };
+        if (!inGameMenu) {
+            static const struct {
+                const char* name;
+                int itemIndex; // 0..4 for inventory
+            } hotbar[5] = {
+                { "S.MED", 0 },
+                { "L.MED", 1 },
+                { "SOUL",  2 },
+                { "BRSK",  3 },
+                { "DOG",   4 }
+            };
 
-        for (int b = 0; b < 5; b++) {
-            int centerX = 40 + b * 80;
+            for (int b = 0; b < 5; b++) {
+                int centerX = 40 + b * 80;
 
-            // Draw metallic beveled divider between buttons
-            if (b > 0) {
-                int divX = b * 80;
-                DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-                DoomRPG_drawLine(doomCanvas->doomRpg, divX - 1, 460, divX - 1, 479);
-                DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-                DoomRPG_drawLine(doomCanvas->doomRpg, divX, 460, divX, 479);
+                // Draw metallic beveled divider between buttons
+                if (b > 0) {
+                    int divX = b * 80;
+                    DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+                    DoomRPG_drawLine(doomCanvas->doomRpg, divX - 1, 460, divX - 1, 479);
+                    DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+                    DoomRPG_drawLine(doomCanvas->doomRpg, divX, 460, divX, 479);
+                }
+
+                // Draw single-line item label + count in authentic white status font
+                int count = player ? player->inventory[hotbar[b].itemIndex] : 0;
+                SDL_snprintf(text, sizeof(text), "%s: %d", hotbar[b].name, count);
+                DoomCanvas_drawString1(doomCanvas, text, centerX, 465, 16);
             }
-
-            // Draw single-line item label + count in authentic white status font
-            int count = player ? player->inventory[hotbar[b].itemIndex] : 0;
-            SDL_snprintf(text, sizeof(text), "%s: %d", hotbar[b].name, count);
-            DoomCanvas_drawString1(doomCanvas, text, centerX, 465, 16);
         }
     }
 #endif
@@ -723,6 +748,13 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
 #ifdef __3DS__
     if (!doomCanvas || !doomCanvas->doomRpg) return;
     Player_t* player = doomCanvas->player;
+
+    if (doomCanvas->state == ST_MENU && doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME) {
+        if (touchY >= 240 && touchY <= 265 && touchX >= 339) {
+            MenuSystem_back(doomCanvas->doomRpg->menuSystem);
+            return;
+        }
+    }
 
     if (doomCanvas->state == ST_DIALOGPASSWORD) {
         if (touchY >= 418 && touchY <= 446) {
@@ -3553,6 +3585,13 @@ void DoomCanvas_menuState(DoomCanvas_t* doomCanvas)
 		Hud_drawBottomBar(doomCanvas);
 	}
 	MenuSystem_paint(doomCanvas->doomRpg->menuSystem);
+
+#ifdef __3DS__
+	if (doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME) {
+		DoomCanvas_drawAutomap(doomCanvas, true);
+		DoomCanvas_drawBottomTouchHUD(doomCanvas);
+	}
+#endif
 
 	if (doomCanvas->doomRpg->menuSystem->oldMenu == -1) {
 		DoomCanvas_drawSoftKeys(doomCanvas, NULL, NULL);
