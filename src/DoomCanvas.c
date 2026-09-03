@@ -484,10 +484,10 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 	   First draw the automap so it stays visible around the dialog box. */
 	DoomCanvas_drawAutomap(doomCanvas, true);
 
-	/* Scaled by factor of 2: 256x108 centered on 400x240 bottom screen */
-	int boxW = 256;
+	/* Scaled by factor of 2: 280x108 centered on 400x240 bottom screen (with margin for scrollbar) */
+	int boxW = 280;
 	int boxH = 108;
-	int boxX = doomCanvas->SCR_CX - (boxW / 2); /* 72 */
+	int boxX = doomCanvas->SCR_CX - (boxW / 2); /* 60 */
 	int boxY = 240 + ((240 - boxH) / 2);       /* 306 */
 #else
 	int boxW = 128;
@@ -565,7 +565,7 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 		else if (i < doomCanvas->dialogTypeLineIdx) {
 			strEnd = strNxt;
 		}
-		DoomCanvas_drawFont2x(doomCanvas, doomCanvas->dialogBuffer, boxX + 8, posY, 0, strBeg, strEnd);
+		DoomCanvas_drawFont2x(doomCanvas, doomCanvas->dialogBuffer, boxX + 10, posY, 0, strBeg, strEnd);
 
 		posY += 24;
 	}
@@ -573,15 +573,15 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 	if (doomCanvas->state == ST_DIALOGPASSWORD && doomCanvas->dialogTypeLineIdx == doomCanvas->numDialogLines) {
 		DoomCanvas_drawString2_2x(doomCanvas, 
 			doomCanvas->strPassCode, 
-			(boxX + 8) + ((doomCanvas->dialogIndexes[((doomCanvas->numDialogLines - 1) * 2) + 1] + 1) * 14),
+			(boxX + 10) + ((doomCanvas->dialogIndexes[((doomCanvas->numDialogLines - 1) * 2) + 1] + 1) * 14),
 			posY - 24, 0, -1);
 	}
 	if (doomCanvas->numDialogLines > 4) {
 		if (doomCanvas->currentDialogLine + 4 == doomCanvas->numDialogLines) {
-			DoomCanvas_drawScrollBar2x(doomCanvas, boxX + boxW - 16, boxY + 2, boxH - 4, doomCanvas->currentDialogLine, doomCanvas->numDialogLines, doomCanvas->numDialogLines);
+			DoomCanvas_drawScrollBar2x(doomCanvas, boxX + boxW - 18, boxY + 2, boxH - 4, doomCanvas->currentDialogLine, doomCanvas->numDialogLines, doomCanvas->numDialogLines);
 		}
 		else {
-			DoomCanvas_drawScrollBar2x(doomCanvas, boxX + boxW - 16, boxY + 2, boxH - 4, doomCanvas->currentDialogLine, doomCanvas->currentDialogLine + 4, doomCanvas->numDialogLines + 4);
+			DoomCanvas_drawScrollBar2x(doomCanvas, boxX + boxW - 18, boxY + 2, boxH - 4, doomCanvas->currentDialogLine, doomCanvas->currentDialogLine + 4, doomCanvas->numDialogLines + 4);
 		}
 	}
 #else
