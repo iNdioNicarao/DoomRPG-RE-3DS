@@ -1,9 +1,9 @@
 #!/bin/sh
 # Build a CIA from a built DoomRPG.elf.
 # Layout mirrors the dxx-3ds make_cia.sh. This script does NOT bump the
-# version — bump tools/cia/VERSION yourself, exactly once per real build.
+# version — bump vibe/cia/VERSION yourself, exactly once per real build.
 #
-# Usage (run from inside tools/cia/):
+# Usage (run from inside vibe/cia/):
 #   ./make_cia.sh [path/to/DoomRPG.elf]
 # ELF defaults to ../../public/build/src/DoomRPG.elf (CMake out-dir).
 #
@@ -21,7 +21,7 @@ else
 fi
 
 # --- locate the built ELF (HERE-based so cwd doesn't matter) ---
-ELF="${1:-$HERE/../../build/src/DoomRPG.elf}"
+ELF="${1:-$HERE/../../public/build/src/DoomRPG.elf}"
 if [ ! -f "$ELF" ]; then
     echo "ERROR: ELF not found at: $ELF" >&2
     echo "  Build first (from public/):" >&2
@@ -34,8 +34,13 @@ if [ ! -s ./DoomRPG.elf ] && [ "$ELF" != "./DoomRPG.elf" ]; then
     cp "$ELF" ./DoomRPG.elf
 fi
 
-bannertool makebanner -i banner.png -a silence.wav -o banner.bnr
-bannertool makesmdh -s "Doom RPG" -l "Doom RPG RE - 3DS port" -p "efimandreev0 / GEC" -i icon.png -o icon.icn
+if [ -f banner_assets/banner.cgfx ] && [ -f banner_assets/banner_audio.wav ]; then
+    bannertool makebanner -ci banner_assets/banner.cgfx -a banner_assets/banner_audio.wav -o banner.bnr
+    bannertool makesmdh -s "Doom RPG" -l "Doom RPG RE - 3DS" -p "Dennis Isaac Gutierrez Zeledon" -i banner_assets/icon.png -f allow3d,extendedbanner,visible -o icon.icn
+elif [ -f banner.png ]; then
+    bannertool makebanner -i banner.png -a silence.wav -o banner.bnr
+    bannertool makesmdh -s "Doom RPG" -l "Doom RPG RE - 3DS port" -p "Dennis Isaac Gutierrez Zeledon" -i icon.png -o icon.icn
+fi
 makerom -f cia -o "DoomRPG-${APP_VERSION}.cia" \
     -DAPP_ENCRYPTED=false -rsf DoomRPG-3DS.rsf -target t -exefslogo \
     -elf DoomRPG.elf -icon icon.icn -banner banner.bnr
