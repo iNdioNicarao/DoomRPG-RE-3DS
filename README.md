@@ -85,16 +85,16 @@ If you find a bug, please open an issue here on GitHub.
 
 ## Acknowledgments
 
-This fork — including the home-menu `.cia` packaging, the quality-of-life and
-stability fixes, the documentation, and the build/release tooling — was
-developed with the assistance of **Hermes Agent**, an AI coding assistant.
+This fork was developed by **Dennis Isaac Gutierrez Zeledon** with the assistance of AI coding assistants across its development milestones:
 
-- **Assistant:** Hermes Agent ([Nous Research](https://nousresearch.com))
-- **Model used:** `tencent/hy3:free`
-- **How it was used:** end-to-end — tracing the 3DS boot/render path,
-  root-causing and fixing the heap-exhaustion and null-surface crashes,
-  preparing the repository for public release (source-only scrub, clean
-  commit history, README + `docs/`), and building/packaging the CIA.
+- **v1.0.3+ (Stereo 3D, Touch HUD & MP3 Audio Engine):**
+  - **Assistant:** **Gemini Antigravity** (Google DeepMind)
+  - **Role:** End-to-end implementation of real hardware autostereoscopic 3D (Citro2D/Citro3D stereo targets, physical depth-slider modulation, particle/parallax tuning), the interactive bottom-screen Touch HUD and passcode keypad, Play Coins exchange, in-memory `libmad` MP3 audio streaming, and v1.0.3 release packaging.
+
+- **v1.0.0 – v1.0.2 (Initial Port & CIA Packaging):**
+  - **Assistant:** **Hermes Agent** (Nous Research)
+  - **Model:** `tencent/hy3:free`
+  - **Role:** Tracing the initial 3DS boot/render path, resolving early heap-exhaustion and null-surface crashes, establishing the New 3DS home-menu `.cia` build pipeline, and initial repository setup.
 
 ## License
 
