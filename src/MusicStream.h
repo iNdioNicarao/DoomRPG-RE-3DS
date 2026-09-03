@@ -12,6 +12,7 @@
 
 void MusicStream_play(int resourceID, int loop);
 void MusicStream_stop(void);
+void MusicStream_setVolume(int vol);
 int  MusicStream_playing(void);
 
 #endif // __3DS__
