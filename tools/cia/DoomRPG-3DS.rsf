@@ -7,7 +7,7 @@ BasicInfo:
 
 
 TitleInfo:
-  UniqueId                : 0xfd0bb # Distinct from dxx (0xfddeb) so both install side-by-side.
+  UniqueId                : 0xfd0bb
   Category                : Application # Application / SystemApplication / Applet / Firmware / Base / DlpChild / Demo / Contents / SystemContents / SharedContents / AddOnContents / Patch / AutoUpdateContents
   # Keep this Version CONSTANT. makerom folds the low byte of this value into
   # the Title ID (1 -> 0x01 -> Title ID 0x000400000FD0BB01). Changing it

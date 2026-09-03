@@ -1,7 +1,6 @@
 #!/bin/sh
 # Build a CIA from a built DoomRPG.elf.
-# Layout mirrors the dxx-3ds make_cia.sh. This script does NOT bump the
-# version — bump vibe/cia/VERSION yourself, exactly once per real build.
+# This script does NOT bump the version — bump VERSION yourself.
 #
 # Usage (run from inside vibe/cia/):
 #   ./make_cia.sh [path/to/DoomRPG.elf]
