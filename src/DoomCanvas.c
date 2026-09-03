@@ -4179,6 +4179,13 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 	oldState = doomCanvas->state;
 	doomCanvas->state = stateNum;
 
+#ifdef __3DS__
+	if (stateNum != ST_PLAYING && stateNum != ST_COMBAT && stateNum != ST_CAST) {
+		extern int g_stereoRightValid;
+		g_stereoRightValid = 0;
+	}
+#endif
+
 	if (doomCanvas->state != oldState) {
 		doomCanvas->restoreSoftKeys = false;
 	}

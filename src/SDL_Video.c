@@ -604,6 +604,9 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
             }
         }
         C3D_FrameEnd(0);
+        /* Consume stereo valid flag: if 3D scene was not rendered this frame
+           (e.g. while in ST_MENU, ST_AUTOMAP, etc.), right eye falls back to 2D */
+        g_stereoRightValid = 0;
     }
 #endif
 }
