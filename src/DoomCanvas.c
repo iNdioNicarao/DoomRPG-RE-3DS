@@ -660,36 +660,79 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
     }
 
     if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
-        // Bottom-Left: [ + MED (count) ]
-        int medCount = player ? (player->inventory[0] + player->inventory[1]) : 0;
-        DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-        DoomRPG_fillRect(doomCanvas->doomRpg, 8, 442, 92, 30);
-        DoomRPG_setColor(doomCanvas->doomRpg, medCount > 0 ? 0x3FBF00 : 0x777777);
-        DoomRPG_drawRect(doomCanvas->doomRpg, 8, 442, 92, 30);
-        DoomRPG_drawRect(doomCanvas->doomRpg, 7, 441, 94, 32);
-        SDL_snprintf(text, sizeof(text), "+MED(%d)", medCount);
-        DoomCanvas_drawString1(doomCanvas, text, 14, 451, 0);
+        // Bottom Item Hotbar (6 buttons: S.MED, L.MED, SOUL, BRSK, DOG, PASS)
+        static const struct {
+            const char* name;
+            int color;
+            int itemIndex; // 0..4 for inventory, -1 for PASS
+        } hotbar[6] = {
+            { "S.MED", 0x3FBF00, 0 },
+            { "L.MED", 0x3FBF00, 1 },
+            { "SOUL",  0x00BFFF, 2 },
+            { "BRSK",  0xFF3333, 3 },
+            { "DOG",   0xFFA500, 4 },
+            { "PASS",  0xDDDDDD, -1 }
+        };
 
-        // Bottom-Right: [ PASS ]
-        DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-        DoomRPG_fillRect(doomCanvas->doomRpg, 306, 442, 86, 30);
-        DoomRPG_setColor(doomCanvas->doomRpg, 0xDDDDDD);
-        DoomRPG_drawRect(doomCanvas->doomRpg, 306, 442, 86, 30);
-        DoomRPG_drawRect(doomCanvas->doomRpg, 305, 441, 88, 32);
-        DoomCanvas_drawString1(doomCanvas, "PASS", 330, 451, 0);
+        for (int b = 0; b < 6; b++) {
+            int bx = 8 + b * 65;
+            int count = (player && hotbar[b].itemIndex >= 0) ? player->inventory[hotbar[b].itemIndex] : 0;
+            boolean active = (hotbar[b].itemIndex < 0) || (count > 0);
+            int borderCol = active ? hotbar[b].color : 0x444444;
+
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+            DoomRPG_fillRect(doomCanvas->doomRpg, bx, 440, 59, 34);
+            DoomRPG_setColor(doomCanvas->doomRpg, borderCol);
+            DoomRPG_drawRect(doomCanvas->doomRpg, bx, 440, 59, 34);
+            DoomRPG_drawRect(doomCanvas->doomRpg, bx - 1, 439, 61, 36);
+
+            if (hotbar[b].itemIndex >= 0) {
+                DoomCanvas_drawString1(doomCanvas, (char*)hotbar[b].name, bx + 10, 442, 0);
+                SDL_snprintf(text, sizeof(text), "(%d)", count);
+                DoomCanvas_drawString1(doomCanvas, text, bx + 17, 456, 0);
+            } else {
+                DoomCanvas_drawString1(doomCanvas, (char*)hotbar[b].name, bx + 14, 449, 0);
+            }
+        }
 
         // Top-Right: [ MENU ]
         DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-        DoomRPG_fillRect(doomCanvas->doomRpg, 306, 246, 86, 28);
+        DoomRPG_fillRect(doomCanvas->doomRpg, 316, 246, 76, 26);
         DoomRPG_setColor(doomCanvas->doomRpg, 0xDDDDDD);
-        DoomRPG_drawRect(doomCanvas->doomRpg, 306, 246, 86, 28);
-        DoomRPG_drawRect(doomCanvas->doomRpg, 305, 245, 88, 30);
-        DoomCanvas_drawString1(doomCanvas, "MENU", 330, 252, 0);
+        DoomRPG_drawRect(doomCanvas->doomRpg, 316, 246, 76, 26);
+        DoomRPG_drawRect(doomCanvas->doomRpg, 315, 245, 78, 28);
+        DoomCanvas_drawString1(doomCanvas, "MENU", 336, 251, 0);
 
         // Top-Left: Player Level & Credits
         if (player) {
             SDL_snprintf(text, sizeof(text), "LVL %d  $%d", player->level, player->credits);
-            DoomCanvas_drawString1(doomCanvas, text, 10, 252, 0);
+            DoomCanvas_drawString1(doomCanvas, text, 10, 251, 0);
+
+            // Top-Center: Keycards Owned [B] [R] [Y] [U]
+            int kx = 160;
+            if (player->keys & 1) { // Blue
+                DoomRPG_setColor(doomCanvas->doomRpg, 0x0066FF);
+                DoomRPG_fillRect(doomCanvas->doomRpg, kx, 247, 18, 20);
+                DoomCanvas_drawString1(doomCanvas, "B", kx + 5, 251, 0);
+                kx += 22;
+            }
+            if (player->keys & 2) { // Red
+                DoomRPG_setColor(doomCanvas->doomRpg, 0xFF2222);
+                DoomRPG_fillRect(doomCanvas->doomRpg, kx, 247, 18, 20);
+                DoomCanvas_drawString1(doomCanvas, "R", kx + 5, 251, 0);
+                kx += 22;
+            }
+            if (player->keys & 4) { // Yellow
+                DoomRPG_setColor(doomCanvas->doomRpg, 0xFFCC00);
+                DoomRPG_fillRect(doomCanvas->doomRpg, kx, 247, 18, 20);
+                DoomCanvas_drawString1(doomCanvas, "Y", kx + 5, 251, 0);
+                kx += 22;
+            }
+            if (player->keys & 8) { // Master
+                DoomRPG_setColor(doomCanvas->doomRpg, 0x00FF88);
+                DoomRPG_fillRect(doomCanvas->doomRpg, kx, 247, 18, 20);
+                DoomCanvas_drawString1(doomCanvas, "U", kx + 5, 251, 0);
+            }
         }
     }
 #endif
@@ -722,27 +765,67 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
     }
 
     if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
-        // [ + MED ] button: bottom-left
-        if (touchX >= 6 && touchX <= 102 && touchY >= 438 && touchY <= 476) {
-            if (player) {
-                if (player->inventory[1] > 0) {
-                    Player_useItem(player, 26);
-                } else if (player->inventory[0] > 0) {
+        // Bottom Hotbar Items (Y in 436..478)
+        if (touchY >= 436 && touchY <= 478) {
+            // Button 0: Small Medkit (X in 6..70)
+            if (touchX >= 6 && touchX <= 70) {
+                if (player && player->inventory[0] > 0) {
                     Player_useItem(player, 25);
                 } else {
-                    Hud_addMessage(doomCanvas, "No medkits!");
+                    Hud_addMessage(doomCanvas, "No Small Medkits!");
                     Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
                 }
+                return;
             }
-            return;
+            // Button 1: Large Medkit (X in 71..135)
+            if (touchX >= 71 && touchX <= 135) {
+                if (player && player->inventory[1] > 0) {
+                    Player_useItem(player, 26);
+                } else {
+                    Hud_addMessage(doomCanvas, "No Large Medkits!");
+                    Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
+                }
+                return;
+            }
+            // Button 2: Soul Sphere (X in 136..200)
+            if (touchX >= 136 && touchX <= 200) {
+                if (player && player->inventory[2] > 0) {
+                    Player_useItem(player, 27);
+                } else {
+                    Hud_addMessage(doomCanvas, "No Soul Spheres!");
+                    Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
+                }
+                return;
+            }
+            // Button 3: Berserker (X in 201..265)
+            if (touchX >= 201 && touchX <= 265) {
+                if (player && player->inventory[3] > 0) {
+                    Player_useItem(player, 28);
+                } else {
+                    Hud_addMessage(doomCanvas, "No Berserk Packs!");
+                    Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
+                }
+                return;
+            }
+            // Button 4: Dog Collar (X in 266..330)
+            if (touchX >= 266 && touchX <= 330) {
+                if (player && player->inventory[4] > 0) {
+                    Player_useItem(player, 29);
+                } else {
+                    Hud_addMessage(doomCanvas, "No Dog Collars!");
+                    Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
+                }
+                return;
+            }
+            // Button 5: Pass Turn (X in 331..398)
+            if (touchX >= 331 && touchX <= 398) {
+                DoomCanvas_keyPressed(doomCanvas, AVK_PASSTURN);
+                return;
+            }
         }
-        // [ PASS ] button: bottom-right
-        if (touchX >= 304 && touchX <= 394 && touchY >= 438 && touchY <= 476) {
-            DoomCanvas_keyPressed(doomCanvas, AVK_PASSTURN);
-            return;
-        }
-        // [ MENU ] button: top-right
-        if (touchX >= 304 && touchX <= 394 && touchY >= 244 && touchY <= 276) {
+
+        // Top-Right: [ MENU ] (touchX in 310..396, touchY in 242..276)
+        if (touchX >= 310 && touchX <= 396 && touchY >= 242 && touchY <= 276) {
             DoomCanvas_keyPressed(doomCanvas, AVK_MENUOPEN);
             return;
         }
