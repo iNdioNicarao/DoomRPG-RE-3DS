@@ -57,13 +57,44 @@ keyMapping_t keyMappingDefault[12] = {
 
 #ifdef __3DS__
 #include <3ds.h>
+#include <stdarg.h>
+
+static void pc_log(const char* fmt, ...)
+{
+    FILE* log = fopen("sdmc:/3ds/doomrpg/playcoins_debug.log", "a");
+    if (log) {
+        va_list args;
+        va_start(args, fmt);
+        vfprintf(log, fmt, args);
+        va_end(args);
+        fclose(log);
+    }
+}
 
 int Hardware_getPlayCoins(void) {
-    Handle fileHandle;
-    const u32 extdataArchive[3] = { MEDIATYPE_NAND, 0x0000000B, 0xF000000B };
+    /* 3DS Shared ExtData for gamecoin.dat:
+       Archive low path is 3x u32: { MEDIATYPE_NAND, extdataId_low, extdataId_high } */
+    const u32 extdataArchive[3] = { MEDIATYPE_NAND, 0xF000000B, 0x00000000 };
     FS_Path archPath = { PATH_BINARY, 12, (const u8*)extdataArchive };
-    FS_Path filePath = fsMakePath(PATH_ASCII, "/gamecoin.dat");
-    Result res = FSUSER_OpenFileDirectly(&fileHandle, ARCHIVE_SHARED_EXTDATA, archPath, filePath, FS_OPEN_READ, 0);
+    FS_Archive archive;
+    Result res = FSUSER_OpenArchive(&archive, ARCHIVE_SHARED_EXTDATA, archPath);
+    if (R_SUCCEEDED(res)) {
+        Handle fileHandle;
+        res = FSUSER_OpenFile(&fileHandle, archive, fsMakePath(PATH_ASCII, "/gamecoin.dat"), FS_OPEN_READ, 0);
+        if (R_SUCCEEDED(res)) {
+            u16 coins = 0;
+            u32 bytesRead = 0;
+            FSFILE_Read(fileHandle, &bytesRead, 4, &coins, sizeof(coins));
+            FSFILE_Close(fileHandle);
+            FSUSER_CloseArchive(archive);
+            return (int)coins;
+        }
+        FSUSER_CloseArchive(archive);
+    }
+
+    /* Fallback: direct file open */
+    Handle fileHandle;
+    res = FSUSER_OpenFileDirectly(&fileHandle, ARCHIVE_SHARED_EXTDATA, archPath, fsMakePath(PATH_ASCII, "/gamecoin.dat"), FS_OPEN_READ, 0);
     if (R_SUCCEEDED(res)) {
         u16 coins = 0;
         u32 bytesRead = 0;
@@ -71,17 +102,36 @@ int Hardware_getPlayCoins(void) {
         FSFILE_Close(fileHandle);
         return (int)coins;
     }
+
+    pc_log("Hardware_getPlayCoins failed: res=0x%08lx\n", (unsigned long)res);
     return -1;
 }
 
 int Hardware_setPlayCoins(int newCoins) {
     if (newCoins < 0) newCoins = 0;
     if (newCoins > 300) newCoins = 300;
-    Handle fileHandle;
-    const u32 extdataArchive[3] = { MEDIATYPE_NAND, 0x0000000B, 0xF000000B };
+
+    const u32 extdataArchive[3] = { MEDIATYPE_NAND, 0xF000000B, 0x00000000 };
     FS_Path archPath = { PATH_BINARY, 12, (const u8*)extdataArchive };
-    FS_Path filePath = fsMakePath(PATH_ASCII, "/gamecoin.dat");
-    Result res = FSUSER_OpenFileDirectly(&fileHandle, ARCHIVE_SHARED_EXTDATA, archPath, filePath, FS_OPEN_WRITE, 0);
+    FS_Archive archive;
+    Result res = FSUSER_OpenArchive(&archive, ARCHIVE_SHARED_EXTDATA, archPath);
+    if (R_SUCCEEDED(res)) {
+        Handle fileHandle;
+        res = FSUSER_OpenFile(&fileHandle, archive, fsMakePath(PATH_ASCII, "/gamecoin.dat"), FS_OPEN_WRITE, 0);
+        if (R_SUCCEEDED(res)) {
+            u16 coins = (u16)newCoins;
+            u32 bytesWritten = 0;
+            FSFILE_Write(fileHandle, &bytesWritten, 4, &coins, sizeof(coins), FS_WRITE_FLUSH);
+            FSFILE_Close(fileHandle);
+            FSUSER_CloseArchive(archive);
+            return (bytesWritten == sizeof(coins)) ? 0 : -1;
+        }
+        FSUSER_CloseArchive(archive);
+    }
+
+    /* Fallback: direct file open */
+    Handle fileHandle;
+    res = FSUSER_OpenFileDirectly(&fileHandle, ARCHIVE_SHARED_EXTDATA, archPath, fsMakePath(PATH_ASCII, "/gamecoin.dat"), FS_OPEN_WRITE, 0);
     if (R_SUCCEEDED(res)) {
         u16 coins = (u16)newCoins;
         u32 bytesWritten = 0;
@@ -89,6 +139,8 @@ int Hardware_setPlayCoins(int newCoins) {
         FSFILE_Close(fileHandle);
         return (bytesWritten == sizeof(coins)) ? 0 : -1;
     }
+
+    pc_log("Hardware_setPlayCoins failed: res=0x%08lx\n", (unsigned long)res);
     return -1;
 }
 #else

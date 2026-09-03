@@ -55,7 +55,7 @@ While the mobile version required physical phone digit keys to enter door passco
 
 ### Play Coins Exchange (v1.0.3)
 
-You can exchange your Nintendo 3DS system **Play Coins** for in-game Credits at terminals and vending stations. Each Play Coin converts into **$50 Credits**, allowing you to put your 3DS steps toward ammo, armor, and medkits!
+You can exchange your Nintendo 3DS system **Play Coins** for in-game Credits at vending machines and shops. Spend **5 Play Coins for 20 Credits**, allowing you to put your 3DS steps toward ammo, armor, and medkits!
 
 ### Note on the old keypad codes
 

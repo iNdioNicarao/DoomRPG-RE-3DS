@@ -485,11 +485,13 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 	   First draw the automap so it stays visible around the dialog box. */
 	DoomCanvas_drawAutomap(doomCanvas, true);
 
-	/* Scaled by factor of 2: 280x108 centered on 400x240 bottom screen (with margin for scrollbar) */
-	int boxW = 280;
-	int boxH = 108;
-	int boxX = doomCanvas->SCR_CX - (boxW / 2); /* 60 */
-	int boxY = 240 + ((240 - boxH) / 2);       /* 306 */
+	/* Centered box on 400x240 bottom screen region:
+	   boxW = 330 (264 physical pixels on 320-wide LCD, leaving 28px margin on each side)
+	   boxH = 110 (ample room for 4 lines of 24px text + margins) */
+	int boxW = 330;
+	int boxH = 110;
+	int boxX = doomCanvas->SCR_CX - (boxW / 2); /* (400 - 330) / 2 = 35 */
+	int boxY = 240 + ((240 - boxH) / 2);       /* 240 + (240 - 110) / 2 = 305 */
 #else
 	int boxW = 128;
 	int boxH = 54;
@@ -550,7 +552,7 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 	}
 
 #ifdef __3DS__
-	posY = boxY + 6;
+	posY = boxY + 7;
 	for (i = 0; i < 4 && doomCanvas->currentDialogLine + i < doomCanvas->numDialogLines; ++i) {
 		strBeg = doomCanvas->dialogIndexes[((doomCanvas->currentDialogLine + i) * 2) + 0];
 		strNxt = doomCanvas->dialogIndexes[((doomCanvas->currentDialogLine + i) * 2) + 1];
@@ -566,23 +568,29 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 		else if (i < doomCanvas->dialogTypeLineIdx) {
 			strEnd = strNxt;
 		}
-		DoomCanvas_drawFont2x(doomCanvas, doomCanvas->dialogBuffer, boxX + 10, posY, 0, strBeg, strEnd);
+		DoomCanvas_drawFont2x(doomCanvas, doomCanvas->dialogBuffer, boxX + 12, posY, 0, strBeg, strEnd);
 
-		posY += 24;
+		posY += 25;
 	}
 
 	if (doomCanvas->state == ST_DIALOGPASSWORD && doomCanvas->dialogTypeLineIdx == doomCanvas->numDialogLines) {
+		extern int Dialog_getTextFontWidth(const char* text, int len);
+		int lastLine = doomCanvas->numDialogLines - 1;
+		int pBeg = doomCanvas->dialogIndexes[lastLine * 2 + 0];
+		int pLen = doomCanvas->dialogIndexes[lastLine * 2 + 1];
+		int promptW = Dialog_getTextFontWidth(doomCanvas->dialogBuffer + pBeg, pLen);
+		int passX = (boxX + 12) + ((promptW + 2) * 5) / 2;
 		DoomCanvas_drawString2_2x(doomCanvas, 
 			doomCanvas->strPassCode, 
-			(boxX + 10) + ((doomCanvas->dialogIndexes[((doomCanvas->numDialogLines - 1) * 2) + 1] + 1) * 14),
-			posY - 24, 0, -1);
+			passX,
+			posY - 25, 0, -1);
 	}
 	if (doomCanvas->numDialogLines > 4) {
 		if (doomCanvas->currentDialogLine + 4 == doomCanvas->numDialogLines) {
-			DoomCanvas_drawScrollBar2x(doomCanvas, boxX + boxW - 18, boxY + 2, boxH - 4, doomCanvas->currentDialogLine, doomCanvas->numDialogLines, doomCanvas->numDialogLines);
+			DoomCanvas_drawScrollBar2x(doomCanvas, boxX + boxW - 16, boxY + 2, boxH - 4, doomCanvas->currentDialogLine, doomCanvas->numDialogLines, doomCanvas->numDialogLines);
 		}
 		else {
-			DoomCanvas_drawScrollBar2x(doomCanvas, boxX + boxW - 18, boxY + 2, boxH - 4, doomCanvas->currentDialogLine, doomCanvas->currentDialogLine + 4, doomCanvas->numDialogLines + 4);
+			DoomCanvas_drawScrollBar2x(doomCanvas, boxX + boxW - 16, boxY + 2, boxH - 4, doomCanvas->currentDialogLine, doomCanvas->currentDialogLine + 4, doomCanvas->numDialogLines + 4);
 		}
 	}
 #else
@@ -659,60 +667,114 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
         return;
     }
 
-    if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
+    boolean inGameMenu = (doomCanvas->state == ST_MENU && doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME);
+
+    if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT || inGameMenu) {
         // --- TOP METALLIC STATUS BAR (Y = 240..259, 20px tall) ---
         Hud_drawBarTiles(doomCanvas, 0, 240, 400, false);
 
         if (player) {
-            // Level and Credits (matching top status bar styling and full word CREDITS)
-            SDL_snprintf(text, sizeof(text), "LEVEL %d    CREDITS: %d", player->level, player->credits);
-            DoomCanvas_drawString1(doomCanvas, text, 8, 245, 0);
+            int pc = Hardware_getPlayCoins();
+            if (inGameMenu) {
+                char credText[32];
+                char coinsText[32];
+                SDL_snprintf(credText, sizeof(credText), "CREDITS: %d", player->credits);
+                DoomCanvas_drawString1(doomCanvas, credText, 10, 245, 0);
+
+                if (pc >= 0) {
+                    // Divider between Credits and Coins at X = 135
+                    DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+                    DoomRPG_drawLine(doomCanvas->doomRpg, 134, 240, 134, 259);
+                    DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+                    DoomRPG_drawLine(doomCanvas->doomRpg, 135, 240, 135, 259);
+
+                    SDL_snprintf(coinsText, sizeof(coinsText), "COINS: %d", pc);
+                    DoomCanvas_drawString1(doomCanvas, coinsText, 145, 245, 0);
+                }
+            } else {
+                char lvText[16];
+                char credText[32];
+                char coinsText[32];
+                SDL_snprintf(lvText, sizeof(lvText), "LV %d", player->level);
+                SDL_snprintf(credText, sizeof(credText), "CREDITS: %d", player->credits);
+
+                // 1. Level section on the left
+                DoomCanvas_drawString1(doomCanvas, lvText, 8, 245, 0);
+
+                // 2. Beveled separator after Level section at X = 55
+                DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+                DoomRPG_drawLine(doomCanvas->doomRpg, 54, 240, 54, 259);
+                DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+                DoomRPG_drawLine(doomCanvas->doomRpg, 55, 240, 55, 259);
+
+                // 3. Credits section right next to the separator at X = 62
+                DoomCanvas_drawString1(doomCanvas, credText, 62, 245, 0);
+
+                // 4. Coins section positioned before the PASS button divider (X = 280)
+                if (pc >= 0) {
+                    SDL_snprintf(coinsText, sizeof(coinsText), "COINS: %d", pc);
+                    int coinsLen = (int)SDL_strlen(coinsText) * 9;
+                    int coinsX = 274 - coinsLen;
+                    DoomCanvas_drawString1(doomCanvas, coinsText, coinsX, 245, 0);
+                }
+            }
         }
 
-        // [ PASS ] Button on Top Bar with beveled divider
-        DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-        DoomRPG_drawLine(doomCanvas->doomRpg, 279, 240, 279, 259);
-        DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-        DoomRPG_drawLine(doomCanvas->doomRpg, 280, 240, 280, 259);
-        DoomCanvas_drawString1(doomCanvas, "PASS", 310, 245, 16);
+        if (inGameMenu) {
+            // [ BACK ] Button on Top-Right with beveled divider
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 339, 240, 339, 259);
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 340, 240, 340, 259);
+            DoomCanvas_drawString1(doomCanvas, "BACK", 370, 245, 16);
+        } else {
+            // [ PASS ] Button on Top Bar with beveled divider
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 279, 240, 279, 259);
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 280, 240, 280, 259);
+            DoomCanvas_drawString1(doomCanvas, "PASS", 310, 245, 16);
 
-        // [ MENU ] Button on Top-Right with beveled divider
-        DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-        DoomRPG_drawLine(doomCanvas->doomRpg, 339, 240, 339, 259);
-        DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-        DoomRPG_drawLine(doomCanvas->doomRpg, 340, 240, 340, 259);
-        DoomCanvas_drawString1(doomCanvas, "MENU", 370, 245, 16);
+            // [ MENU ] Button on Top-Right with beveled divider
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 339, 240, 339, 259);
+            DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+            DoomRPG_drawLine(doomCanvas->doomRpg, 340, 240, 340, 259);
+            DoomCanvas_drawString1(doomCanvas, "MENU", 370, 245, 16);
+        }
 
         // --- BOTTOM METALLIC QUICK-ACCESS BAR (Y = 460..479, 20px tall) ---
         Hud_drawBarTiles(doomCanvas, 0, 460, 400, false);
 
-        static const struct {
-            const char* name;
-            int itemIndex; // 0..4 for inventory
-        } hotbar[5] = {
-            { "S.MED", 0 },
-            { "L.MED", 1 },
-            { "SOUL",  2 },
-            { "BRSK",  3 },
-            { "DOG",   4 }
-        };
+        if (!inGameMenu) {
+            static const struct {
+                const char* name;
+                int itemIndex; // 0..4 for inventory
+            } hotbar[5] = {
+                { "S.MED", 0 },
+                { "L.MED", 1 },
+                { "SOUL",  2 },
+                { "BRSK",  3 },
+                { "DOG",   4 }
+            };
 
-        for (int b = 0; b < 5; b++) {
-            int centerX = 40 + b * 80;
+            for (int b = 0; b < 5; b++) {
+                int centerX = 40 + b * 80;
 
-            // Draw metallic beveled divider between buttons
-            if (b > 0) {
-                int divX = b * 80;
-                DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-                DoomRPG_drawLine(doomCanvas->doomRpg, divX - 1, 460, divX - 1, 479);
-                DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-                DoomRPG_drawLine(doomCanvas->doomRpg, divX, 460, divX, 479);
+                // Draw metallic beveled divider between buttons
+                if (b > 0) {
+                    int divX = b * 80;
+                    DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+                    DoomRPG_drawLine(doomCanvas->doomRpg, divX - 1, 460, divX - 1, 479);
+                    DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+                    DoomRPG_drawLine(doomCanvas->doomRpg, divX, 460, divX, 479);
+                }
+
+                // Draw single-line item label + count in authentic white status font
+                int count = player ? player->inventory[hotbar[b].itemIndex] : 0;
+                SDL_snprintf(text, sizeof(text), "%s: %d", hotbar[b].name, count);
+                DoomCanvas_drawString1(doomCanvas, text, centerX, 465, 16);
             }
-
-            // Draw single-line item label + count in authentic white status font
-            int count = player ? player->inventory[hotbar[b].itemIndex] : 0;
-            SDL_snprintf(text, sizeof(text), "%s: %d", hotbar[b].name, count);
-            DoomCanvas_drawString1(doomCanvas, text, centerX, 465, 16);
         }
     }
 #endif
@@ -723,6 +785,13 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
 #ifdef __3DS__
     if (!doomCanvas || !doomCanvas->doomRpg) return;
     Player_t* player = doomCanvas->player;
+
+    if (doomCanvas->state == ST_MENU && doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME) {
+        if (touchY >= 240 && touchY <= 265 && touchX >= 339) {
+            MenuSystem_back(doomCanvas->doomRpg->menuSystem);
+            return;
+        }
+    }
 
     if (doomCanvas->state == ST_DIALOGPASSWORD) {
         if (touchY >= 418 && touchY <= 446) {
@@ -2042,18 +2111,23 @@ void DoomCanvas_drawScrollBar(DoomCanvas_t* doomCanvas, int y, int totalHeight, 
 		}
 		int barOffset_y = offSetY + 7;
 
-		DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 0, 7, 7, 0, doomCanvas->SCR_CX + 64, y, 9);
-		DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 7, 7, 7, 0, doomCanvas->SCR_CX + 64, y + totalHeight, 10);
+#ifdef __3DS__
+		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1) ? (doomCanvas->SCR_CX + 140) - 2 : (doomCanvas->SCR_CX + 64);
+#else
+		int scrollX = doomCanvas->SCR_CX + 64;
+#endif
+		DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 0, 7, 7, 0, scrollX, y, 9);
+		DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 7, 7, 7, 0, scrollX, y + totalHeight, 10);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x888888);
-		DoomRPG_fillRect(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + 7, 7, totalHeight - 14);
+		DoomRPG_fillRect(doomCanvas->doomRpg, scrollX - 7, y + 7, 7, totalHeight - 14);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0xDDDDDD);
-		DoomRPG_fillRect(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + barOffset_y, 7, barHeight);
+		DoomRPG_fillRect(doomCanvas->doomRpg, scrollX - 7, y + barOffset_y, 7, barHeight);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_drawRect(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + barOffset_y, 6, barHeight - 1);
-		DoomRPG_drawRect(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y, 6, totalHeight - 1);
+		DoomRPG_drawRect(doomCanvas->doomRpg, scrollX - 7, y + barOffset_y, 6, barHeight - 1);
+		DoomRPG_drawRect(doomCanvas->doomRpg, scrollX - 7, y, 6, totalHeight - 1);
 	}
 
 }
@@ -2068,18 +2142,23 @@ void DoomCanvas_drawScrollBarSur(DoomCanvas_t* doomCanvas, int y, int totalHeigh
 		}
 		int barOffset_y = offSetY + 7;
 
-		DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 0, 7, 7, 0, doomCanvas->SCR_CX + 64, y, 9, surface);
-		DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 7, 7, 7, 0, doomCanvas->SCR_CX + 64, y + totalHeight, 10, surface);
+#ifdef __3DS__
+		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1) ? (doomCanvas->SCR_CX + 140) - 2 : (doomCanvas->SCR_CX + 64);
+#else
+		int scrollX = doomCanvas->SCR_CX + 64;
+#endif
+		DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 0, 7, 7, 0, scrollX, y, 9, surface);
+		DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 7, 7, 7, 0, scrollX, y + totalHeight, 10, surface);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x888888);
-		DoomRPG_fillRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + 7, 7, totalHeight - 14, surface);
+		DoomRPG_fillRectSur(doomCanvas->doomRpg, scrollX - 7, y + 7, 7, totalHeight - 14, surface);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0xDDDDDD);
-		DoomRPG_fillRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + barOffset_y, 7, barHeight, surface);
+		DoomRPG_fillRectSur(doomCanvas->doomRpg, scrollX - 7, y + barOffset_y, 7, barHeight, surface);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_drawRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + barOffset_y, 6, barHeight - 1, surface);
-		DoomRPG_drawRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y, 6, totalHeight - 1, surface);
+		DoomRPG_drawRectSur(doomCanvas->doomRpg, scrollX - 7, y + barOffset_y, 6, barHeight - 1, surface);
+		DoomRPG_drawRectSur(doomCanvas->doomRpg, scrollX - 7, y, 6, totalHeight - 1, surface);
 	}
 
 }
@@ -2204,103 +2283,140 @@ void SDL_SurfaceColorMod(SDL_Surface *surface, Uint8 r, Uint8 g, Uint8 b)
 	if (SDL_MUSTLOCK(surface)) SDL_UnlockSurface(surface);
 }
 
-static void BlitSurface2x(SDL_Surface* src, SDL_Surface* dst, int dstX, int dstY) {
-    if (!src || !dst) return;
-    int sw = src->w;
-    int sh = src->h;
-    int dw = dst->w;
-    int dh = dst->h;
-    const Uint32* s = (const Uint32*)src->pixels;
-    Uint32* d = (Uint32*)dst->pixels;
-    for (int sy = 0; sy < sh; sy++) {
-        int dy1 = dstY + sy * 2;
-        int dy2 = dy1 + 1;
-        if (dy1 >= dh) break;
-        const Uint32* sRow = s + sy * sw;
-        Uint32* dRow1 = d + dy1 * dw;
-        Uint32* dRow2 = (dy2 < dh) ? (d + dy2 * dw) : NULL;
-        for (int sx = 0; sx < sw; sx++) {
-            Uint32 p = sRow[sx];
-            if ((p & 0xFF000000u) == 0) continue;
-            int dx1 = dstX + sx * 2;
-            int dx2 = dx1 + 1;
-            if (dx1 < dw) {
-                dRow1[dx1] = p;
-                if (dRow2) dRow2[dx1] = p;
-            }
-            if (dx2 < dw) {
-                dRow1[dx2] = p;
-                if (dRow2) dRow2[dx2] = p;
-            }
-        }
+/* Character metrics for font in a.bmp (ASCII 33 '!' to 128 0x80) */
+static const struct { u8 minX; u8 w; } s_dialogFontMetrics[96] = {
+    {3,4}, {3,5}, {2,7}, {1,8}, {1,8}, {0,9}, {3,4}, {3,5}, /*  33-40: ! " # $ % & ' ( */
+    {3,5}, {2,7}, {1,8}, {2,5}, {1,7}, {3,4}, {1,8}, {1,8}, /*  41-48: ) * + , - . / 0 */
+    {3,5}, {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, /*  49-56: 1 2 3 4 5 6 7 8 */
+    {1,8}, {3,4}, {3,4}, {2,7}, {2,6}, {1,7}, {1,7}, {0,9}, /*  57-64: 9 : ; < = > ? @ */
+    {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, {1,7}, {1,8}, {1,8}, /*  65-72: A B C D E F G H */
+    {2,6}, {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, /*  73-80: I J K L M N O P */
+    {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, {0,9}, {1,8}, /*  81-88: Q R S T U V W X */
+    {1,8}, {1,8}, {2,6}, {1,8}, {2,6}, {2,7}, {1,8}, {3,4}, /*  89-96: Y Z [ \ ] ^ _ ` */
+    {1,8}, {1,8}, {1,7}, {1,8}, {1,8}, {2,7}, {1,8}, {1,8}, /*  97-104: a b c d e f g h */
+    {2,6}, {1,8}, {1,8}, {2,5}, {1,8}, {1,8}, {1,8}, {1,8}, /* 105-112: i j k l m n o p */
+    {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, {1,8}, /* 113-120: q r s t u v w x */
+    {1,8}, {1,8}, {3,6}, {3,4}, {2,6}, {3,5}, {1,7}, {1,8}, /* 121-128: y z { | } ~ del 0x80 */
+};
+
+int Dialog_getCharAdvance(unsigned char c) {
+    if (c == ' ') return 4;
+    if (c >= 33 && c <= 128) {
+        return s_dialogFontMetrics[c - 33].w + 1;
+    }
+    return 4;
+}
+
+int Dialog_getTextFontWidth(const char* text, int len) {
+    int w = 0;
+    for (int i = 0; i < len; i++) {
+        w += Dialog_getCharAdvance((unsigned char)text[i]);
+    }
+    return w;
+}
+
+static inline Uint32 Dialog_GetBmpPixel(SDL_Surface* surf, int x, int y) {
+    int bpp = surf->format->BytesPerPixel;
+    Uint8* p = (Uint8*)surf->pixels + y * surf->pitch + x * bpp;
+    switch (bpp) {
+        case 1:
+            return *p;
+        case 2:
+            return *(Uint16*)p;
+        case 3:
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+            return ((Uint32)p[0] << 16) | ((Uint32)p[1] << 8) | p[2];
+#else
+            return (Uint32)p[0] | ((Uint32)p[1] << 8) | ((Uint32)p[2] << 16);
+#endif
+        case 4:
+            return *(Uint32*)p;
+        default:
+            return 0;
     }
 }
 
 void DoomCanvas_drawFont2x(DoomCanvas_t* doomCanvas, char* text, int x, int y, int flags, int strBeg, int strEnd)
 {
     Image_t* imgFont = &doomCanvas->imgFont;
-    int charAdvanceWidth = 7;
-    int charCellWidth = 9;
-    int charCellHeight = 12;
-    int len, i;
-    unsigned char c;
+    if (!imgFont || !imgFont->imgBitmap || !sdlVideo.screenSurface) return;
+    if (strEnd <= 0) return;
 
-    if (strEnd == 0) return;
+    int textLen = (int)SDL_strlen(text);
+    if (strBeg >= textLen) return;
+    int maxChars = strEnd;
+    if (strBeg + maxChars > textLen) maxChars = textLen - strBeg;
 
-    len = SDL_strlen(text) - strBeg;
-    if ((len > strEnd) && (strEnd >= 0)) {
-        len = strEnd;
-    }
-    len += strBeg;
+    SDL_Surface* fontBmp = imgFont->imgBitmap;
+    int bmpW = fontBmp->w;
+    int bmpH = fontBmp->h;
 
-    int lineCount = 1;
-    for (i = strBeg; i < len; ++i) {
-        if (text[i] == '\n') lineCount++;
-    }
-
-    SDL_Surface* fontSurface = SDL_CreateRGBSurface(
-        SDL_SWSURFACE,
-        charAdvanceWidth * (len - strBeg),
-        charCellHeight * lineCount,
-        32,
-        0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000
-    );
-
-    if (!fontSurface) return;
+    SDL_Surface* dstSurf = sdlVideo.screenSurface;
+    int dstW = dstSurf->w;
+    int dstH = dstSurf->h;
+    Uint32* dstPixels = (Uint32*)dstSurf->pixels;
 
     int xpos = 0;
-    int ypos = 0;
 
-    for (i = strBeg; i < len; ++i) {
-        c = (unsigned char)text[i];
-        if (c == '\n') {
-            xpos = 0;
-            ypos += charCellHeight;
+    for (int i = 0; i < maxChars; i++) {
+        unsigned char c = (unsigned char)text[strBeg + i];
+        if (c == ' ') {
+            xpos += 4;
             continue;
-        } else if (c == ' ') {
-            xpos += charAdvanceWidth;
+        }
+        if (c < 33 || c > 128) {
+            xpos += 4;
             continue;
         }
 
         int charIndex = c - 33;
-        if (charIndex < 0 || charIndex >= 94) {
-            xpos += charAdvanceWidth;
-            continue;
+        int minX = s_dialogFontMetrics[charIndex].minX;
+        int gw = s_dialogFontMetrics[charIndex].w;
+        int cellX = (charIndex % 16) * 9 + minX;
+        int cellY = (charIndex / 16) * 12;
+
+        /* Blit glyph pixels with 5/2 virtual X scaling and 2x Y scaling.
+           Because 3DS SDL_PresentGfx downsamples bottom screen X by 4/5 (400->320),
+           a 5/2 virtual X factor yields EXACTLY (5/2)*(4/5) = 2.0 physical pixels per font pixel.
+           With 2x Y scaling, this produces a mathematically perfect 1:1 square pixel aspect ratio! */
+        for (int cy = 0; cy < 12; cy++) {
+            int srcY = cellY + cy;
+            if (srcY >= bmpH) continue;
+            int vy1 = y + cy * 2;
+            int vy2 = vy1 + 1;
+            if (vy1 >= dstH) continue;
+
+            for (int cx = 0; cx < gw; cx++) {
+                int srcX = cellX + cx;
+                if (srcX >= bmpW) continue;
+
+                Uint32 raw = Dialog_GetBmpPixel(fontBmp, srcX, srcY);
+                Uint8 r, g, b;
+                SDL_GetRGB(raw, fontBmp->format, &r, &g, &b);
+
+                /* Skip transparent magenta background (255, 0, 255) */
+                if (r == 255 && g == 0 && b == 255) continue;
+
+                Uint32 pixelColor = (0xFFu << 24) | ((Uint32)r << 16) | ((Uint32)g << 8) | b;
+
+                /* Virtual column mapping: (fx * 5) / 2 to ((fx + 1) * 5) / 2 */
+                int fx = xpos + cx;
+                int vx_start = x + (fx * 5) / 2;
+                int vx_end = x + ((fx + 1) * 5) / 2;
+
+                for (int vx = vx_start; vx < vx_end; vx++) {
+                    if (vx >= 0 && vx < dstW) {
+                        dstPixels[vy1 * dstW + vx] = pixelColor;
+                        if (vy2 < dstH) {
+                            dstPixels[vy2 * dstW + vx] = pixelColor;
+                        }
+                    }
+                }
+            }
         }
 
-        SDL_Rect srcRect = {
-            (charIndex % 16) * charCellWidth,
-            (charIndex / 16) * charCellHeight,
-            charCellWidth,
-            charCellHeight
-        };
-        SDL_Rect dstRect = { xpos, ypos, charCellWidth, charCellHeight };
-        SDL_BlitSurface(imgFont->imgBitmap, &srcRect, fontSurface, &dstRect);
-        xpos += charAdvanceWidth;
+        xpos += gw + 1;
     }
-
-    BlitSurface2x(fontSurface, sdlVideo.screenSurface, x, y);
-    SDL_FreeSurface(fontSurface);
 }
 
 void DoomCanvas_drawString2_2x(DoomCanvas_t* doomCanvas, char* text, int x, int y, int flags, int param_6)
@@ -3554,6 +3670,13 @@ void DoomCanvas_menuState(DoomCanvas_t* doomCanvas)
 	}
 	MenuSystem_paint(doomCanvas->doomRpg->menuSystem);
 
+#ifdef __3DS__
+	if (doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME) {
+		DoomCanvas_drawAutomap(doomCanvas, true);
+		DoomCanvas_drawBottomTouchHUD(doomCanvas);
+	}
+#endif
+
 	if (doomCanvas->doomRpg->menuSystem->oldMenu == -1) {
 		DoomCanvas_drawSoftKeys(doomCanvas, NULL, NULL);
 	}
@@ -3714,29 +3837,92 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 
 void DoomCanvas_prepareDialog(DoomCanvas_t* doomCanvas, char* str, boolean dialogBackSoftKey)
 {
-	int strLen, i, j;
+	int strLen, i, lineStart, lastSpace;
+	int lineWidth;
 
-	i = 0;
-	j = 0;
 	doomCanvas->numDialogLines = 0;
-	strncpy(doomCanvas->dialogBuffer, str, sizeof(doomCanvas->dialogBuffer));
+	strncpy(doomCanvas->dialogBuffer, str, sizeof(doomCanvas->dialogBuffer) - 1);
+	doomCanvas->dialogBuffer[sizeof(doomCanvas->dialogBuffer) - 1] = '\0';
 
-	strLen = SDL_strlen(doomCanvas->dialogBuffer);
-	while (j < strLen) {
-		if (str[j] == '|') {
-			doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 0] = (short)i;
-			doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 1] = (short)(j - i);
+	strLen = (int)SDL_strlen(doomCanvas->dialogBuffer);
+#ifdef __3DS__
+	/* Max font width in dialog box: boxW is 330, text starts at boxX + 12,
+	   scrollbar at boxW - 16. Available virtual width: 330 - 12 - 24 = 294px.
+	   In font space (where 1 font px = 2.5 virtual px): 294 / 2.5 = 117.6 font px.
+	   Using 117 guarantees text never bleeds out of the box or touches the scrollbar! */
+	const int maxFontWidth = 117;
+#else
+	const int maxFontWidth = 120;
+#endif
+
+	lineStart = 0;
+	lastSpace = -1;
+	lineWidth = 0;
+	i = 0;
+
+	while (i < strLen && doomCanvas->numDialogLines < 500) {
+		unsigned char c = (unsigned char)doomCanvas->dialogBuffer[i];
+		if (c == '|' || c == '\n') {
+			/* Explicit line break */
+			int len = i - lineStart;
+			doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 0] = (short)lineStart;
+			doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 1] = (short)len;
 			doomCanvas->numDialogLines++;
-			i = j + 1;
+			lineStart = i + 1;
+			lastSpace = -1;
+			lineWidth = 0;
+			i++;
+			continue;
 		}
-		++j;
+
+		int cw = Dialog_getCharAdvance(c);
+		if (c == ' ') {
+			lastSpace = i;
+		}
+
+		if (lineWidth + cw > maxFontWidth && i > lineStart) {
+			/* Line exceeds box width before reaching scrollbar: wrap to new line */
+			if (lastSpace > lineStart) {
+				/* Wrap cleanly at the last space */
+				int len = lastSpace - lineStart;
+				doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 0] = (short)lineStart;
+				doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 1] = (short)len;
+				doomCanvas->numDialogLines++;
+				lineStart = lastSpace + 1;
+				i = lineStart;
+				lastSpace = -1;
+				lineWidth = 0;
+				continue;
+			}
+			else {
+				/* Single long word exceeds width: break word */
+				int len = i - lineStart;
+				doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 0] = (short)lineStart;
+				doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 1] = (short)len;
+				doomCanvas->numDialogLines++;
+				lineStart = i;
+				lastSpace = -1;
+				lineWidth = cw;
+				i++;
+				continue;
+			}
+		}
+
+		lineWidth += cw;
+		i++;
 	}
-	doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 0] = (short)i;
-	doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 1] = (short)(strLen - i);
-	doomCanvas->numDialogLines++;
+
+	if (lineStart <= strLen && doomCanvas->numDialogLines < 500) {
+		int len = strLen - lineStart;
+		if (len > 0 || doomCanvas->numDialogLines == 0) {
+			doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 0] = (short)lineStart;
+			doomCanvas->dialogIndexes[(doomCanvas->numDialogLines * 2) + 1] = (short)len;
+			doomCanvas->numDialogLines++;
+		}
+	}
 
 	if (doomCanvas->state == ST_DIALOGPASSWORD) {
-		strLen = SDL_strlen(doomCanvas->game->passCode);
+		strLen = (int)SDL_strlen(doomCanvas->game->passCode);
 		SDL_memset(doomCanvas->strPassCode, '_', strLen);
 		doomCanvas->strPassCode[strLen] = '\0';
 	}
@@ -3850,7 +4036,34 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 	extern int g_stereoRightValid;
 
 	if (g_top3D && g_stereoSep > 0.01f && g_stereoRight) {
-		float halfSep = g_stereoSep * 2.0f; /* 0..2.0 world units per eye (~11% reduction) */
+		/* Dynamic Motion-Damped Stereoscopy:
+		   Rapid parallax shearing during movement and turning causes disorientation and eye fatigue.
+		   We scale down separation during active movement/rotation and smoothly
+		   restore full 3D separation when the player settles onto a tile. */
+		static float s_motion3DScale = 1.0f;
+		static int s_lastViewX = 0, s_lastViewY = 0, s_lastViewAngle = 0;
+
+		int isMoving = (doomCanvas->viewX != doomCanvas->destX ||
+		                doomCanvas->viewY != doomCanvas->destY ||
+		                x != s_lastViewX || y != s_lastViewY);
+		int isRotating = (doomCanvas->viewAngle != doomCanvas->destAngle ||
+		                  angle != s_lastViewAngle);
+		s_lastViewX = x;
+		s_lastViewY = y;
+		s_lastViewAngle = angle;
+
+		float targetScale = 1.0f;
+		if (isRotating) {
+			targetScale = 0.30f; /* 70% reduction during rotation - eliminates turning shear */
+		} else if (isMoving) {
+			targetScale = 0.45f; /* 55% reduction during translation */
+		}
+
+		/* Asymmetric filter: quickly soften 3D on motion start, smoothly bloom back when stationary */
+		float rate = (targetScale < s_motion3DScale) ? 0.35f : 0.18f;
+		s_motion3DScale += (targetScale - s_motion3DScale) * rate;
+
+		float halfSep = g_stereoSep * 2.0f * s_motion3DScale;
 		int dx = (int)(halfSep * sinf((float)angle * 3.14159265f / 128.0f));
 		int dy = (int)(halfSep * cosf((float)angle * 3.14159265f / 128.0f));
 

@@ -155,8 +155,7 @@ void Player_nextLevel(Player_t* player)
 		Sound_playSound(player->doomRpg->sound, 5043, SND_FLG_LOOP | SND_FLG_STOPSOUNDS | SND_FLG_ISMUSIC, 6);
 	}
 
-	strncpy(text, MenuSystem_buildDivider(player->doomRpg->menuSystem, "Level up!"), sizeof(text));
-	strncat(text, "|", sizeof(text));
+	strncpy(text, "Level up!|", sizeof(text));
 	SDL_snprintf(msg, sizeof(msg), "Level: %d|", player->level);
 	strncat(text, msg, sizeof(text));
 
