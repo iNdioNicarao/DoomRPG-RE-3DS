@@ -2,15 +2,19 @@
 
 This is a Nintendo 3DS port of the [reverse engineered Doom RPG](https://github.com/Erick194/DoomRPG-RE) by [GEC]. All credits go to the GEC team, this project would not exist without their hard work.
 
-This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) created by **Dennis Isaac Gutierrez Zeledon** to provide a **home-menu `.cia` build** (installable on a New 3DS from the HOME Menu via FBI), **hardware autostereoscopic 3D**, an interactive **bottom-screen Touch HUD**, and stability fixes that make the port shine on real hardware. Recent enhancements are detailed in [`docs/RELEASE_NOTES_v1.0.3.md`](docs/RELEASE_NOTES_v1.0.3.md).
+This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) created by **Dennis Isaac Gutierrez Zeledon** to provide a **home-menu `.cia` build** (installable on a New 3DS from the HOME Menu via FBI), **hardware autostereoscopic 3D with dynamic motion damping**, an interactive **bottom-screen Touch HUD**, a custom **3D parallax diorama HOME banner**, and stability fixes that make the port shine on real hardware. Recent enhancements are detailed in [`docs/RELEASE_NOTES_v1.0.4.md`](docs/RELEASE_NOTES_v1.0.4.md).
 
-## Highlights (v1.0.3)
+## Highlights (v1.0.4)
 
-- **Hardware Autostereoscopic 3D**: Full dual-camera stereoscopic 3D rendering on the top screen dynamically modulated by the physical 3DS 3D depth slider.
+- **3D Parallax Diorama HOME Menu Banner & Audio Stinger**: Custom 3DS extended banner featuring a rotating 2-sided plaque (Mars Base diorama on the front, brushed steel plate with embossed horned demon skull on the back), matched pixel-art icon, and dual shotgun blast + grunt death scream audio stinger.
+- **Dynamic Motion-Damped Stereoscopy**: Smoothly dials down 3D depth by 70% during camera rotation (turning) and 55% during translation (stepping) with asymmetric easing to eliminate eye strain and visual shear, returning to 100% full slider depth when stationary.
+- **Pixel-Perfect 1:1 Dialogue Typography**: Rewritten bottom-screen font renderer with 5/2 virtual scaling that cancels out the 3DS display driver's 4/5 horizontal downscale, rendering dialogue with mathematically square ($2\times 2$ pixel) glyphs and zero vertical stretch.
+- **Proportional Kerning & Automatic Word-Wrapping**: Per-glyph bounding box metrics table for all 96 font glyphs (eliminating gaps around `:`, `!`, `l`, numbers), and automatic word-wrapping ensuring dialogue never bleeds past borders or behind the scrollbar.
+- **Hardware Autostereoscopic 3D**: Dual-camera stereoscopic 3D rendering pipeline on the top screen dynamically modulated by the physical 3DS 3D depth slider.
 - **Touch HUD & Quick Hotbar**: Authentic metallic status bar with a 5-slot quick-inventory touch bar (`S.MED`, `L.MED`, `SOUL`, `BRSK`, `DOG`), plus touch `[ PASS ]` and `[ MENU ]` controls.
 - **Interactive Touch Keypad**: On-screen numpad for keypad door passcode terminals.
 - **In-Memory MP3 Streaming**: High-quality MP3 background music streamed directly from RAM via `libmad`, eliminating SD card I/O stalls during audio interrupts.
-- **Play Coins Exchange**: Convert 3DS system Play Coins to game Credits ($50 credits per Play Coin).
+- **Play Coins Exchange**: Convert 3DS system Play Coins to game Credits (5 Play Coins for 20 Credits).
 - **New 3DS 804 MHz Boost**: Leverages the extra CPU power and L2 cache on New 3DS for silky-smooth framerates.
 
 ## How to install
@@ -23,7 +27,7 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
    [archive.org](https://archive.org/details/doomrpg_brew). Extract `doomrpg.bar`
    (a BREW asset container; the upstream PC tools such as `BarToZip` turn it into
    loose files) and copy those loose files — no further zip step is needed.
-2. Install `DoomRPG-1.0.3.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
+2. Install `DoomRPG-1.0.4.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
 3. On the SD card, copy the **extracted data files** into
    `sdmc:/3ds/doomrpg/` so they sit loose in that folder. Required files
    include the `*.bmp` sprites/UI, the `*.bsp` maps, `wtexels.bin`,
@@ -87,9 +91,9 @@ If you find a bug, please open an issue here on GitHub.
 
 This fork was developed by **Dennis Isaac Gutierrez Zeledon** with the assistance of AI coding assistants across its development milestones:
 
-- **v1.0.3+ (Stereo 3D, Touch HUD & MP3 Audio Engine):**
+- **v1.0.3 – v1.0.4 (Stereo 3D, Motion Damping, 3D Banner & Touch UI):**
   - **Assistant:** **Gemini Antigravity** (Google DeepMind)
-  - **Role:** End-to-end implementation of real hardware autostereoscopic 3D (Citro2D/Citro3D stereo targets, physical depth-slider modulation, particle/parallax tuning), the interactive bottom-screen Touch HUD and passcode keypad, Play Coins exchange, in-memory `libmad` MP3 audio streaming, and v1.0.3 release packaging.
+  - **Role:** Implementation of hardware autostereoscopic 3D, Citro2D/Citro3D stereo targets, dynamic motion-damped stereoscopy, 3D parallax diorama banner and stereo CWAV stinger, pixel-perfect 1:1 dialogue typography and word-wrapping, Touch HUD hotbar, passcode keypad, Play Coins exchange, and in-memory `libmad` MP3 audio streaming.
 
 - **v1.0.0 – v1.0.2 (Initial Port & CIA Packaging):**
   - **Assistant:** **Hermes Agent** (Nous Research)
