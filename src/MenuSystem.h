@@ -29,7 +29,7 @@ typedef struct MenuSystem_s
 	int cheatCombo;
 	int digitCount;
 	boolean paintMenu;
-	char stringBuffer[32];
+	char stringBuffer[64];
 
 	boolean setBind;// new
 	int bindIndx;// new

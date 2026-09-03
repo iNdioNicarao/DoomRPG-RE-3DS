@@ -1,0 +1,22 @@
+; Fullscreen textured-quad vertex shader (passthrough, no projection)
+; v0 = position (vec2 in clip space -1..1)
+; v1 = texcoord (vec2 0..1)
+
+.constf c0(0.0, 1.0, 0.0, 0.0)
+.alias zeros c0.x
+.alias ones  c0.y
+
+.out outpos position
+.out outtc0 texcoord0
+
+.alias inpos v0
+.alias intex v1
+
+.proc main
+    mov outpos.x, inpos.x
+    mov outpos.y, inpos.y
+    mov outpos.z, zeros
+    mov outpos.w, ones
+    mov outtc0.xy, intex
+    end
+.end

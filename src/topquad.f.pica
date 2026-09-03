@@ -1,0 +1,9 @@
+; Fullscreen textured-quad fragment shader
+; Sample texture unit 0 at texcoord0 and output the color
+
+.out outclr color
+
+.proc main
+    tex outclr, texcoord0
+    end
+.end

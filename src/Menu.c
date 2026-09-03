@@ -170,15 +170,8 @@ void Menu_setStore(Menu_t* menu)
 	}
 
 #ifdef __3DS__
-	int pc = Hardware_getPlayCoins();
 	MenuItem_Set(&menuSystem->items[menuSystem->numItems++], MenuSystem_buildDivider(menuSystem, "PLAY COINS"), 3, 0);
-	char coinText[32];
-	if (pc >= 0) {
-		SDL_snprintf(coinText, sizeof(coinText), "%d Coins", pc);
-	} else {
-		SDL_snprintf(coinText, sizeof(coinText), "0 Coins");
-	}
-	MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "+100 Credits", coinText, 0, 0x50005);
+	MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "+20 Credits", "5 Coins", 0, 0x50005);
 #endif
 }
 
@@ -954,7 +947,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 				}
 				else {
 					strncpy(menu->doomRpg->hud->logMessage, "Play Coin Exch.", MS_PER_CHAR);
-					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Buy 100 Credits?", 3, 0);
+					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Buy 20 Credits?", 3, 0);
 					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Yes", 2, 0);
 					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "No ", 2, 0);
@@ -1918,7 +1911,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 					if (curCoins >= 5) {
 						Hardware_setPlayCoins(curCoins - 5);
 					}
-					Player_addCredits(menu->doomRpg->player, 100);
+					Player_addCredits(menu->doomRpg->player, 20);
 					Sound_playSound(menu->doomRpg->sound, 5062, SND_FLG_NOFORCESTOP, 3);
 					return MENU_STORE;
 				}

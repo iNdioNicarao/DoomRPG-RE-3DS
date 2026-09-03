@@ -88,25 +88,34 @@ char* MenuSystem_buildDivider(MenuSystem_t* menuSystem, char* str)
 	int i, idnx, len, cnt;
 
 	menuSystem->stringBuffer[0] = '\0';
-	len = SDL_strlen(str);
+	len = (int)SDL_strlen(str);
 
+#ifdef __3DS__
+	// 280px container at ~7px per character is ~38 characters. Symmetrical divider:
+	cnt = (34 - (len + 2)) / 2;
+	if (cnt < 2) cnt = 2;
+#else
 	cnt = (15 - (len + 2)) / 2;
+	if (cnt < 1) cnt = 1;
+#endif
 	idnx = 0;
-	for (i = 0; i < cnt; i++) {
+	for (i = 0; i < cnt && idnx < 60; i++) {
 		menuSystem->stringBuffer[idnx] = (char)0x80;
 		idnx++;
 	}
 	menuSystem->stringBuffer[idnx] = ' ';
+	idnx++;
 
-	strncpy(&menuSystem->stringBuffer[idnx+1], str, 32);
+	SDL_snprintf(&menuSystem->stringBuffer[idnx], sizeof(menuSystem->stringBuffer) - idnx, "%s", str);
+	idnx += len;
 
-	idnx = idnx + 1 + len;
 	menuSystem->stringBuffer[idnx] = ' ';
-	for (i = 0; i < cnt; i++) {
-		menuSystem->stringBuffer[idnx + 1] = (char)0x80;
+	idnx++;
+	for (i = 0; i < cnt && idnx < 63; i++) {
+		menuSystem->stringBuffer[idnx] = (char)0x80;
 		idnx++;
 	}
-	menuSystem->stringBuffer[idnx + 1] = '\0';
+	menuSystem->stringBuffer[idnx] = '\0';
 
 	return menuSystem->stringBuffer;
 }
@@ -297,8 +306,8 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 	DoomCanvas_t* doomCanvas;
 	MenuItem_t *mItem;
 	EntityDef_t* ent;
-	char textField[32]; // original 18
-	char textField2[16]; // original 8
+	char textField[64]; // original 18
+	char textField2[32]; // original 8
 
 	doomRpg = menuSystem->doomRpg;
 	doomCanvas = doomRpg->doomCanvas;
@@ -400,7 +409,14 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 			menuSystem->maxItems = (doomCanvas->displayRect.h - i2) / 12;
 		}
 
+#ifdef __3DS__
+		int menuHalfW = 140; // 280px wide container centered on 400px screen
+		int menuPadLeft = 16;
+		int i101 = doomCanvas->SCR_CX - menuHalfW + menuPadLeft;
+#else
+		int menuHalfW = 64;
 		int i101 = doomCanvas->SCR_CX + i - 64;
+#endif
 		if (menuSystem->maxItems > 0 && menuSystem->numItems > menuSystem->maxItems) {
 			DoomCanvas_drawScrollBarSur(doomCanvas, i2, menuSystem->maxItems * 12, menuSystem->scrollIndex, menuSystem->scrollIndex + menuSystem->maxItems, menuSystem->numItems, menuSurface);
 		}
@@ -423,10 +439,12 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 
 		for (int i11 = menuSystem->scrollIndex; i11 < menuSystem->numItems; i11++) {
 			int i10 = i101;
+#ifndef __3DS__
 			if (menuSystem->type == 1 && textField[0] != '\0') {
 				int len = (((strlen(textField) << 16) >> 9) * local_38) >> 8;
 				i10 = doomCanvas->SCR_CX - (len / 2) - 42;
 			}
+#endif
 
 			mItem = &menuSystem->items[i11];
 
@@ -480,14 +498,23 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 				//}
 
 				if ((textField[0] != '\0') && (mItem->flags & 2) != 0) {
+#ifdef __3DS__
+					// On 3DS, left-justify prompt items (Yes/No/Back) with clean alignment inside the container
+					i10 = i101;
+#else
 					int length = (((strlen(textField) << 16) >> 9) * local_38) >> 8;
 					i10 = (menuSystem->maxItems == 0 || menuSystem->numItems <= menuSystem->maxItems) ? doomCanvas->SCR_CX - length : (doomCanvas->SCR_CX - 6) - length;
+#endif
 				}
 				else if (textField2[0] != '\0') {
+#ifdef __3DS__
+					int i12 = (doomCanvas->SCR_CX + menuHalfW) - 6;
+#else
 					int i12 = (doomCanvas->SCR_CX + 64) - 2;
+#endif
 
-					if (menuSystem->maxItems != 0) {
-						i12 -= local_34;
+					if (menuSystem->maxItems != 0 && menuSystem->numItems > menuSystem->maxItems) {
+						i12 -= (local_34 + 2);
 					}
 
 					DoomCanvas_drawFontSur(doomCanvas, textField2, i12, i2, 9, 0, -1, isLargerFont, menuSurface);

@@ -5,8 +5,8 @@
 struct DoomRPG_s;
 typedef struct MenuItem_s
 {
-	char textField[32]; // original 18
-	char textField2[16]; // original 8
+	char textField[64]; // original 18
+	char textField2[32]; // original 8
 	char flags;
 	int action;
 } MenuItem_t;

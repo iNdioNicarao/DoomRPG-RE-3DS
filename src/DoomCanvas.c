@@ -2074,18 +2074,23 @@ void DoomCanvas_drawScrollBar(DoomCanvas_t* doomCanvas, int y, int totalHeight, 
 		}
 		int barOffset_y = offSetY + 7;
 
-		DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 0, 7, 7, 0, doomCanvas->SCR_CX + 64, y, 9);
-		DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 7, 7, 7, 0, doomCanvas->SCR_CX + 64, y + totalHeight, 10);
+#ifdef __3DS__
+		int scrollX = (doomCanvas->SCR_CX + 140) - 2;
+#else
+		int scrollX = doomCanvas->SCR_CX + 64;
+#endif
+		DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 0, 7, 7, 0, scrollX, y, 9);
+		DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 7, 7, 7, 0, scrollX, y + totalHeight, 10);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x888888);
-		DoomRPG_fillRect(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + 7, 7, totalHeight - 14);
+		DoomRPG_fillRect(doomCanvas->doomRpg, scrollX - 7, y + 7, 7, totalHeight - 14);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0xDDDDDD);
-		DoomRPG_fillRect(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + barOffset_y, 7, barHeight);
+		DoomRPG_fillRect(doomCanvas->doomRpg, scrollX - 7, y + barOffset_y, 7, barHeight);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_drawRect(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + barOffset_y, 6, barHeight - 1);
-		DoomRPG_drawRect(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y, 6, totalHeight - 1);
+		DoomRPG_drawRect(doomCanvas->doomRpg, scrollX - 7, y + barOffset_y, 6, barHeight - 1);
+		DoomRPG_drawRect(doomCanvas->doomRpg, scrollX - 7, y, 6, totalHeight - 1);
 	}
 
 }
@@ -2100,18 +2105,23 @@ void DoomCanvas_drawScrollBarSur(DoomCanvas_t* doomCanvas, int y, int totalHeigh
 		}
 		int barOffset_y = offSetY + 7;
 
-		DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 0, 7, 7, 0, doomCanvas->SCR_CX + 64, y, 9, surface);
-		DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 7, 7, 7, 0, doomCanvas->SCR_CX + 64, y + totalHeight, 10, surface);
+#ifdef __3DS__
+		int scrollX = (doomCanvas->SCR_CX + 140) - 2;
+#else
+		int scrollX = doomCanvas->SCR_CX + 64;
+#endif
+		DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 0, 7, 7, 0, scrollX, y, 9, surface);
+		DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->doomRpg->menuSystem->imgArrowUpDown, 0, 7, 7, 7, 0, scrollX, y + totalHeight, 10, surface);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x888888);
-		DoomRPG_fillRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + 7, 7, totalHeight - 14, surface);
+		DoomRPG_fillRectSur(doomCanvas->doomRpg, scrollX - 7, y + 7, 7, totalHeight - 14, surface);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0xDDDDDD);
-		DoomRPG_fillRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + barOffset_y, 7, barHeight, surface);
+		DoomRPG_fillRectSur(doomCanvas->doomRpg, scrollX - 7, y + barOffset_y, 7, barHeight, surface);
 
 		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		DoomRPG_drawRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y + barOffset_y, 6, barHeight - 1, surface);
-		DoomRPG_drawRectSur(doomCanvas->doomRpg, (doomCanvas->SCR_CX + 64) - 7, y, 6, totalHeight - 1, surface);
+		DoomRPG_drawRectSur(doomCanvas->doomRpg, scrollX - 7, y + barOffset_y, 6, barHeight - 1, surface);
+		DoomRPG_drawRectSur(doomCanvas->doomRpg, scrollX - 7, y, 6, totalHeight - 1, surface);
 	}
 
 }

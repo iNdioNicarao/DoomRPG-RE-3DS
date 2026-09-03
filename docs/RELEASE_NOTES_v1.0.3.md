@@ -25,7 +25,7 @@ Version 1.0.3 is a major feature and performance release that takes full advanta
 | **MP3 Music Streaming** | Rewrote the audio streaming engine using `libmad` to decode MP3 tracks (`5039.mp3`, `5040.mp3`, `5043.mp3`) directly from memory. Compressed MP3 files (1.5–4.1 MB) are cached into RAM once at track start, eliminating all SD card file I/O inside the real-time SDL audio callback thread and preventing 3DS FS session deadlocks. Supports seamless looping and full volume scaling from the in-game Options menu. |
 | **Bottom Screen Dialogs** | Dialogue sequences, terminal readouts, and character interaction popups now render cleanly on the bottom screen (scaled 2x with 280px width) over the persistent automap, keeping the top 3D screen uncluttered. |
 | **Navigation & Controls** | The **B button** now functions as Back / Return in all menus and dismisses dialog boxes. Circle Pad analog inputs are fully supported alongside the D-pad. Unified `hidScanInput` polling to eliminate dropped inputs when holding multiple buttons. |
-| **3DS Play Coins Exchange** | Players can exchange Nintendo 3DS system Play Coins for game Credits ($50 credits per Play Coin) at shops and terminals. |
+| **3DS Play Coins Exchange** | Players can exchange Nintendo 3DS system Play Coins for game Credits (5 Play Coins for 20 Credits) at shops and vending machines. |
 | **New 3DS Performance** | Enabled 804 MHz clock speed and L2 cache configuration via RSF for New 3DS systems. Defaulted floor and ceiling rendering to solid mode to avoid costly per-pixel textured projection, maintaining smooth framerates. |
 
 ---
