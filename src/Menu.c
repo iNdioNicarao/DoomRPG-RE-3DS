@@ -171,12 +171,14 @@ void Menu_setStore(Menu_t* menu)
 
 #ifdef __3DS__
 	int pc = Hardware_getPlayCoins();
+	MenuItem_Set(&menuSystem->items[menuSystem->numItems++], MenuSystem_buildDivider(menuSystem, "PLAY COINS"), 3, 0);
+	char coinText[32];
 	if (pc >= 0) {
-		MenuItem_Set(&menuSystem->items[menuSystem->numItems++], MenuSystem_buildDivider(menuSystem, "PLAY COINS"), 3, 0);
-		char coinText[32];
 		SDL_snprintf(coinText, sizeof(coinText), "%d Coins", pc);
-		MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "+100 Credits", coinText, 0, 0x50005);
+	} else {
+		SDL_snprintf(coinText, sizeof(coinText), "0 Coins");
 	}
+	MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "+100 Credits", coinText, 0, 0x50005);
 #endif
 }
 

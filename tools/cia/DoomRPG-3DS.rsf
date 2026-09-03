@@ -30,6 +30,8 @@ Option:
   MediaFootPadding        : false # If true CCI files are created with padding
 
 AccessControlInfo:
+  SystemSaveDataId1             : 0xf000000b
+  OtherUserSaveDataId1          : 0x00000b
   FileSystemAccess:
    - Debug
    - DirectSdmc
