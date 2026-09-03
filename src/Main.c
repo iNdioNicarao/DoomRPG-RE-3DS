@@ -67,6 +67,13 @@ int main(int argc, char* args[])
     {
 #ifdef __3DS__
         hidScanInput();
+        if (hidKeysDown() & KEY_TOUCH) {
+            touchPosition touch;
+            hidTouchRead(&touch);
+            int touchX = (touch.px * 400) / 320;
+            int touchY = 240 + touch.py;
+            DoomCanvas_handleTouch(doomRpg->doomCanvas, touchX, touchY);
+        }
 #endif
         int currentTimeMillis = DoomRPG_GetUpTimeMS();
         mouse_Button = MOUSE_BUTTON_INVALID;

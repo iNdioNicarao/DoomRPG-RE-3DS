@@ -279,6 +279,8 @@ int DoomRPG_freeMemory(void);
 int DoomRPG_getEventKey(int mouse_Button, const Uint8* state);
 void DoomRPG_setDefaultBinds(DoomRPG_t* doomrpg);
 void DoomRPG_setBind(DoomRPG_t* doomrpg, int mouse_Button, const Uint8* state);
+int Hardware_getPlayCoins(void);
+int Hardware_setPlayCoins(int newCoins);
 
 
 int DoomRPG_Init(void);
