@@ -410,9 +410,33 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 		}
 
 #ifdef __3DS__
-		int menuHalfW = 140; // 280px wide container centered on 400px screen
-		int menuPadLeft = 16;
-		int i101 = doomCanvas->SCR_CX - menuHalfW + menuPadLeft;
+		int menuHalfW = (menuSystem->type == 1) ? 140 : 64;
+		int i101;
+		if (menuSystem->type == 1) {
+			// Wide 280px container for lists/store (centered on 400px screen)
+			i101 = doomCanvas->SCR_CX - menuHalfW + 16; // 76
+		}
+		else if (menuSystem->type == 4) {
+			// Startup menu ("Start Game", "Help/About", "Exit") centered under DOOM RPG logo
+			i101 = doomCanvas->SCR_CX + 40 - 64; // 176
+		}
+		else if (menuSystem->type == 7) {
+			// In-game pause menu ("Resume Game", "Inventory", etc.) centered on screen
+			i101 = doomCanvas->SCR_CX - 40; // 160
+		}
+		else if (menuSystem->type == 6) {
+			// Centered confirmation prompts (Yes / No dialogs)
+			int maxLen = 0;
+			for (int k = 0; k < menuSystem->numItems; k++) {
+				int l = (int)SDL_strlen(menuSystem->items[k].textField);
+				if (l > maxLen) maxLen = l;
+			}
+			int promptW = maxLen * 7;
+			i101 = doomCanvas->SCR_CX - (promptW / 2);
+		}
+		else {
+			i101 = doomCanvas->SCR_CX + i - 64;
+		}
 #else
 		int menuHalfW = 64;
 		int i101 = doomCanvas->SCR_CX + i - 64;

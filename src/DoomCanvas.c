@@ -668,19 +668,48 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
         if (player) {
             int pc = Hardware_getPlayCoins();
             if (inGameMenu) {
+                char credText[32];
+                char coinsText[32];
+                SDL_snprintf(credText, sizeof(credText), "CREDITS: %d", player->credits);
+                DoomCanvas_drawString1(doomCanvas, credText, 10, 245, 0);
+
                 if (pc >= 0) {
-                    SDL_snprintf(text, sizeof(text), "CREDITS: %d    COINS: %d", player->credits, pc);
-                } else {
-                    SDL_snprintf(text, sizeof(text), "CREDITS: %d", player->credits);
+                    // Divider between Credits and Coins at X = 135
+                    DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+                    DoomRPG_drawLine(doomCanvas->doomRpg, 134, 240, 134, 259);
+                    DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+                    DoomRPG_drawLine(doomCanvas->doomRpg, 135, 240, 135, 259);
+
+                    SDL_snprintf(coinsText, sizeof(coinsText), "COINS: %d", pc);
+                    DoomCanvas_drawString1(doomCanvas, coinsText, 145, 245, 0);
                 }
             } else {
+                char lvText[16];
+                char credText[32];
+                char coinsText[32];
+                SDL_snprintf(lvText, sizeof(lvText), "LV %d", player->level);
+                SDL_snprintf(credText, sizeof(credText), "CREDITS: %d", player->credits);
+
+                // 1. Level section on the left
+                DoomCanvas_drawString1(doomCanvas, lvText, 8, 245, 0);
+
+                // 2. Beveled separator after Level section at X = 55
+                DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
+                DoomRPG_drawLine(doomCanvas->doomRpg, 54, 240, 54, 259);
+                DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
+                DoomRPG_drawLine(doomCanvas->doomRpg, 55, 240, 55, 259);
+
+                // 3. Credits section right next to the separator at X = 62
+                DoomCanvas_drawString1(doomCanvas, credText, 62, 245, 0);
+
+                // 4. Coins section positioned before the PASS button divider (X = 280)
                 if (pc >= 0) {
-                    SDL_snprintf(text, sizeof(text), "LV %d   CREDITS: %d   COINS: %d", player->level, player->credits, pc);
-                } else {
-                    SDL_snprintf(text, sizeof(text), "LEVEL %d    CREDITS: %d", player->level, player->credits);
+                    SDL_snprintf(coinsText, sizeof(coinsText), "COINS: %d", pc);
+                    int coinsLen = (int)SDL_strlen(coinsText) * 9;
+                    int coinsX = 274 - coinsLen;
+                    DoomCanvas_drawString1(doomCanvas, coinsText, coinsX, 245, 0);
                 }
             }
-            DoomCanvas_drawString1(doomCanvas, text, 8, 245, 0);
         }
 
         if (inGameMenu) {
@@ -2075,7 +2104,7 @@ void DoomCanvas_drawScrollBar(DoomCanvas_t* doomCanvas, int y, int totalHeight, 
 		int barOffset_y = offSetY + 7;
 
 #ifdef __3DS__
-		int scrollX = (doomCanvas->SCR_CX + 140) - 2;
+		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1) ? (doomCanvas->SCR_CX + 140) - 2 : (doomCanvas->SCR_CX + 64);
 #else
 		int scrollX = doomCanvas->SCR_CX + 64;
 #endif
@@ -2106,7 +2135,7 @@ void DoomCanvas_drawScrollBarSur(DoomCanvas_t* doomCanvas, int y, int totalHeigh
 		int barOffset_y = offSetY + 7;
 
 #ifdef __3DS__
-		int scrollX = (doomCanvas->SCR_CX + 140) - 2;
+		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1) ? (doomCanvas->SCR_CX + 140) - 2 : (doomCanvas->SCR_CX + 64);
 #else
 		int scrollX = doomCanvas->SCR_CX + 64;
 #endif
