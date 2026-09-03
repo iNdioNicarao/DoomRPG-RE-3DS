@@ -345,6 +345,12 @@ void DoomCanvas_closeDialog(DoomCanvas_t* doomCanvas)
 {
 	Sound_stopSounds(doomCanvas->doomRpg->sound);
 	doomCanvas->dialogBuffer[0] = '\0';
+#ifdef __3DS__
+	/* Clear bottom screen so dialog remnants don't linger before automap redraws */
+	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 240, 400, 240);
+	doomCanvas->automapDrawn = false;
+#endif
 	DoomCanvas_setState(doomCanvas, ST_PLAYING);
 	doomCanvas->hud->isUpdate = true;
 	doomCanvas->staleView = true;
@@ -471,19 +477,22 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 
 #ifdef __3DS__
 	/* On 3DS: render the informational dialog / terminal / password popup
-	   on the BOTTOM SCREEN (rows 240..479) so the top screen retains an
-	   unobstructed, full stereoscopic 3D view of the world and NPC.
-	   Center vertically at y = 240 + (240 - 54)/2 = 333. */
-	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 240, 400, 240);
+	   on the BOTTOM SCREEN over the automap (rows 240..479).
+	   First draw the automap so it stays visible around the dialog box. */
+	DoomCanvas_drawAutomap(doomCanvas, true);
 
 	int boxY = 240 + ((240 - 54) / 2);
 #else
 	int boxY = doomCanvas->displayRect.h - 54;
 #endif
 
+	int boxX = doomCanvas->SCR_CX - 64;
+	int boxW = 128;
+	int boxH = 54;
+
+	/* Interior solid black fill */
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-	DoomRPG_fillRect(doomCanvas->doomRpg, doomCanvas->SCR_CX - 64, boxY, 128, 54);
+	DoomRPG_fillRect(doomCanvas->doomRpg, boxX, boxY, boxW, boxH);
 
 	if (doomCanvas->player->facingEntity != NULL && 
 		doomCanvas->player->facingEntity->def->eType == 7 && 
@@ -494,6 +503,11 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 		DoomRPG_setColor(doomCanvas->doomRpg, 0xffffff);
 	}
 
+#ifdef __3DS__
+	/* 2-pixel thick border so 400->320 downsampling doesn't crush the left edge */
+	DoomRPG_drawRect(doomCanvas->doomRpg, boxX - 1, boxY - 1, boxW + 2, boxH + 2);
+	DoomRPG_drawRect(doomCanvas->doomRpg, boxX - 2, boxY - 2, boxW + 4, boxH + 4);
+#else
 	if (doomCanvas->displayRect.w <= 128) {
 
 		DoomRPG_drawLine(doomCanvas->doomRpg, 
@@ -507,6 +521,7 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 	else {
 		DoomRPG_drawRect(doomCanvas->doomRpg, doomCanvas->SCR_CX - 65, boxY - 1, 129, 54);
 	}
+#endif
 
 	if (doomCanvas->state == ST_DIALOGPASSWORD) {
 
@@ -1546,13 +1561,13 @@ void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 
 	clip.x = doomCanvas->render->screenX;
 	clip.y = doomCanvas->render->screenY;
-	clip.h = 240;
+	clip.h = doomCanvas->render->screenHeight;
 	clip.w = doomCanvas->render->screenWidth;
 
 	renderQuad.x = doomCanvas->render->screenX;
 	renderQuad.y = doomCanvas->render->screenY;
 	renderQuad.w = sdlVideo.screenW;
-	renderQuad.h = 240;
+	renderQuad.h = doomCanvas->render->screenHeight;
 	if (clip.w <= renderQuad.w) {
 		renderQuad.w = clip.w;
 	}
@@ -1598,13 +1613,13 @@ void DoomCanvas_drawRGBSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
 
 	clip.x = doomCanvas->render->screenX;
 	clip.y = doomCanvas->render->screenY;
-	clip.h = 240;
+	clip.h = doomCanvas->render->screenHeight;
 	clip.w = doomCanvas->render->screenWidth;
 
 	renderQuad.x = doomCanvas->render->screenX;
 	renderQuad.y = doomCanvas->render->screenY;
 	renderQuad.w = sdlVideo.screenW;
-	renderQuad.h = 240;
+	renderQuad.h = doomCanvas->render->screenHeight;
 	if (clip.w <= renderQuad.w) {
 		renderQuad.w = clip.w;
 	}

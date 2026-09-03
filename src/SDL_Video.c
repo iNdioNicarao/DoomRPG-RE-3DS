@@ -509,10 +509,10 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
     }
     if (g_botTmp && g_botFb && !g_gfx_suspended) SDL_memcpy(g_botFb, g_botTmp, (size_t)g_botW * g_botH * 3);
 
-    /* Clear source strip rows 240..359 to opaque black for NEXT frame so stale strip doesn't linger */
+    /* Clear bottom-screen rows 240..479 to opaque black for NEXT frame so stale pixels never linger */
     {
         Uint32* sp = (Uint32*)sdlVideo.screenSurface->pixels;
-        for (int sy = 240; sy < 360; sy++)
+        for (int sy = 240; sy < 480; sy++)
             for (int sx = 0; sx < 400; sx++)
                 sp[sy * 400 + sx] = 0xFF000000u;  /* A=255, RGB=0 */
     }
