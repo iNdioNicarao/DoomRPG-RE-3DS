@@ -4094,30 +4094,32 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 	if (g_top3D && g_stereoSep > 0.01f && g_stereoRight) {
 		/* Dynamic Motion-Damped Stereoscopy:
 		   Rapid parallax shearing during movement and turning causes disorientation and eye fatigue.
-		   We scale down separation during active movement/rotation and smoothly
-		   restore full 3D separation when the player settles onto a tile. */
-		static float s_motion3DScale = 1.0f;
-		static int s_lastViewX = 0, s_lastViewY = 0, s_lastViewAngle = 0;
+		   We scale down separation during active movement/rotation and synchronize restoration
+		   with the step/turn animation so 3D is fully re-enabled the exact moment motion stops. */
+		int dxMove = abs(doomCanvas->destX - x);
+		int dyMove = abs(doomCanvas->destY - y);
+		int distRemaining = (dxMove > dyMove) ? dxMove : dyMove;
+		int angleRemaining = abs(doomCanvas->destAngle - angle);
 
-		int isMoving = (doomCanvas->viewX != doomCanvas->destX ||
-		                doomCanvas->viewY != doomCanvas->destY ||
-		                x != s_lastViewX || y != s_lastViewY);
-		int isRotating = (doomCanvas->viewAngle != doomCanvas->destAngle ||
-		                  angle != s_lastViewAngle);
-		s_lastViewX = x;
-		s_lastViewY = y;
-		s_lastViewAngle = angle;
+		float s_motion3DScale = 1.0f;
+		if (distRemaining > 0 || angleRemaining > 0) {
+			int isRotating = (angleRemaining > 0);
+			float minScale = isRotating ? 0.30f : 0.45f;
 
-		float targetScale = 1.0f;
-		if (isRotating) {
-			targetScale = 0.30f; /* 70% reduction during rotation - eliminates turning shear */
-		} else if (isMoving) {
-			targetScale = 0.45f; /* 55% reduction during translation */
+			float fDist = (float)distRemaining / 64.0f;
+			float fAngle = (float)angleRemaining / 64.0f;
+			float fRem = (fDist > fAngle) ? fDist : fAngle;
+			if (fRem > 1.0f) fRem = 1.0f;
+
+			/* First half of movement (fRem > 0.5): full depth softening against visual shear.
+			   Second half (fRem <= 0.5): smoothly ramp back up to reach 1.0f exactly on arrival. */
+			if (fRem > 0.5f) {
+				s_motion3DScale = minScale;
+			} else {
+				float t = (0.5f - fRem) / 0.5f; /* 0.0 at midpoint -> 1.0 on arrival */
+				s_motion3DScale = minScale + (1.0f - minScale) * t;
+			}
 		}
-
-		/* Asymmetric filter: quickly soften 3D on motion start, smoothly bloom back when stationary */
-		float rate = (targetScale < s_motion3DScale) ? 0.35f : 0.18f;
-		s_motion3DScale += (targetScale - s_motion3DScale) * rate;
 
 		float halfSep = g_stereoSep * 2.0f * s_motion3DScale;
 		int dx = (int)(halfSep * sinf((float)angle * 3.14159265f / 128.0f));
