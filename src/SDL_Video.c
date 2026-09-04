@@ -54,6 +54,7 @@ static Uint32* g_topEyeL = NULL;  /* 400x240 scene capture, left eye  */
 static Uint32* g_topEyeR = NULL;  /* 400x240 scene capture, right eye */
 SDL_Surface* g_stereoRight = NULL;  /* 400x240 RGBA32 right-eye capture (legacy, unused now) */
 int g_stereoRightValid = 0;
+int g_stereoFullFrame = 0;
 int g_top3D = 0;          /* 1 => stereo enabled this frame (slider > 0) */
 float g_stereoSep = 0.0f;
 
@@ -98,12 +99,16 @@ static void stereo_apt_hook(APT_HookType hook, void* param) {
     /* SAFE hook (71218-style): do NOT call any gfx function here. The 71221/71222 gspWaitForVBlank()
        in this hook faulted at suspend (dump 130, FAR 0xf4). Just flag suspend so the present loop
        force-flats before aptMainLoop blocks. */
-    if (hook == APTHOOK_ONSUSPEND) g_gfx_suspended = 1;
-    else if (hook == APTHOOK_ONRESTORE || hook == APTHOOK_ONWAKEUP) {
+    if (hook == APTHOOK_ONSUSPEND) {
+        g_gfx_suspended = 1;
+        SDL_PauseAudio(1);
+    } else if (hook == APTHOOK_ONRESTORE || hook == APTHOOK_ONWAKEUP) {
         g_gfx_suspended = 0;
         stereo_apt_gfx_reacquire();
+        SDL_PauseAudio(0);
     } else if (hook == APTHOOK_ONEXIT) {
         g_gfx_suspended = 1;
+        SDL_PauseAudio(1);
     }
 }
 
@@ -559,18 +564,22 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
 
         /* If 3D slider is active and Right Eye scene was rendered, construct Right Eye texture */
         if (g_top3D && g_stereoRightValid && g_stereoRight && g_topScratchR) {
-            /* Copy status bar (0..19) and HUD (212..239) from Left Eye */
-            memcpy(g_topScratchR, g_topScratch, 512 * 256 * 2);
-            /* Overlay Right Eye 3D scene (rows 20..211) from g_stereoRight (RGB565) */
+            /* Copy status bar (0..19) and HUD (212..239) from Left Eye if partial frame */
+            if (!g_stereoFullFrame) {
+                memcpy(g_topScratchR, g_topScratch, 512 * 256 * 2);
+            }
+            /* Overlay Right Eye 3D scene from g_stereoRight (RGB565) */
             const u16* rSrc = (const u16*)g_stereoRight->pixels;
-            for (int by = 16; by < 216; by += 8) {
+            int startBy = g_stereoFullFrame ? 0 : 16;
+            int endBy   = g_stereoFullFrame ? 240 : 216;
+            for (int by = startBy; by < endBy; by += 8) {
                 int ty = by / 8;
                 for (int bx = 0; bx < 400; bx += 8) {
                     int tx = bx / 8;
                     u16* tileDst = g_topScratchR + (ty * (512 / 8) + tx) * 64;
                     for (int py = 0; py < 8; py++) {
                         int sy = by + py;
-                        if (sy < 20 || sy >= 212) continue;
+                        if (!g_stereoFullFrame && (sy < 20 || sy >= 212)) continue;
                         const u16* rRow = rSrc + sy * 400 + bx;
                         const u8* mRow = &s_morton8x8[py * 8];
                         tileDst[mRow[0]] = rRow[0];
@@ -605,6 +614,7 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
         /* Consume stereo valid flag: if 3D scene was not rendered this frame
            (e.g. while in ST_MENU, ST_AUTOMAP, etc.), right eye falls back to 2D */
         g_stereoRightValid = 0;
+        g_stereoFullFrame = 0;
     }
 #endif
 }
@@ -660,8 +670,10 @@ static void put_pixel_unlocked(SDL_Surface* surface, int x, int y, Uint32 color)
 }
 void put_pixel_safe(SDL_Surface *surface, int x, int y, Uint32 color)
 {
-	if (x >= 0 && x < 400 && y >= 0 && y < 480) {
-		if (surface && surface->pixels) {
+	if (surface && surface->pixels) {
+		if (x >= surface->clip_rect.x && x < surface->clip_rect.x + surface->clip_rect.w &&
+		    y >= surface->clip_rect.y && y < surface->clip_rect.y + surface->clip_rect.h &&
+		    x >= 0 && x < surface->w && y >= 0 && y < surface->h) {
 			Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * surface->format->BytesPerPixel;
 			*(Uint32 *)p = color;
 		}

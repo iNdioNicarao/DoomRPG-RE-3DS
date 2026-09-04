@@ -2,20 +2,21 @@
 
 This is a Nintendo 3DS port of the [reverse engineered Doom RPG](https://github.com/Erick194/DoomRPG-RE) by [GEC]. All credits go to the GEC team, this project would not exist without their hard work.
 
-This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) created by **Dennis Isaac Gutierrez Zeledon** to provide a **home-menu `.cia` build** (installable on a New 3DS from the HOME Menu via FBI), **hardware autostereoscopic 3D with dynamic motion damping**, an interactive **bottom-screen Touch HUD**, a custom **3D parallax diorama HOME banner**, and stability fixes that make the port shine on real hardware. Recent enhancements are detailed in [`docs/RELEASE_NOTES_v1.0.4.md`](docs/RELEASE_NOTES_v1.0.4.md).
+This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) created by **Dennis Isaac Gutierrez Zeledon** to provide a **home-menu `.cia` build** (installable on a New 3DS from the HOME Menu via FBI), **hardware autostereoscopic 3D with dynamic motion damping**, an interactive **bottom-screen Touch HUD with draggable automap**, a custom **3D parallax diorama HOME banner**, and stability fixes that make the port shine on real hardware. Recent enhancements are detailed in [`docs/RELEASE_NOTES_v1.0.5.md`](docs/RELEASE_NOTES_v1.0.5.md).
 
-## Highlights (v1.0.4)
+## Highlights (v1.0.5)
 
-- **3D Parallax Diorama HOME Menu Banner & Audio Stinger**: Custom 3DS extended banner featuring a rotating 2-sided plaque (Mars Base diorama on the front, brushed steel plate with embossed horned demon skull on the back), matched pixel-art icon, and dual shotgun blast + grunt death scream audio stinger.
-- **Dynamic Motion-Damped Stereoscopy**: Smoothly dials down 3D depth by 70% during camera rotation (turning) and 55% during translation (stepping) with asymmetric easing to eliminate eye strain and visual shear, returning to 100% full slider depth when stationary.
-- **Pixel-Perfect 1:1 Dialogue Typography**: Rewritten bottom-screen font renderer with 5/2 virtual scaling that cancels out the 3DS display driver's 4/5 horizontal downscale, rendering dialogue with mathematically square ($2\times 2$ pixel) glyphs and zero vertical stretch.
-- **Proportional Kerning & Automatic Word-Wrapping**: Per-glyph bounding box metrics table for all 96 font glyphs (eliminating gaps around `:`, `!`, `l`, numbers), and automatic word-wrapping ensuring dialogue never bleeds past borders or behind the scrollbar.
-- **Hardware Autostereoscopic 3D**: Dual-camera stereoscopic 3D rendering pipeline on the top screen dynamically modulated by the physical 3DS 3D depth slider.
-- **Touch HUD & Quick Hotbar**: Authentic metallic status bar with a 5-slot quick-inventory touch bar (`S.MED`, `L.MED`, `SOUL`, `BRSK`, `DOG`), plus touch `[ PASS ]` and `[ MENU ]` controls.
-- **Interactive Touch Keypad**: On-screen numpad for keypad door passcode terminals.
-- **In-Memory MP3 Streaming**: High-quality MP3 background music streamed directly from RAM via `libmad`, eliminating SD card I/O stalls during audio interrupts.
-- **Play Coins Exchange**: Convert 3DS system Play Coins to game Credits (5 Play Coins for 20 Credits).
-- **New 3DS 804 MHz Boost**: Leverages the extra CPU power and L2 cache on New 3DS for silky-smooth framerates.
+- **2x Scaled Cutscenes & Story Presentation**: High-definition 2x scaling for legal splash screens, teaser graphics (`g.bmp`), intro story cutscene (text pages, animated spaceship flyby, speed lines, planet layers, red tracking reticle), epilogue, scrolling credits, and error screens.
+- **Stereoscopic 3D Rotating Title Menu**: Full autostereoscopic 3D depth applied to the rotating title menu background with the DOOM RPG logo, menu items, cursor, and prompts floating cleanly at screen depth (zero parallax).
+- **Interactive Bottom-Screen Automap**: Smooth real-time player centering and tracking as you walk. Touch-and-drag pan across the map, with dedicated on-screen Zoom In `[+]`, Zoom Out `[-]`, and Recenter `[O]` touch buttons.
+- **Full Metallic Quick-Access Bar**: Seamless metallic texture extended across the entire bottom screen down to the bezel (row 479) with clean beveled dividers.
+- **Hotbar Feedback & Dimming**: Empty hotbar slots (count = 0) are visually dimmed by 50%. Tapping an empty slot triggers a red highlight flash, a distinct negative audio cue, and a top-screen notification banner.
+- **Default-Enabled Textured Floors & Ceilings**: Authentic textured floors, ceilings, and ceiling lights enabled out-of-the-box with smooth performance.
+- **Synchronized 3D Motion Recovery**: Depth recovery dynamically synchronizes with grid movement completion to eliminate settling lag.
+- **Horizontally Centered HUD Messages**: Top-screen status messages centered for natural eye focus.
+- **Lid-Close Audio Suspension & Power Management**: Clam-shell closure immediately mutes audio and enters low-power sleep; reopening resumes audio and visuals gracefully.
+- **3D Parallax Diorama HOME Menu Banner & Audio Stinger**: Custom 3DS extended banner featuring a rotating 2-sided plaque (Mars Base diorama on front, brushed steel with embossed horned demon skull on back), matched pixel-art icon, and dual shotgun blast + grunt death scream audio stinger.
+- **Pixel-Perfect 1:1 Dialogue Typography**: Proportional kerning and 5/2 virtual scaling for mathematically square ($2\times 2$ pixel) glyphs on the physical LCD.
 
 ## How to install
 
@@ -27,7 +28,7 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
    [archive.org](https://archive.org/details/doomrpg_brew). Extract `doomrpg.bar`
    (a BREW asset container; the upstream PC tools such as `BarToZip` turn it into
    loose files) and copy those loose files — no further zip step is needed.
-2. Install `DoomRPG-1.0.4.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
+2. Install `DoomRPG-1.0.5.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
 3. On the SD card, copy the **extracted data files** into
    `sdmc:/3ds/doomrpg/` so they sit loose in that folder. Required files
    include the `*.bmp` sprites/UI, the `*.bsp` maps, `wtexels.bin`,
@@ -51,6 +52,9 @@ The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files p
 | Back / Dismiss Dialog / Pass Turn | B | Tap `[ PASS ]` on top bar |
 | Next / Prev Weapon | ZR / ZL | — |
 | Quick Use Items | Hotbar touch | Tap `S.MED`, `L.MED`, `SOUL`, `BRSK`, `DOG` |
+| Pan Automap | — | Touch & drag map with stylus / finger |
+| Zoom Automap | — | Tap `[+]` or `[-]` |
+| Recenter Automap | — | Tap `[O]` or tap player arrow |
 | Passcode Entry | D-pad / A | Tap numpad digits `0`–`9`, `C`, `OK` |
 | In-Game Menu / Back | Start | Tap `[ MENU ]` on top bar |
 | Automap | Select (persistent on bottom screen) | — |

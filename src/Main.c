@@ -29,7 +29,7 @@ unsigned int __stacksize__ = 0x40000; // 256KB
 #endif
 
 // Build identity - bump on every build so we can verify what is actually running.
-static const char* BUILD_VERSION = "DOOMRPG-3DS v1.0.4";
+static const char* BUILD_VERSION = "DOOMRPG-3DS v1.0.5";
 
 int main(int argc, char* args[])
 {
@@ -67,12 +67,18 @@ int main(int argc, char* args[])
     {
 #ifdef __3DS__
         hidScanInput();
-        if (hidKeysDown() & KEY_TOUCH) {
+        u32 kDown = hidKeysDown();
+        u32 kHeld = hidKeysHeld();
+        u32 kUp   = hidKeysUp();
+
+        if (kHeld & KEY_TOUCH) {
             touchPosition touch;
             hidTouchRead(&touch);
             int touchX = (touch.px * 400) / 320;
             int touchY = 240 + touch.py;
-            DoomCanvas_handleTouch(doomRpg->doomCanvas, touchX, touchY);
+            DoomCanvas_handleTouchHeld(doomRpg->doomCanvas, touchX, touchY, (kDown & KEY_TOUCH) != 0);
+        } else if (kUp & KEY_TOUCH) {
+            DoomCanvas_handleTouchUp(doomRpg->doomCanvas);
         }
 #endif
         int currentTimeMillis = DoomRPG_GetUpTimeMS();

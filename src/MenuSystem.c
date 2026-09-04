@@ -6,6 +6,7 @@
 #endif
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "DoomRPG.h"
 #include "DoomCanvas.h"
@@ -318,6 +319,18 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 		DoomRPG_setColor(doomRpg, 0x000000);
 		DoomRPG_setFontColor(menuSystem->doomRpg, 0xffffffff);
 
+#ifdef __3DS__
+		extern SDL_Surface* g_stereoRight;
+		extern int g_top3D;
+		extern float g_stereoSep;
+		extern int g_stereoRightValid;
+		extern int g_stereoFullFrame;
+
+		int isStereo = (g_top3D && g_stereoSep > 0.01f && g_stereoRight && MenuSystem_checkMenu(menuSystem));
+#else
+		int isStereo = 0;
+#endif
+
 		i = 0;
 		i2 = 0;
 
@@ -347,10 +360,30 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 			if (MenuSystem_checkMenu(menuSystem)) {
 				doomCanvas->viewAngle = (doomCanvas->time / menuSystem->field_0xc58) & 0xff;
 
-				Render_render(menuSystem->doomRpg->render, doomCanvas->viewX, doomCanvas->viewY, 36, doomCanvas->viewAngle);
+#ifdef __3DS__
+				if (isStereo) {
+					float halfSep = g_stereoSep * 2.0f;
+					int dx = (int)(halfSep * sinf((float)doomCanvas->viewAngle * 3.14159265f / 128.0f));
+					int dy = (int)(halfSep * cosf((float)doomCanvas->viewAngle * 3.14159265f / 128.0f));
 
-				// Port new line
+					/* 1. Right Eye: 3D scene at (viewX + dx, viewY + dy) into piDIB -> g_stereoRight */
+					Render_render(menuSystem->doomRpg->render, doomCanvas->viewX + dx, doomCanvas->viewY + dy, 36, doomCanvas->viewAngle);
+					SDL_Rect fullR = { 0, 0, 400, 240 };
+					SDL_BlitSurface(doomCanvas->render->piDIB, &fullR, g_stereoRight, &fullR);
+					g_stereoRightValid = 1;
+					g_stereoFullFrame = 1;
+
+					/* 2. Left Eye: 3D scene at (viewX - dx, viewY - dy) into piDIB -> menuSurface */
+					Render_render(menuSystem->doomRpg->render, doomCanvas->viewX - dx, doomCanvas->viewY - dy, 36, doomCanvas->viewAngle);
+					DoomCanvas_drawRGBSur(doomCanvas, menuSurface);
+				} else {
+					Render_render(menuSystem->doomRpg->render, doomCanvas->viewX, doomCanvas->viewY, 36, doomCanvas->viewAngle);
+					DoomCanvas_drawRGBSur(doomCanvas, menuSurface);
+				}
+#else
+				Render_render(menuSystem->doomRpg->render, doomCanvas->viewX, doomCanvas->viewY, 36, doomCanvas->viewAngle);
 				DoomCanvas_drawRGBSur(doomCanvas, menuSurface);
+#endif
 			}
 
 			if (doomCanvas->benchmarkString) {
@@ -358,10 +391,20 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 				int AvgMs2 = doomCanvas->renderAvgMs / doomCanvas->st_count;
 				SDL_snprintf(doomCanvas->printMsg, sizeof(doomCanvas->printMsg), "Avg: %d.%dms", AvgMs2, AvgMs1 - (AvgMs2 * 100));
 				DoomCanvas_drawString2Sur(doomCanvas, doomCanvas->printMsg, 0, doomCanvas->displayRect.h - 12, 0, -1, menuSurface);
+#ifdef __3DS__
+				if (isStereo) {
+					DoomCanvas_drawString2Sur(doomCanvas, doomCanvas->printMsg, 0, doomCanvas->displayRect.h - 12, 0, -1, g_stereoRight);
+				}
+#endif
 			}
 
 			if (menuSystem->imgBG) {
 				DoomCanvas_drawImageSur(doomCanvas, menuSystem->imgBG, doomCanvas->SCR_CX, 0, 17, menuSurface);
+#ifdef __3DS__
+				if (isStereo) {
+					DoomCanvas_drawImageSur(doomCanvas, menuSystem->imgBG, doomCanvas->SCR_CX, 0, 17, g_stereoRight);
+				}
+#endif
 			}
 
 			menuSystem->maxItems = doomCanvas->displayRect.h / 12;
@@ -443,6 +486,11 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 #endif
 		if (menuSystem->maxItems > 0 && menuSystem->numItems > menuSystem->maxItems) {
 			DoomCanvas_drawScrollBarSur(doomCanvas, i2, menuSystem->maxItems * 12, menuSystem->scrollIndex, menuSystem->scrollIndex + menuSystem->maxItems, menuSystem->numItems, menuSurface);
+#ifdef __3DS__
+			if (isStereo) {
+				DoomCanvas_drawScrollBarSur(doomCanvas, i2, menuSystem->maxItems * 12, menuSystem->scrollIndex, menuSystem->scrollIndex + menuSystem->maxItems, menuSystem->numItems, g_stereoRight);
+			}
+#endif
 		}
 
 		int local_34 = 9;
@@ -542,14 +590,29 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 					}
 
 					DoomCanvas_drawFontSur(doomCanvas, textField2, i12, i2, 9, 0, -1, isLargerFont, menuSurface);
+#ifdef __3DS__
+					if (isStereo) {
+						DoomCanvas_drawFontSur(doomCanvas, textField2, i12, i2, 9, 0, -1, isLargerFont, g_stereoRight);
+					}
+#endif
 				}
 
 				if (menuSystem->type != 5 && i11 == menuSystem->selectedIndex) {
 					DoomCanvas_drawImageSur(doomCanvas, &menuSystem->imgHand, i10, i2 + local_2c, 40, menuSurface);
+#ifdef __3DS__
+					if (isStereo) {
+						DoomCanvas_drawImageSur(doomCanvas, &menuSystem->imgHand, i10, i2 + local_2c, 40, g_stereoRight);
+					}
+#endif
 					i10 += 2;
 				}
 				if (textField[0] != '\0') {
 					DoomCanvas_drawFontSur(doomCanvas, textField, i10, i2, 0, 0, -1, isLargerFont, menuSurface);
+#ifdef __3DS__
+					if (isStereo) {
+						DoomCanvas_drawFontSur(doomCanvas, textField, i10, i2, 0, 0, -1, isLargerFont, g_stereoRight);
+					}
+#endif
 				}
 			}
 
@@ -594,7 +657,14 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 			DoomRPG_setFontColor(menuSystem->doomRpg, 0xff80C0FF);
 			DoomCanvas_drawFontSur(doomCanvas, textField, doomCanvas->SCR_CX, doomCanvas->SCR_CY + local_28, 16 | 32, 0, -1, isLargerFont, menuSurface);
 			DoomRPG_setFontColor(menuSystem->doomRpg, 0xffffffff);
-			
+#ifdef __3DS__
+			if (isStereo) {
+				DoomCanvas_drawFontSur(doomCanvas, "Press New Key For", doomCanvas->SCR_CX, doomCanvas->SCR_CY, 16|32, 0, -1, isLargerFont, g_stereoRight);
+				DoomRPG_setFontColor(menuSystem->doomRpg, 0xff80C0FF);
+				DoomCanvas_drawFontSur(doomCanvas, textField, doomCanvas->SCR_CX, doomCanvas->SCR_CY + local_28, 16 | 32, 0, -1, isLargerFont, g_stereoRight);
+				DoomRPG_setFontColor(menuSystem->doomRpg, 0xffffffff);
+			}
+#endif
 		}
 		SDL_BlitSurface(menuSurface, NULL, sdlVideo.screenSurface, NULL);
 		//DoomRPG_setFontColor(menuSystem->doomRpg, 0xffffffff);

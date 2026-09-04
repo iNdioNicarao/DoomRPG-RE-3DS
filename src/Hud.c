@@ -801,7 +801,15 @@ void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
         strEnd = ((unsigned int)((w - 1) / 7)) - 1;
     }
 
-    DoomCanvas_drawFontSur(doomCanvas, text, 1, (doomCanvas->hud->statusTopBarHeight >> 1) - 5, 0, strBeg, strEnd, false, tmpSurface);
+    int posX = 1;
+    int flags = 0;
+    int textLen = SDL_strlen(text);
+    if (textLen <= doomCanvas->hud->msgMaxChars) {
+        posX = w / 2;
+        flags = 16;
+    }
+
+    DoomCanvas_drawFontSur(doomCanvas, text, posX, (doomCanvas->hud->statusTopBarHeight >> 1) - 5, flags, strBeg, strEnd, false, tmpSurface);
     SDL_Rect srcRect;
     SDL_Rect dstRect;
     srcRect.h = tmpSurface->h;
@@ -903,7 +911,15 @@ void Hud_drawTopBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
         strEnd = ((unsigned int)((w - 1) / 7)) - 1;
     }
 
-    DoomCanvas_drawFontSur(doomCanvas, text, 1, (doomCanvas->hud->statusTopBarHeight >> 1) - 5, 0, strBeg, strEnd, false, tmpSurface);
+    int posX = 1;
+    int flags = 0;
+    int textLen = SDL_strlen(text);
+    if (textLen <= doomCanvas->hud->msgMaxChars) {
+        posX = w / 2;
+        flags = 16;
+    }
+
+    DoomCanvas_drawFontSur(doomCanvas, text, posX, (doomCanvas->hud->statusTopBarHeight >> 1) - 5, flags, strBeg, strEnd, false, tmpSurface);
     SDL_Rect srcRect;
     SDL_Rect dstRect;
     srcRect.h = tmpSurface->h;
