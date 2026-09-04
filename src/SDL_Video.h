@@ -70,6 +70,8 @@ typedef struct SDLController_s
 
 extern SDLController_t sdlController;
 extern SDL_Surface* g_stereoRight;  /* right-eye capture surface (SDL_Video.c) */
+extern int g_stereoRightValid;
+extern int g_stereoFullFrame;
 extern int g_top3D;                /* stereo enabled this frame (SDL_Video.c) */
 extern float g_stereoSep;          /* eye angular separation, degrees (SDL_Video.c) */
 extern volatile int g_topProbePending;  /* set by SDL_Video.c present; drained in Main loop */
