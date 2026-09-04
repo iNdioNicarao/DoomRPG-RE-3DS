@@ -832,20 +832,27 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
         }
 
         // --- BOTTOM METALLIC QUICK-ACCESS BAR (Y = 454..479, 26px tall) ---
-        // Tiled seamlessly across entire width and height down to screen edge Y=479
+        // Tiled seamlessly across entire width with bottom bevel at the screen edge (row 479)
         if (barBmp) {
-            // Upper slice (rows 454..473, height 20)
+            // Upper slice: top bevel + interior metal (rows 454..472, height 19)
             for (int bx = 0; bx < 400; bx += tileW) {
                 int bw = (bx + tileW <= 400) ? tileW : (400 - bx);
-                SDL_Rect src = { 0, 0, bw, 20 };
-                SDL_Rect dst = { bx, 454, bw, 20 };
+                SDL_Rect src = { 0, 0, bw, 19 };
+                SDL_Rect dst = { bx, 454, bw, 19 };
                 SDL_BlitSurface(barBmp, &src, sdlVideo.screenSurface, &dst);
             }
-            // Lower slice (rows 474..479, height 6) using interior metallic rows to fill completely
+            // Interior metal extension (rows 473..478, height 6) seamlessly bridging under text
             for (int bx = 0; bx < 400; bx += tileW) {
                 int bw = (bx + tileW <= 400) ? tileW : (400 - bx);
-                SDL_Rect src = { 0, 4, bw, 6 };
-                SDL_Rect dst = { bx, 474, bw, 6 };
+                SDL_Rect src = { 0, 2, bw, 6 };
+                SDL_Rect dst = { bx, 473, bw, 6 };
+                SDL_BlitSurface(barBmp, &src, sdlVideo.screenSurface, &dst);
+            }
+            // Bottom shadow bevel at the physical screen edge (row 479, height 1)
+            for (int bx = 0; bx < 400; bx += tileW) {
+                int bw = (bx + tileW <= 400) ? tileW : (400 - bx);
+                SDL_Rect src = { 0, 19, bw, 1 };
+                SDL_Rect dst = { bx, 479, bw, 1 };
                 SDL_BlitSurface(barBmp, &src, sdlVideo.screenSurface, &dst);
             }
         }
