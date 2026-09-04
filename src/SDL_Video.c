@@ -57,6 +57,9 @@ int g_stereoRightValid = 0;
 int g_stereoFullFrame = 0;
 int g_top3D = 0;          /* 1 => stereo enabled this frame (slider > 0) */
 float g_stereoSep = 0.0f;
+int g_stereoDepthMode = 1;      /* 0: Low (0.7x), 1: Normal (1.0x), 2: High (1.4x), 3: Max (1.8x) */
+float g_stereoMultiplier = 1.0f;
+int g_textureFiltering = 0;     /* 0: Crisp (GPU_NEAREST), 1: Smooth (GPU_LINEAR) */
 
 /* citro2d top-screen present (suspend-safe stereo path). The TOP screen is handed to citro2d
    render targets; citro3d owns the present + suspend lifecycle (devkitPro stereoscopic_2d example
@@ -464,7 +467,7 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
        Refreshed by hidScanInput() called once per frame in Main.c. */
     {
         float s = osGet3DSliderState();  /* 0.0 off .. 1.0 full */
-        if (s > 0.0f) { g_top3D = 1; g_stereoSep = s; }
+        if (s > 0.0f) { g_top3D = 1; g_stereoSep = s * g_stereoMultiplier; }
         else          { g_top3D = 0; g_stereoSep = 0.0f; }
     }
 
@@ -594,6 +597,14 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
                 }
             }
             C3D_TexUpload(&g_topTexR, g_topScratchR);
+        }
+
+        static int s_appliedFilter = -1;
+        if (s_appliedFilter != g_textureFiltering) {
+            s_appliedFilter = g_textureFiltering;
+            GPU_TEXTURE_FILTER_PARAM f = g_textureFiltering ? GPU_LINEAR : GPU_NEAREST;
+            C3D_TexSetFilter(&g_topTex, f, f);
+            C3D_TexSetFilter(&g_topTexR, f, f);
         }
 
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);

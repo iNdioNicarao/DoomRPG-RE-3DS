@@ -152,6 +152,7 @@ typedef struct DoomCanvas_s
 	boolean renderFloorCeilingTextures; // New
 	int hotbarDeniedFlash; // 1..5 for hotbar button index + 1
 	int hotbarDeniedTimer; // frame countdown for red flash feedback
+	boolean turboCombat;
 
 	struct DoomRPG_s* doomRpg;
 	struct Render_s* render;
@@ -281,5 +282,6 @@ void DoomCanvas_drawString1Sur(DoomCanvas_t* doomCanvas, char* text, int x, int 
 void DoomCanvas_drawString2Sur(DoomCanvas_t* doomCanvas, char* text, int x, int y, int flags, int param_6, SDL_Surface* surface);
 boolean DoomCanvas_updatePlayerAnimDoors(DoomCanvas_t* doomCanvas);
 void DoomCanvas_updateView(DoomCanvas_t* doomCanvas);
+extern boolean g_turboCombat;
 
 #endif

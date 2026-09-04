@@ -18,6 +18,8 @@
 #include "Sound.h"
 #include "SDL_Video.h"
 
+#define COMBAT_DELAY(ms) (g_turboCombat ? (((ms) / 3) > 25 ? ((ms) / 3) : 25) : (ms))
+
 static byte monsterWpInfo[28] = {
 	1, 50,
 	1, 50,
@@ -520,7 +522,7 @@ int Combat_monsterSeq(Combat_t* combat)
 		case 0:
 			combat->f336b = false;
 			combat->stage = 1;
-			combat->animEndTime = doomCanvas->time + 250;
+			combat->animEndTime = doomCanvas->time + COMBAT_DELAY(250);
 			combat->frameTime = 0;
 			combat->totalDamage = 0;
 			combat->totalArmorDamage = 0;
@@ -561,7 +563,7 @@ int Combat_monsterSeq(Combat_t* combat)
 
 				if (combat->f336b) {
 					sprite->info = (sprite->info & 0xffffe1ff) | (combat->attackFrame << 9);
-					combat->frameTime = doomCanvas->time + 150;
+					combat->frameTime = doomCanvas->time + COMBAT_DELAY(150);
 
 					if (combat->curTarget == NULL) {
 
@@ -599,7 +601,7 @@ int Combat_monsterSeq(Combat_t* combat)
 				}
 
 				DoomCanvas_updateViewTrue(doomCanvas);
-				combat->animEndTime = doomCanvas->time + ((10 * monsterWpInfo[(combat->curAttacker->def->eSubType * 2) + 1]));
+				combat->animEndTime = doomCanvas->time + COMBAT_DELAY(10 * monsterWpInfo[(combat->curAttacker->def->eSubType * 2) + 1]);
 			}
 
 			if (combat->frameTime != 0 && doomCanvas->time > combat->frameTime) {
@@ -737,7 +739,7 @@ boolean Combat_playerSeq(Combat_t* combat)
 		combat->f336b = false;
 		combat->f340c = false;
 		combat->stage = 1;
-		combat->animEndTime = doomCanvas->time + 250;
+		combat->animEndTime = doomCanvas->time + COMBAT_DELAY(250);
 		combat->frameTime = 0;
 		combat->totalDamage = 0;
 		combat->totalArmorDamage = 0;
@@ -838,8 +840,8 @@ boolean Combat_playerSeq(Combat_t* combat)
 			}
 
 			if (combat->f336b) {
-				combat->frameTime = doomCanvas->time + 150;
-				combat->endFrameTime = doomCanvas->time + (10 * wpinfo[(combat->attackerWeaponId * 6) + 1]);
+				combat->frameTime = doomCanvas->time + COMBAT_DELAY(150);
+				combat->endFrameTime = doomCanvas->time + COMBAT_DELAY(10 * wpinfo[(combat->attackerWeaponId * 6) + 1]);
 				combat->armorDamage = 0;
 				combat->damage = 0;
 
@@ -866,7 +868,7 @@ boolean Combat_playerSeq(Combat_t* combat)
 						if (CombatEntity_getHealth(&combat->curTarget->monster->ce) - dmgArmor > 0) {
 							sprite = &combat->doomRpg->render->mapSprites[(combat->curTarget->info & 0xFFFF) - 1];
 							sprite->info = sprite->info & 0xffffe1ffU | 0xc00;
-							combat->curTarget->monster->animFrameTime = doomCanvas->time + 250;
+							combat->curTarget->monster->animFrameTime = doomCanvas->time + COMBAT_DELAY(250);
 						}
 
 						if (combat->curTarget->def->eSubType == 13) {// Kronos
@@ -951,10 +953,10 @@ boolean Combat_playerSeq(Combat_t* combat)
 				combat->totalArmorDamage += combat->armorDamage;
 				--combat->animLoopCount;
 
-				combat->animEndTime = doomCanvas->time + (10 * wpinfo[(combat->attackerWeaponId * 6) + 1]);
+				combat->animEndTime = doomCanvas->time + COMBAT_DELAY(10 * wpinfo[(combat->attackerWeaponId * 6) + 1]);
 			}
 			else {
-				combat->animEndTime = doomCanvas->time + (5 * wpinfo[(combat->attackerWeaponId * 6) + 1]);
+				combat->animEndTime = doomCanvas->time + COMBAT_DELAY(5 * wpinfo[(combat->attackerWeaponId * 6) + 1]);
 			}
 		}
 
@@ -1076,10 +1078,10 @@ boolean Combat_playerSeq(Combat_t* combat)
 				}
 			}
 			if (combat->curTarget->def->eType != 1 || CombatEntity_getHealth(&combat->curTarget->monster->ce) <= 0) {
-				combat->f339c = doomCanvas->time + 1000;
+				combat->f339c = doomCanvas->time + COMBAT_DELAY(1000);
 				return true;
 			}
-			combat->nextStageTime = doomCanvas->time + 1000;
+			combat->nextStageTime = doomCanvas->time + COMBAT_DELAY(1000);
 		}
 		else if (doomCanvas->time > combat->nextStageTime) {
 			combat->nextStageTime = 0;
@@ -1098,7 +1100,7 @@ void Combat_spawnBloodParticles(Combat_t* combat, int i, int i2, int i3)
 
 	if (combat->curTarget) {
 		if (combat->curTarget->monster) {
-			combat->curTarget->monster->damageBlendTime = combat->doomRpg->doomCanvas->time + 100;
+			combat->curTarget->monster->damageBlendTime = combat->doomRpg->doomCanvas->time + COMBAT_DELAY(100);
 		}
 	}
 
@@ -1306,6 +1308,10 @@ void Combat_updateProjectile(Combat_t* combat)
 			default: // Missile Plasma
 				speed = 16; 
 				break;
+			}
+
+			if (g_turboCombat) {
+				speed <<= 1;
 			}
 
 			spX = speed;

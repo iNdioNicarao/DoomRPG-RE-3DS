@@ -650,6 +650,7 @@ static int s_automapPanY = 0;
 static boolean s_isDragging = false;
 static int s_lastTouchX = 0;
 static int s_lastTouchY = 0;
+boolean g_turboCombat = false;
 
 void DoomCanvas_resetAutomapPan(void)
 {
@@ -1069,6 +1070,16 @@ void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY
     if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT || inGameMenu) {
         // Check on-screen buttons at top of automap (Y in 264..284)
         if (touchY >= 264 && touchY <= 284) {
+            // [ TURBO ] Fast-forward combat button (X = 216..278)
+            if (touchX >= 216 && touchX <= 278) {
+                s_isDragging = false;
+                if (isDown) {
+                    g_turboCombat = !g_turboCombat;
+                    Sound_playSound(doomCanvas->doomRpg->sound, 5060, 0, 3);
+                    Hud_addMessage(doomCanvas, g_turboCombat ? "Combat Turbo: ON" : "Combat Turbo: OFF");
+                }
+                return;
+            }
             // [ CTR ] Recenter button (X = 282..318)
             if (touchX >= 282 && touchX <= 318) {
                 s_isDragging = false;
@@ -1345,6 +1356,16 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
         default: zoomLabel = "MAP 2x"; break;
     }
     DoomCanvas_drawString1(doomCanvas, (char*)zoomLabel, 10, 267, 0);
+
+    // [ TURBO ] Fast-forward combat button (bold & green)
+    Uint32 turboBorder = g_turboCombat ? 0xFF00FF44 : 0xFF2A5030;
+    Uint32 turboFill   = g_turboCombat ? 0xFF003810 : 0xFF10151E;
+    draw_box(sdlVideo.screenSurface, 216, 264, 60, 19, turboFill, turboBorder);
+    if (g_turboCombat) {
+        // Bold double border when active
+        draw_box(sdlVideo.screenSurface, 217, 265, 58, 17, 0x00000000, 0xFF00FF44);
+    }
+    DoomCanvas_drawString1(doomCanvas, "TURBO", 246, 267, 16);
 
     // [ CTR ] Recenter button: glows green when panned
     boolean isPanned = (s_automapPanX != 0 || s_automapPanY != 0);

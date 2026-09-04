@@ -74,6 +74,9 @@ extern int g_stereoRightValid;
 extern int g_stereoFullFrame;
 extern int g_top3D;                /* stereo enabled this frame (SDL_Video.c) */
 extern float g_stereoSep;          /* eye angular separation, degrees (SDL_Video.c) */
+extern int g_stereoDepthMode;      /* 0: Low (0.7x), 1: Normal (1.0x), 2: High (1.4x), 3: Max (1.8x) */
+extern float g_stereoMultiplier;   /* multiplier applied to g_stereoSep */
+extern int g_textureFiltering;     /* 0: Crisp (GPU_NEAREST), 1: Smooth (GPU_LINEAR) */
 extern volatile int g_topProbePending;  /* set by SDL_Video.c present; drained in Main loop */
 extern int g_topProbed;
 

@@ -289,6 +289,15 @@ void ParticleSystem_render(ParticleSystem_t* particleSystem, int z)
 						else {
 							DoomCanvas_drawImageSpecial(doomCanvas, &particleSystem->imgGibs, xSrc, ySrc, width, height, 0, i6 - pSize, i7 - pSize, flags);
 						}
+#ifdef __3DS__
+						if (g_top3D && g_stereoSep > 0.01f && g_stereoRight && g_stereoRightValid) {
+							int offset = (int)(g_stereoSep * 2.5f * ((float)particleSystem->scaleSize / 235.0f));
+							if (offset < 1) offset = 1;
+							if (offset > 4) offset = 4;
+							Image_t* pImg = doomCanvas->doomRpg->player->berserkerTics ? &particleSystem->imgGibsBerserk : &particleSystem->imgGibs;
+							DoomCanvas_drawImageSpecialSur(doomCanvas, pImg, xSrc, ySrc, width, height, 0, (i6 - pSize) - offset, i7 - pSize, flags, g_stereoRight);
+						}
+#endif
 					}
 				}
 			}
