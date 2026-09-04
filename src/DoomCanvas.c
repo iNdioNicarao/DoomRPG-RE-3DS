@@ -144,7 +144,9 @@ DoomCanvas_t* DoomCanvas_init(DoomCanvas_t* doomCanvas, DoomRPG_t* doomRpg) // 0
 	doomCanvas->mouseYMove = true;
 	doomCanvas->sndPriority = false;
 	doomCanvas->vibrateEnabled = true;
-	doomCanvas->renderFloorCeilingTextures = false; // default off: solid floor/ceiling is far cheaper than the per-pixel textured projection, matches the BREW original
+	doomCanvas->renderFloorCeilingTextures = true; // default on: render authentic textured floors, ceilings, and ceiling lights
+	doomCanvas->hotbarDeniedFlash = 0;
+	doomCanvas->hotbarDeniedTimer = 0;
 
 	return doomCanvas;
 }
@@ -774,6 +776,50 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
                 int count = player ? player->inventory[hotbar[b].itemIndex] : 0;
                 SDL_snprintf(text, sizeof(text), "%s: %d", hotbar[b].name, count);
                 DoomCanvas_drawString1(doomCanvas, text, centerX, 465, 16);
+
+                int btnLeft = b * 80;
+                SDL_Surface* surf = sdlVideo.screenSurface;
+                if (surf && surf->pixels) {
+                    Uint32* px = (Uint32*)surf->pixels;
+                    int surfW = surf->w;
+
+                    if (count == 0) {
+                        // Dim empty item button (both background bar and text) by 50%
+                        for (int py = 461; py < 479; py++) {
+                            Uint32* row = &px[py * surfW];
+                            for (int px_x = btnLeft + 1; px_x < btnLeft + 79; px_x++) {
+                                Uint32 c = row[px_x];
+                                Uint32 r = ((c >> 16) & 0xFF) >> 1;
+                                Uint32 g = ((c >> 8) & 0xFF) >> 1;
+                                Uint32 bl = (c & 0xFF) >> 1;
+                                row[px_x] = (c & 0xFF000000) | (r << 16) | (g << 8) | bl;
+                            }
+                        }
+                    }
+
+                    // Red flash highlight feedback when tapped with 0 items
+                    if (doomCanvas->hotbarDeniedTimer > 0 && doomCanvas->hotbarDeniedFlash == (b + 1)) {
+                        for (int py = 461; py < 479; py++) {
+                            Uint32* row = &px[py * surfW];
+                            for (int px_x = btnLeft + 1; px_x < btnLeft + 79; px_x++) {
+                                Uint32 c = row[px_x];
+                                Uint32 origR = (c >> 16) & 0xFF;
+                                Uint32 r = (origR >> 2) + 180;
+                                if (r > 255) r = 255;
+                                Uint32 g = ((c >> 8) & 0xFF) >> 2;
+                                Uint32 bl = (c & 0xFF) >> 2;
+                                row[px_x] = (c & 0xFF000000) | (r << 16) | (g << 8) | bl;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (doomCanvas->hotbarDeniedTimer > 0) {
+                doomCanvas->hotbarDeniedTimer--;
+                if (doomCanvas->hotbarDeniedTimer == 0) {
+                    doomCanvas->hotbarDeniedFlash = 0;
+                }
             }
         }
     }
@@ -826,7 +872,9 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
                         Player_useItem(player, 25);
                     } else {
                         Hud_addMessage(doomCanvas, "No Small Medkits!");
-                        Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
+                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                        doomCanvas->hotbarDeniedFlash = 1;
+                        doomCanvas->hotbarDeniedTimer = 10;
                     }
                     return;
                 case 1: // Large Medkit
@@ -834,7 +882,9 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
                         Player_useItem(player, 26);
                     } else {
                         Hud_addMessage(doomCanvas, "No Large Medkits!");
-                        Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
+                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                        doomCanvas->hotbarDeniedFlash = 2;
+                        doomCanvas->hotbarDeniedTimer = 10;
                     }
                     return;
                 case 2: // Soul Sphere
@@ -842,7 +892,9 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
                         Player_useItem(player, 27);
                     } else {
                         Hud_addMessage(doomCanvas, "No Soul Spheres!");
-                        Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
+                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                        doomCanvas->hotbarDeniedFlash = 3;
+                        doomCanvas->hotbarDeniedTimer = 10;
                     }
                     return;
                 case 3: // Berserk
@@ -850,7 +902,9 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
                         Player_useItem(player, 28);
                     } else {
                         Hud_addMessage(doomCanvas, "No Berserk Packs!");
-                        Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
+                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                        doomCanvas->hotbarDeniedFlash = 4;
+                        doomCanvas->hotbarDeniedTimer = 10;
                     }
                     return;
                 case 4: // Dog Collar
@@ -858,7 +912,9 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
                         Player_useItem(player, 29);
                     } else {
                         Hud_addMessage(doomCanvas, "No Dog Collars!");
-                        Sound_playSound(doomCanvas->doomRpg->sound, 5042, SND_FLG_NOFORCESTOP, 3);
+                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                        doomCanvas->hotbarDeniedFlash = 5;
+                        doomCanvas->hotbarDeniedTimer = 10;
                     }
                     return;
             }

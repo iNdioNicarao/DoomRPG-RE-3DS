@@ -150,6 +150,8 @@ typedef struct DoomCanvas_s
 	boolean mouseYMove; // New
 	boolean sndPriority; // New
 	boolean renderFloorCeilingTextures; // New
+	int hotbarDeniedFlash; // 1..5 for hotbar button index + 1
+	int hotbarDeniedTimer; // frame countdown for red flash feedback
 
 	struct DoomRPG_s* doomRpg;
 	struct Render_s* render;

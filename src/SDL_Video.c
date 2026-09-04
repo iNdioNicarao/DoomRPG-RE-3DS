@@ -98,12 +98,16 @@ static void stereo_apt_hook(APT_HookType hook, void* param) {
     /* SAFE hook (71218-style): do NOT call any gfx function here. The 71221/71222 gspWaitForVBlank()
        in this hook faulted at suspend (dump 130, FAR 0xf4). Just flag suspend so the present loop
        force-flats before aptMainLoop blocks. */
-    if (hook == APTHOOK_ONSUSPEND) g_gfx_suspended = 1;
-    else if (hook == APTHOOK_ONRESTORE || hook == APTHOOK_ONWAKEUP) {
+    if (hook == APTHOOK_ONSUSPEND) {
+        g_gfx_suspended = 1;
+        SDL_PauseAudio(1);
+    } else if (hook == APTHOOK_ONRESTORE || hook == APTHOOK_ONWAKEUP) {
         g_gfx_suspended = 0;
         stereo_apt_gfx_reacquire();
+        SDL_PauseAudio(0);
     } else if (hook == APTHOOK_ONEXIT) {
         g_gfx_suspended = 1;
+        SDL_PauseAudio(1);
     }
 }
 
