@@ -549,10 +549,12 @@ void Menu_initMenu(Menu_t* menu, int i)
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Inventory", 0, MENU_ITEMS);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Save Game", 0, MENU_INGAME_SAVE);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Load Game", 0, MENU_INGAME_LOAD);
-			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], //"Automap", 0, MENU_NONE);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Status", 0, MENU_INGAME_STATUS);
-			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Help/About", 0, MENU_INGAME_HELP_ABOUT);
-			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Options", 0, MENU_INGAME_OPTIONS);
+#ifdef __3DS__
+			static char* s_depthNames[4] = { "Low", "Normal", "High", "Max" };
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "3D Depth:", s_depthNames[g_stereoDepthMode & 3], 0, 0);
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Filter:", g_textureFiltering ? "Smooth" : "Crisp", 0, 0);
+#endif
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Main Menu", 0, MENU_INGAME_EXIT);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Debug", 0, MENU_DEBUG);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Controls", 0, MENU_INGAME_INPUT);
@@ -1043,6 +1045,12 @@ void Menu_initMenu(Menu_t* menu, int i)
 
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Back", 0, 0);
 #ifdef __3DS__
+			static char* s_depthNames[4] = { "Low", "Normal", "High", "Max" };
+			textDivider = MenuSystem_buildDivider(menuSystem, "3D & Display");
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], textDivider, 3, 0);
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "3D Depth:", s_depthNames[g_stereoDepthMode & 3], 0, 0);
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Filter:", g_textureFiltering ? "Smooth" : "Crisp", 0, 0);
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Floor/Ceil:", menu->doomRpg->doomCanvas->renderFloorCeilingTextures ? "on" : "off", 0, 0);
 #else
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "FullScreen:", sdlVideo.fullScreen ? "on" : "off", 0, 0);
 
@@ -1051,17 +1059,13 @@ void Menu_initMenu(Menu_t* menu, int i)
 			textDivider = MenuSystem_buildDivider(menuSystem, "Resolution");
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], textDivider, 3, 0);
 			SDL_snprintf(text, sizeof(text), "(%dx%d)", sdlVideoModes[sdlVideo.resolutionIndex].width, sdlVideoModes[sdlVideo.resolutionIndex].height);
-#endif
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], text, NULL, 2, 0);
 
 			textDivider = MenuSystem_buildDivider(menuSystem, "Display");
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], textDivider, 3, 0);
-#ifdef __3DS__
-#else
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Softkeys:", sdlVideo.displaySoftKeys ? "on" : "off", 0, 0);
-#endif
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Floor/Ceil:", menu->doomRpg->doomCanvas->renderFloorCeilingTextures ? "on" : "off", 0, 0);
-			
+#endif
 			break;
 		}
 
@@ -1548,6 +1552,31 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			else if(itemId == 3) {
 				return Game_checkConfigVersion(menu->doomRpg->game) ? MENU_INGAME_LOAD : MENU_INGAME_LOADNOSAVE;
 			}
+#ifdef __3DS__
+			else if (itemId == 5) { // 3D Depth
+				static const char* s_depthNames[4] = { "Low", "Normal", "High", "Max" };
+				static const float s_depthMults[4] = { 0.7f, 1.0f, 1.4f, 1.8f };
+				g_stereoDepthMode = (g_stereoDepthMode + 1) % 4;
+				g_stereoMultiplier = s_depthMults[g_stereoDepthMode];
+				strncpy(menuSystem->items[itemId].textField2, s_depthNames[g_stereoDepthMode], sizeof(menuSystem->items[itemId].textField2));
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+				menuSystem->paintMenu = true;
+				return menuSystem->menu;
+			}
+			else if (itemId == 6) { // Filter
+				g_textureFiltering = !g_textureFiltering;
+				strncpy(menuSystem->items[itemId].textField2, g_textureFiltering ? "Smooth" : "Crisp", sizeof(menuSystem->items[itemId].textField2));
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+				menuSystem->paintMenu = true;
+				return menuSystem->menu;
+			}
+			else if (itemId == 8) { // Debug
+				return MENU_DEBUG;
+			}
+			else if (itemId == 9) { // Controls
+				return MENU_INGAME_INPUT;
+			}
+#else
 			else if (itemId == 4) {
 				DoomCanvas_setState(doomCanvas, ST_AUTOMAP);
 				return action;
@@ -1562,6 +1591,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			else if (itemId == 7) { // Controls
 				return MENU_INGAME_INPUT;
 			}
+#endif
 
 			return action;
 			break;
@@ -2001,6 +2031,24 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 				return menuSystem->oldMenu;
 			}
 #ifdef __3DS__
+			else if (itemId == 2) { // 3D Depth
+				static const char* s_depthNames[4] = { "Low", "Normal", "High", "Max" };
+				static const float s_depthMults[4] = { 0.7f, 1.0f, 1.4f, 1.8f };
+				g_stereoDepthMode = (g_stereoDepthMode + 1) % 4;
+				g_stereoMultiplier = s_depthMults[g_stereoDepthMode];
+				strncpy(menuSystem->items[itemId].textField2, s_depthNames[g_stereoDepthMode], sizeof(menuSystem->items[itemId].textField2));
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+			}
+			else if (itemId == 3) { // Filter
+				g_textureFiltering = !g_textureFiltering;
+				strncpy(menuSystem->items[itemId].textField2, g_textureFiltering ? "Smooth" : "Crisp", sizeof(menuSystem->items[itemId].textField2));
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+			}
+			else if (itemId == 4) { // Floor/Ceil
+				doomCanvas->renderFloorCeilingTextures ^= true;
+				strncpy(menuSystem->items[itemId].textField2, doomCanvas->renderFloorCeilingTextures ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+			}
 #else
 			else if (itemId == 1) { // New Full Screen Option
 
@@ -2034,11 +2082,11 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 				sdlVideo.displaySoftKeys ^= true;
 				strncpy(menuSystem->items[itemId].textField2, sdlVideo.displaySoftKeys ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
 			}
-			#endif
 			else if (itemId == 8) { // New display SoftKeys Option
 				doomCanvas->renderFloorCeilingTextures ^= true;
 				strncpy(menuSystem->items[itemId].textField2, doomCanvas->renderFloorCeilingTextures ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
 			}
+#endif
 
 			Game_saveConfig(menu->doomRpg->game, 0);
 			menuSystem->paintMenu = true;

@@ -2,10 +2,14 @@
 
 This is a Nintendo 3DS port of the [reverse engineered Doom RPG](https://github.com/Erick194/DoomRPG-RE) by [GEC]. All credits go to the GEC team, this project would not exist without their hard work.
 
-This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) created by **Dennis Isaac Gutierrez Zeledon** to provide a **home-menu `.cia` build** (installable on a New 3DS from the HOME Menu via FBI), **hardware autostereoscopic 3D with dynamic motion damping**, an interactive **bottom-screen Touch HUD with draggable automap**, a custom **3D parallax diorama HOME banner**, and stability fixes that make the port shine on real hardware. Recent enhancements are detailed in [`docs/RELEASE_NOTES_v1.0.5.md`](docs/RELEASE_NOTES_v1.0.5.md).
+This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) created by **Dennis Isaac Gutierrez Zeledon** to provide a **home-menu `.cia` build** (installable on a New 3DS from the HOME Menu via FBI), **hardware autostereoscopic 3D with dynamic motion damping**, an interactive **bottom-screen Touch HUD with draggable automap and combat turbo**, a custom **3D parallax diorama HOME banner**, and stability fixes that make the port shine on real hardware. Recent enhancements are detailed in [`docs/RELEASE_NOTES_v1.0.6.md`](docs/RELEASE_NOTES_v1.0.6.md).
 
-## Highlights (v1.0.5)
+## Highlights (v1.0.6)
 
+- **Combat Turbo Button**: Dedicated bold green `[ TURBO ]` toggle button on the bottom-screen map control bar (adjacent to `[ CTR ]`). Accelerates enemy turns and combat pauses by ~3×, doubles missile flight speed, and accelerates attack animations for snappy turn-based encounters.
+- **Stereoscopic 3D Combat Particles**: All combat particle effects (blood splatters, sparks, monster gibs, weapon explosions) render to both left and right stereo buffers with depth-matched parallax offset, completely eliminating single-eye retinal flicker and adding full stereoscopic depth.
+- **In-Game 3D Depth Multiplier**: Seamlessly modulate hardware 3D stereoscopic depth between `Low 0.7x`, `Normal 1.0x` (default), `High 1.4x`, and `Max 1.8x` directly from the in-game Pause Menu (`MENU_INGAME`) or *Video Options* (`MENU_VIDEO`).
+- **Real-Time Texture Filtering Toggle**: Toggle Citro3D texture filtering between `Crisp` (`GPU_NEAREST` — authentic pixel art) and `Smooth` (`GPU_LINEAR` — bilinear filtered scaling) on the fly in the Pause Menu and Video Options.
 - **2x Scaled Cutscenes & Story Presentation**: High-definition 2x scaling for legal splash screens, teaser graphics (`g.bmp`), intro story cutscene (text pages, animated spaceship flyby, speed lines, planet layers, red tracking reticle), epilogue, scrolling credits, and error screens.
 - **Stereoscopic 3D Rotating Title Menu**: Full autostereoscopic 3D depth applied to the rotating title menu background with the DOOM RPG logo, menu items, cursor, and prompts floating cleanly at screen depth (zero parallax).
 - **Interactive Bottom-Screen Automap**: Smooth real-time player centering and tracking as you walk. Touch-and-drag pan across the map, with dedicated on-screen Zoom In `[+]`, Zoom Out `[-]`, and Recenter `[O]` touch buttons.
@@ -28,7 +32,7 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
    [archive.org](https://archive.org/details/doomrpg_brew). Extract `doomrpg.bar`
    (a BREW asset container; the upstream PC tools such as `BarToZip` turn it into
    loose files) and copy those loose files — no further zip step is needed.
-2. Install `DoomRPG-1.0.5.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
+2. Install `DoomRPG-1.0.6.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
 3. On the SD card, copy the **extracted data files** into
    `sdmc:/3ds/doomrpg/` so they sit loose in that folder. Required files
    include the `*.bmp` sprites/UI, the `*.bsp` maps, `wtexels.bin`,
@@ -52,6 +56,7 @@ The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files p
 | Back / Dismiss Dialog / Pass Turn | B | Tap `[ PASS ]` on top bar |
 | Next / Prev Weapon | ZR / ZL | — |
 | Quick Use Items | Hotbar touch | Tap `S.MED`, `L.MED`, `SOUL`, `BRSK`, `DOG` |
+| Combat Turbo Toggle | — | Tap `[ TURBO ]` next to map controls |
 | Pan Automap | — | Touch & drag map with stylus / finger |
 | Zoom Automap | — | Tap `[+]` or `[-]` |
 | Recenter Automap | — | Tap `[O]` or tap player arrow |
