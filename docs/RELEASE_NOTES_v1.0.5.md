@@ -73,6 +73,17 @@ Version 1.0.5 is a comprehensive presentation, stereoscopic, and quality-of-life
 
 ---
 
+## Binaries & Hashes
+
+- `DoomRPG-1.0.5.cia`
+  - **MD5**: `95c7b47c296595540957f511eb0bea0c`
+  - **SHA256**: `a51ca06018ef19c141eb349ed18cabbb6fdf4d13bdf7c4dec8c9fff245471331`
+- `DoomRPG.3dsx`
+  - **MD5**: `d8bb3b3c9311b8b64f806e03b55d1090`
+  - **SHA256**: `b157e73ec3bf990d8940c2abaa4942e9495be7cace8308976053bdd778a5774f`
+
+---
+
 ## Credits & Attribution
 
 - **Port & 3DS Enhancements**: Dennis Isaac Gutierrez Zeledon
