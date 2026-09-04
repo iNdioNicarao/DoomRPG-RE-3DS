@@ -265,6 +265,9 @@ void DoomCanvas_startDialog(DoomCanvas_t* doomCanvas, char* text, boolean dialog
 void DoomCanvas_startDialogPassword(DoomCanvas_t* doomCanvas, char* text);
 void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas);
 void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY);
+void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY, boolean isDown);
+void DoomCanvas_handleTouchUp(DoomCanvas_t* doomCanvas);
+void DoomCanvas_resetAutomapPan(void);
 void DoomCanvas_startShake(DoomCanvas_t* doomCanvas, int i, int i2, int i3);
 void DoomCanvas_startSpeedTest(DoomCanvas_t* doomCanvas, boolean b);
 void DoomCanvas_vibrate(DoomCanvas_t* doomCanvas, int i);

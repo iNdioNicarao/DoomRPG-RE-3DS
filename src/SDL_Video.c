@@ -664,8 +664,10 @@ static void put_pixel_unlocked(SDL_Surface* surface, int x, int y, Uint32 color)
 }
 void put_pixel_safe(SDL_Surface *surface, int x, int y, Uint32 color)
 {
-	if (x >= 0 && x < 400 && y >= 0 && y < 480) {
-		if (surface && surface->pixels) {
+	if (surface && surface->pixels) {
+		if (x >= surface->clip_rect.x && x < surface->clip_rect.x + surface->clip_rect.w &&
+		    y >= surface->clip_rect.y && y < surface->clip_rect.y + surface->clip_rect.h &&
+		    x >= 0 && x < surface->w && y >= 0 && y < surface->h) {
 			Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * surface->format->BytesPerPixel;
 			*(Uint32 *)p = color;
 		}

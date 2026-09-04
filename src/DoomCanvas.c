@@ -637,10 +637,103 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 #endif
 }
 
+#ifdef __3DS__
+static int s_automapZoom = 1;      /* 0 = 1x (ts=6), 1 = 2x (ts=10), 2 = 3x (ts=16) */
+static int s_automapPanX = 0;      /* Pan offset in screen pixels */
+static int s_automapPanY = 0;
+static boolean s_isDragging = false;
+static int s_lastTouchX = 0;
+static int s_lastTouchY = 0;
+
+void DoomCanvas_resetAutomapPan(void)
+{
+    s_automapPanX = 0;
+    s_automapPanY = 0;
+    s_isDragging = false;
+}
+
+static void draw_fill_rect_clipped(SDL_Surface* surf, int x, int y, int w, int h, Uint32 color)
+{
+    if (!surf || !surf->pixels) return;
+    int x1 = x;
+    int y1 = y;
+    int x2 = x + w;
+    int y2 = y + h;
+    int clipX1 = surf->clip_rect.x;
+    int clipY1 = surf->clip_rect.y;
+    int clipX2 = clipX1 + surf->clip_rect.w;
+    int clipY2 = clipY1 + surf->clip_rect.h;
+
+    if (x1 < clipX1) x1 = clipX1;
+    if (y1 < clipY1) y1 = clipY1;
+    if (x2 > clipX2) x2 = clipX2;
+    if (y2 > clipY2) y2 = clipY2;
+    if (x1 >= x2 || y1 >= y2) return;
+
+    Uint32* px = (Uint32*)surf->pixels;
+    int pitch = surf->w;
+    for (int cy = y1; cy < y2; cy++) {
+        Uint32* row = &px[cy * pitch];
+        for (int cx = x1; cx < x2; cx++) {
+            row[cx] = color;
+        }
+    }
+}
+
+static void draw_box(SDL_Surface* surf, int x, int y, int w, int h, Uint32 fillCol, Uint32 borderCol)
+{
+    if (!surf || !surf->pixels) return;
+    Uint32* px = (Uint32*)surf->pixels;
+    int surfW = surf->w;
+    int surfH = surf->h;
+
+    for (int cy = y + 1; cy < y + h - 1; cy++) {
+        if (cy < 0 || cy >= surfH) continue;
+        Uint32* row = &px[cy * surfW];
+        for (int cx = x + 1; cx < x + w - 1; cx++) {
+            if (cx < 0 || cx >= surfW) continue;
+            row[cx] = fillCol;
+        }
+    }
+    if (y >= 0 && y < surfH) {
+        Uint32* row = &px[y * surfW];
+        for (int cx = x; cx < x + w; cx++) {
+            if (cx >= 0 && cx < surfW) row[cx] = borderCol;
+        }
+    }
+    if (y + h - 1 >= 0 && y + h - 1 < surfH) {
+        Uint32* row = &px[(y + h - 1) * surfW];
+        for (int cx = x; cx < x + w; cx++) {
+            if (cx >= 0 && cx < surfW) row[cx] = borderCol;
+        }
+    }
+    for (int cy = y; cy < y + h; cy++) {
+        if (cy < 0 || cy >= surfH) continue;
+        if (x >= 0 && x < surfW) px[cy * surfW + x] = borderCol;
+        if (x + w - 1 >= 0 && x + w - 1 < surfW) px[cy * surfW + (x + w - 1)] = borderCol;
+    }
+}
+
+static void draw_v_divider(SDL_Surface* surf, int divX, int y1, int y2)
+{
+    if (!surf || !surf->pixels) return;
+    Uint32* px = (Uint32*)surf->pixels;
+    int surfW = surf->w;
+    for (int y = y1; y <= y2; y++) {
+        if (y >= 0 && y < surf->h) {
+            if (divX - 1 >= 0 && divX - 1 < surfW) px[y * surfW + (divX - 1)] = 0xFF313131;
+            if (divX >= 0 && divX < surfW)         px[y * surfW + divX]       = 0xFF808591;
+        }
+    }
+}
+#else
+void DoomCanvas_resetAutomapPan(void) {}
+#endif
+
 void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
 {
 #ifdef __3DS__
-    if (!doomCanvas || !doomCanvas->doomRpg) return;
+    if (!doomCanvas || !doomCanvas->doomRpg || !sdlVideo.screenSurface) return;
     Player_t* player = doomCanvas->player;
     char text[32];
 
@@ -672,8 +765,18 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
     boolean inGameMenu = (doomCanvas->state == ST_MENU && doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME);
 
     if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT || inGameMenu) {
+        SDL_Surface* barBmp = doomCanvas->hud->imgStatusBar.imgBitmap;
+        int tileW = (barBmp && barBmp->w > 0) ? barBmp->w : 20;
+
         // --- TOP METALLIC STATUS BAR (Y = 240..259, 20px tall) ---
-        Hud_drawBarTiles(doomCanvas, 0, 240, 400, false);
+        if (barBmp) {
+            for (int bx = 0; bx < 400; bx += tileW) {
+                int bw = (bx + tileW <= 400) ? tileW : (400 - bx);
+                SDL_Rect src = { 0, 0, bw, 20 };
+                SDL_Rect dst = { bx, 240, bw, 20 };
+                SDL_BlitSurface(barBmp, &src, sdlVideo.screenSurface, &dst);
+            }
+        }
 
         if (player) {
             int pc = Hardware_getPlayCoins();
@@ -681,17 +784,12 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
                 char credText[32];
                 char coinsText[32];
                 SDL_snprintf(credText, sizeof(credText), "CREDITS: %d", player->credits);
-                DoomCanvas_drawString1(doomCanvas, credText, 10, 245, 0);
+                DoomCanvas_drawString1(doomCanvas, credText, 10, 244, 0);
 
                 if (pc >= 0) {
-                    // Divider between Credits and Coins at X = 135
-                    DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-                    DoomRPG_drawLine(doomCanvas->doomRpg, 134, 240, 134, 259);
-                    DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-                    DoomRPG_drawLine(doomCanvas->doomRpg, 135, 240, 135, 259);
-
+                    draw_v_divider(sdlVideo.screenSurface, 135, 240, 259);
                     SDL_snprintf(coinsText, sizeof(coinsText), "COINS: %d", pc);
-                    DoomCanvas_drawString1(doomCanvas, coinsText, 145, 245, 0);
+                    DoomCanvas_drawString1(doomCanvas, coinsText, 145, 244, 0);
                 }
             } else {
                 char lvText[16];
@@ -700,53 +798,51 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
                 SDL_snprintf(lvText, sizeof(lvText), "LV %d", player->level);
                 SDL_snprintf(credText, sizeof(credText), "CREDITS: %d", player->credits);
 
-                // 1. Level section on the left
-                DoomCanvas_drawString1(doomCanvas, lvText, 8, 245, 0);
+                DoomCanvas_drawString1(doomCanvas, lvText, 8, 244, 0);
+                draw_v_divider(sdlVideo.screenSurface, 55, 240, 259);
+                DoomCanvas_drawString1(doomCanvas, credText, 62, 244, 0);
 
-                // 2. Beveled separator after Level section at X = 55
-                DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-                DoomRPG_drawLine(doomCanvas->doomRpg, 54, 240, 54, 259);
-                DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-                DoomRPG_drawLine(doomCanvas->doomRpg, 55, 240, 55, 259);
-
-                // 3. Credits section right next to the separator at X = 62
-                DoomCanvas_drawString1(doomCanvas, credText, 62, 245, 0);
-
-                // 4. Coins section positioned before the PASS button divider (X = 280)
                 if (pc >= 0) {
                     SDL_snprintf(coinsText, sizeof(coinsText), "COINS: %d", pc);
                     int coinsLen = (int)SDL_strlen(coinsText) * 9;
                     int coinsX = 274 - coinsLen;
-                    DoomCanvas_drawString1(doomCanvas, coinsText, coinsX, 245, 0);
+                    DoomCanvas_drawString1(doomCanvas, coinsText, coinsX, 244, 0);
                 }
             }
         }
 
         if (inGameMenu) {
-            // [ BACK ] Button on Top-Right with beveled divider
-            DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-            DoomRPG_drawLine(doomCanvas->doomRpg, 339, 240, 339, 259);
-            DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-            DoomRPG_drawLine(doomCanvas->doomRpg, 340, 240, 340, 259);
-            DoomCanvas_drawString1(doomCanvas, "BACK", 370, 245, 16);
+            // [ BACK ] Button on Top-Right with divider
+            draw_v_divider(sdlVideo.screenSurface, 340, 240, 259);
+            DoomCanvas_drawString1(doomCanvas, "BACK", 370, 244, 16);
         } else {
-            // [ PASS ] Button on Top Bar with beveled divider
-            DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-            DoomRPG_drawLine(doomCanvas->doomRpg, 279, 240, 279, 259);
-            DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-            DoomRPG_drawLine(doomCanvas->doomRpg, 280, 240, 280, 259);
-            DoomCanvas_drawString1(doomCanvas, "PASS", 310, 245, 16);
+            // [ PASS ] Button on Top Bar with divider
+            draw_v_divider(sdlVideo.screenSurface, 280, 240, 259);
+            DoomCanvas_drawString1(doomCanvas, "PASS", 310, 244, 16);
 
-            // [ MENU ] Button on Top-Right with beveled divider
-            DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-            DoomRPG_drawLine(doomCanvas->doomRpg, 339, 240, 339, 259);
-            DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-            DoomRPG_drawLine(doomCanvas->doomRpg, 340, 240, 340, 259);
-            DoomCanvas_drawString1(doomCanvas, "MENU", 370, 245, 16);
+            // [ MENU ] Button on Top-Right with divider
+            draw_v_divider(sdlVideo.screenSurface, 340, 240, 259);
+            DoomCanvas_drawString1(doomCanvas, "MENU", 370, 244, 16);
         }
 
-        // --- BOTTOM METALLIC QUICK-ACCESS BAR (Y = 460..479, 20px tall) ---
-        Hud_drawBarTiles(doomCanvas, 0, 460, 400, false);
+        // --- BOTTOM METALLIC QUICK-ACCESS BAR (Y = 454..479, 26px tall) ---
+        // Tiled seamlessly across entire width and height down to screen edge Y=479
+        if (barBmp) {
+            // Upper slice (rows 454..473, height 20)
+            for (int bx = 0; bx < 400; bx += tileW) {
+                int bw = (bx + tileW <= 400) ? tileW : (400 - bx);
+                SDL_Rect src = { 0, 0, bw, 20 };
+                SDL_Rect dst = { bx, 454, bw, 20 };
+                SDL_BlitSurface(barBmp, &src, sdlVideo.screenSurface, &dst);
+            }
+            // Lower slice (rows 474..479, height 6) using interior metallic rows to fill completely
+            for (int bx = 0; bx < 400; bx += tileW) {
+                int bw = (bx + tileW <= 400) ? tileW : (400 - bx);
+                SDL_Rect src = { 0, 4, bw, 6 };
+                SDL_Rect dst = { bx, 474, bw, 6 };
+                SDL_BlitSurface(barBmp, &src, sdlVideo.screenSurface, &dst);
+            }
+        }
 
         if (!inGameMenu) {
             static const struct {
@@ -760,56 +856,49 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
                 { "DOG",   4 }
             };
 
+            Uint32* px = (Uint32*)sdlVideo.screenSurface->pixels;
+            int surfW = sdlVideo.screenSurface->w;
+
+            // Draw full-height metallic beveled dividers between buttons (Y = 454..479)
+            for (int b = 1; b < 5; b++) {
+                draw_v_divider(sdlVideo.screenSurface, b * 80, 454, 479);
+            }
+
             for (int b = 0; b < 5; b++) {
                 int centerX = 40 + b * 80;
-
-                // Draw metallic beveled divider between buttons
-                if (b > 0) {
-                    int divX = b * 80;
-                    DoomRPG_setColor(doomCanvas->doomRpg, 0x313131);
-                    DoomRPG_drawLine(doomCanvas->doomRpg, divX - 1, 460, divX - 1, 479);
-                    DoomRPG_setColor(doomCanvas->doomRpg, 0x808591);
-                    DoomRPG_drawLine(doomCanvas->doomRpg, divX, 460, divX, 479);
-                }
-
-                // Draw single-line item label + count in authentic white status font
                 int count = player ? player->inventory[hotbar[b].itemIndex] : 0;
                 SDL_snprintf(text, sizeof(text), "%s: %d", hotbar[b].name, count);
-                DoomCanvas_drawString1(doomCanvas, text, centerX, 465, 16);
+
+                // Perfectly centered vertically at Y = 461 in 26px bar (454..479)
+                DoomCanvas_drawString1(doomCanvas, text, centerX, 461, 16);
 
                 int btnLeft = b * 80;
-                SDL_Surface* surf = sdlVideo.screenSurface;
-                if (surf && surf->pixels) {
-                    Uint32* px = (Uint32*)surf->pixels;
-                    int surfW = surf->w;
-
-                    if (count == 0) {
-                        // Dim empty item button (both background bar and text) by 50%
-                        for (int py = 461; py < 479; py++) {
-                            Uint32* row = &px[py * surfW];
-                            for (int px_x = btnLeft + 1; px_x < btnLeft + 79; px_x++) {
-                                Uint32 c = row[px_x];
-                                Uint32 r = ((c >> 16) & 0xFF) >> 1;
-                                Uint32 g = ((c >> 8) & 0xFF) >> 1;
-                                Uint32 bl = (c & 0xFF) >> 1;
-                                row[px_x] = (c & 0xFF000000) | (r << 16) | (g << 8) | bl;
-                            }
+                if (count == 0) {
+                    // Dim empty item button by 50% down to screen edge (rows 455..479)
+                    for (int py = 455; py < 480; py++) {
+                        Uint32* row = &px[py * surfW];
+                        for (int px_x = btnLeft + 1; px_x < btnLeft + 79; px_x++) {
+                            Uint32 c = row[px_x];
+                            Uint32 r = ((c >> 16) & 0xFF) >> 1;
+                            Uint32 g = ((c >> 8) & 0xFF) >> 1;
+                            Uint32 bl = (c & 0xFF) >> 1;
+                            row[px_x] = (c & 0xFF000000) | (r << 16) | (g << 8) | bl;
                         }
                     }
+                }
 
-                    // Red flash highlight feedback when tapped with 0 items
-                    if (doomCanvas->hotbarDeniedTimer > 0 && doomCanvas->hotbarDeniedFlash == (b + 1)) {
-                        for (int py = 461; py < 479; py++) {
-                            Uint32* row = &px[py * surfW];
-                            for (int px_x = btnLeft + 1; px_x < btnLeft + 79; px_x++) {
-                                Uint32 c = row[px_x];
-                                Uint32 origR = (c >> 16) & 0xFF;
-                                Uint32 r = (origR >> 2) + 180;
-                                if (r > 255) r = 255;
-                                Uint32 g = ((c >> 8) & 0xFF) >> 2;
-                                Uint32 bl = (c & 0xFF) >> 2;
-                                row[px_x] = (c & 0xFF000000) | (r << 16) | (g << 8) | bl;
-                            }
+                // Red flash highlight feedback when tapped with 0 items
+                if (doomCanvas->hotbarDeniedTimer > 0 && doomCanvas->hotbarDeniedFlash == (b + 1)) {
+                    for (int py = 455; py < 480; py++) {
+                        Uint32* row = &px[py * surfW];
+                        for (int px_x = btnLeft + 1; px_x < btnLeft + 79; px_x++) {
+                            Uint32 c = row[px_x];
+                            Uint32 origR = (c >> 16) & 0xFF;
+                            Uint32 r = (origR >> 2) + 180;
+                            if (r > 255) r = 255;
+                            Uint32 g = ((c >> 8) & 0xFF) >> 2;
+                            Uint32 bl = (c & 0xFF) >> 2;
+                            row[px_x] = (c & 0xFF000000) | (r << 16) | (g << 8) | bl;
                         }
                     }
                 }
@@ -828,18 +917,27 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
 
 void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
 {
+    DoomCanvas_handleTouchHeld(doomCanvas, touchX, touchY, true);
+}
+
+void DoomCanvas_handleTouchUp(DoomCanvas_t* doomCanvas)
+{
+#ifdef __3DS__
+    (void)doomCanvas;
+    s_isDragging = false;
+#endif
+}
+
+void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY, boolean isDown)
+{
 #ifdef __3DS__
     if (!doomCanvas || !doomCanvas->doomRpg) return;
     Player_t* player = doomCanvas->player;
 
-    if (doomCanvas->state == ST_MENU && doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME) {
-        if (touchY >= 240 && touchY <= 265 && touchX >= 339) {
-            MenuSystem_back(doomCanvas->doomRpg->menuSystem);
-            return;
-        }
-    }
-
+    // 1. Password Dialog keypad
     if (doomCanvas->state == ST_DIALOGPASSWORD) {
+        s_isDragging = false;
+        if (!isDown) return;
         if (touchY >= 418 && touchY <= 446) {
             if (touchX >= 28 && touchX <= 82)        DoomCanvas_keyPressed(doomCanvas, AVK_1);
             else if (touchX >= 86 && touchX <= 140)  DoomCanvas_keyPressed(doomCanvas, AVK_2);
@@ -859,79 +957,155 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
         return;
     }
 
-    if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
-        // Bottom Metallic Hotbar (Y in 452..480, 5 buttons, 80px each)
-        if (touchY >= 452 && touchY <= 480) {
-            int btn = touchX / 80;
-            if (btn < 0) btn = 0;
-            if (btn > 4) btn = 4;
+    boolean inGameMenu = (doomCanvas->state == ST_MENU && doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME);
 
-            switch (btn) {
-                case 0: // Small Medkit
-                    if (player && player->inventory[0] > 0) {
-                        Player_useItem(player, 25);
-                    } else {
-                        Hud_addMessage(doomCanvas, "No Small Medkits!");
-                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
-                        doomCanvas->hotbarDeniedFlash = 1;
-                        doomCanvas->hotbarDeniedTimer = 10;
-                    }
+    // 2. In-game menu [ BACK ] button on top bar
+    if (inGameMenu) {
+        if (touchY >= 240 && touchY <= 260 && touchX >= 339) {
+            s_isDragging = false;
+            if (isDown) MenuSystem_back(doomCanvas->doomRpg->menuSystem);
+            return;
+        }
+    }
+
+    // 3. Top status bar buttons (during ST_PLAYING or ST_COMBAT)
+    if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
+        if (touchY >= 240 && touchY <= 260) {
+            s_isDragging = false;
+            if (isDown) {
+                // [ PASS ] (touchX in 275..338)
+                if (touchX >= 275 && touchX <= 338) {
+                    DoomCanvas_keyPressed(doomCanvas, AVK_PASSTURN);
                     return;
-                case 1: // Large Medkit
-                    if (player && player->inventory[1] > 0) {
-                        Player_useItem(player, 26);
-                    } else {
-                        Hud_addMessage(doomCanvas, "No Large Medkits!");
-                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
-                        doomCanvas->hotbarDeniedFlash = 2;
-                        doomCanvas->hotbarDeniedTimer = 10;
-                    }
+                }
+                // [ MENU ] (touchX in 339..400)
+                if (touchX >= 339 && touchX <= 400) {
+                    DoomCanvas_keyPressed(doomCanvas, AVK_MENUOPEN);
                     return;
-                case 2: // Soul Sphere
-                    if (player && player->inventory[2] > 0) {
-                        Player_useItem(player, 27);
-                    } else {
-                        Hud_addMessage(doomCanvas, "No Soul Spheres!");
-                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
-                        doomCanvas->hotbarDeniedFlash = 3;
-                        doomCanvas->hotbarDeniedTimer = 10;
-                    }
-                    return;
-                case 3: // Berserk
-                    if (player && player->inventory[3] > 0) {
-                        Player_useItem(player, 28);
-                    } else {
-                        Hud_addMessage(doomCanvas, "No Berserk Packs!");
-                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
-                        doomCanvas->hotbarDeniedFlash = 4;
-                        doomCanvas->hotbarDeniedTimer = 10;
-                    }
-                    return;
-                case 4: // Dog Collar
-                    if (player && player->inventory[4] > 0) {
-                        Player_useItem(player, 29);
-                    } else {
-                        Hud_addMessage(doomCanvas, "No Dog Collars!");
-                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
-                        doomCanvas->hotbarDeniedFlash = 5;
-                        doomCanvas->hotbarDeniedTimer = 10;
-                    }
-                    return;
+                }
+            }
+            return;
+        }
+
+        // 4. Bottom Quick-Access Hotbar (Y in 452..480)
+        if (touchY >= 452 && touchY <= 480) {
+            s_isDragging = false;
+            if (isDown) {
+                int btn = touchX / 80;
+                if (btn < 0) btn = 0;
+                if (btn > 4) btn = 4;
+
+                switch (btn) {
+                    case 0: // Small Medkit
+                        if (player && player->inventory[0] > 0) {
+                            Player_useItem(player, 25);
+                        } else {
+                            Hud_addMessage(doomCanvas, "No Small Medkits!");
+                            Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                            doomCanvas->hotbarDeniedFlash = 1;
+                            doomCanvas->hotbarDeniedTimer = 10;
+                        }
+                        return;
+                    case 1: // Large Medkit
+                        if (player && player->inventory[1] > 0) {
+                            Player_useItem(player, 26);
+                        } else {
+                            Hud_addMessage(doomCanvas, "No Large Medkits!");
+                            Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                            doomCanvas->hotbarDeniedFlash = 2;
+                            doomCanvas->hotbarDeniedTimer = 10;
+                        }
+                        return;
+                    case 2: // Soul Sphere
+                        if (player && player->inventory[2] > 0) {
+                            Player_useItem(player, 27);
+                        } else {
+                            Hud_addMessage(doomCanvas, "No Soul Spheres!");
+                            Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                            doomCanvas->hotbarDeniedFlash = 3;
+                            doomCanvas->hotbarDeniedTimer = 10;
+                        }
+                        return;
+                    case 3: // Berserk
+                        if (player && player->inventory[3] > 0) {
+                            Player_useItem(player, 28);
+                        } else {
+                            Hud_addMessage(doomCanvas, "No Berserk Packs!");
+                            Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                            doomCanvas->hotbarDeniedFlash = 4;
+                            doomCanvas->hotbarDeniedTimer = 10;
+                        }
+                        return;
+                    case 4: // Dog Collar
+                        if (player && player->inventory[4] > 0) {
+                            Player_useItem(player, 29);
+                        } else {
+                            Hud_addMessage(doomCanvas, "No Dog Collars!");
+                            Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                            doomCanvas->hotbarDeniedFlash = 5;
+                            doomCanvas->hotbarDeniedTimer = 10;
+                        }
+                        return;
+                }
+            }
+            return;
+        }
+    }
+
+    // 5. Automap area (Y in 261..451, during ST_PLAYING, ST_COMBAT, or in-game menu)
+    if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT || inGameMenu) {
+        // Check on-screen buttons at top of automap (Y in 264..284)
+        if (touchY >= 264 && touchY <= 284) {
+            // [ CTR ] Recenter button (X = 282..318)
+            if (touchX >= 282 && touchX <= 318) {
+                s_isDragging = false;
+                if (isDown) {
+                    s_automapPanX = 0;
+                    s_automapPanY = 0;
+                    Sound_playSound(doomCanvas->doomRpg->sound, 5060, 0, 3);
+                }
+                return;
+            }
+            // [ - ] Zoom Out button (X = 322..354)
+            if (touchX >= 322 && touchX <= 354) {
+                s_isDragging = false;
+                if (isDown && s_automapZoom > 0) {
+                    s_automapZoom--;
+                    Sound_playSound(doomCanvas->doomRpg->sound, 5060, 0, 3);
+                }
+                return;
+            }
+            // [ + ] Zoom In button (X = 358..390)
+            if (touchX >= 358 && touchX <= 390) {
+                s_isDragging = false;
+                if (isDown && s_automapZoom < 2) {
+                    s_automapZoom++;
+                    Sound_playSound(doomCanvas->doomRpg->sound, 5060, 0, 3);
+                }
+                return;
             }
         }
 
-        // Top Bar Buttons (touchY in 240..265)
-        if (touchY >= 240 && touchY <= 265) {
-            // [ PASS ] (touchX in 275..338)
-            if (touchX >= 275 && touchX <= 338) {
-                DoomCanvas_keyPressed(doomCanvas, AVK_PASSTURN);
-                return;
+        // Dragging inside automap viewport
+        if (isDown) {
+            if (touchY >= 261 && touchY <= 451 && touchX >= 2 && touchX <= 397) {
+                s_isDragging = true;
+                s_lastTouchX = touchX;
+                s_lastTouchY = touchY;
             }
-            // [ MENU ] (touchX in 339..400)
-            if (touchX >= 339 && touchX <= 400) {
-                DoomCanvas_keyPressed(doomCanvas, AVK_MENUOPEN);
-                return;
-            }
+        } else if (s_isDragging) {
+            int dx = touchX - s_lastTouchX;
+            int dy = touchY - s_lastTouchY;
+            s_automapPanX += dx;
+            s_automapPanY += dy;
+            s_lastTouchX = touchX;
+            s_lastTouchY = touchY;
+
+            // Clamp pan bounds (+/- 300)
+            if (s_automapPanX > 300)  s_automapPanX = 300;
+            if (s_automapPanX < -300) s_automapPanX = -300;
+            if (s_automapPanY > 300)  s_automapPanY = 300;
+            if (s_automapPanY < -300) s_automapPanY = -300;
         }
     }
 #endif
@@ -967,183 +1141,214 @@ void DoomCanvas_disposeIntro(DoomCanvas_t* doomCanvas)
 	DoomCanvas_loadMap(doomCanvas, doomCanvas->startupMap);
 }
 #ifdef __3DS__
-// Render automap to bottom screen (y offset = 240)
+// Render automap to bottom screen (viewport: X=2..397, Y=261..451)
 void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
 {
-	Entity_t* entity;
-	Sprite_t* sprite;
-	Line_t* line;
+    if (!doomCanvas || !doomCanvas->doomRpg || !sdlVideo.screenSurface) return;
 
-	int cw = doomCanvas->clipRect.w;
-	int ch = doomCanvas->clipRect.h;
+    Entity_t* entity;
+    Sprite_t* sprite;
+    Line_t* line;
 
-	int screenOffsetY = 235; // bottom screen offset when using SDL_DUALSCR (400x480)
+    // Viewport bounds
+    const int mapFrameX = 2;
+    const int mapFrameY = 261;
+    const int mapFrameW = 396;
+    const int mapFrameH = 191;
 
-	/* preserve original behavior for ch calculation */
-	if (cw < ch) {
-		ch = cw + ((cw >> 0x1f) >> 0x1b);
-	} else {
-		ch = ch + ((ch >> 0x1f) >> 0x1b);
-	}
+    // 1. Clear automap interior to deep tactical slate
+    draw_fill_rect_clipped(sdlVideo.screenSurface, mapFrameX + 1, mapFrameY + 1, mapFrameW - 2, mapFrameH - 2, 0xFF080C12);
 
-	int i, i2, i3, i4;
-	int i5 = ch / 32;
-	int i6 = doomCanvas->SCR_CX - (i5 * 16);
-	int i7 = doomCanvas->SCR_CY - (i5 * 16);
-	int i8 = 0x400000 / (i5 << 8);
+    // 2. Determine tile size based on zoom level
+    int ts;
+    switch (s_automapZoom) {
+        case 0:  ts = 6;  break;
+        case 2:  ts = 16; break;
+        default: ts = 10; break;
+    }
 
-	if (z)
-	{
-		/* clear bottom screen automap area and set clipping */
-		DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
-		// NOTE: the 3DS automap background clear via SDL_FillRect is a no-op on
-		// this hardware surface (SDL_FillRect does not paint it; only SDL_BlitSurface
-		// does). The bottom-screen strip is cleared every frame in
-		// SDL_RenderPresent (SDL_Video.c) via an opaque-black blit. Do NOT re-enable
-		// this FillRect clear -- it paints nothing.
-		//DoomRPG_fillRect(doomCanvas->doomRpg, 0, screenOffsetY, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
-		DoomRPG_setClipTrue(doomCanvas->doomRpg, 0, screenOffsetY, doomCanvas->displayRect.w, doomCanvas->displayRect.h);
+    // Centered on player
+    int mapCenterX = 200;
+    int mapCenterY = 356;
+    int originX = mapCenterX + s_automapPanX - (int)(((float)doomCanvas->viewX * (float)ts) / 64.0f);
+    int originY = mapCenterY + s_automapPanY - (int)(((float)doomCanvas->viewY * (float)ts) / 64.0f);
 
-		/* draw visited tiles and entities-on-tile markers */
-		int baseIndex = 0;
-		for (int row = 0; row < 32; row++) {
-			for (int col = 0; col < 32; col++) {
-				byte b = doomCanvas->render->mapFlags[baseIndex + col];
-				boolean visitedAndNotWall = false;
-				if ((b & BIT_AM_VISITED) != 0 && (b & BIT_AM_WALL) == 0) {
-					visitedAndNotWall = true;
-					if ((b & BIT_AM_ENTRANCE) != 0) {
-						DoomRPG_setColor(doomCanvas->doomRpg, 0xFFAA00);
-					} else {
-						DoomRPG_setColor(doomCanvas->doomRpg, 0x660000);
-					}
-					DoomRPG_fillRect(doomCanvas->doomRpg,
-						i6 + (i5 * col),
-						i7 + (i5 * row) + screenOffsetY,
-						i5, i5);
-				}
+    if (z) {
+        // Set clipping to automap interior
+        SDL_Rect mapClip = { mapFrameX + 1, mapFrameY + 1, mapFrameW - 2, mapFrameH - 2 };
+        SDL_RenderSetClipRect(sdlVideo.screenSurface, &mapClip);
 
-				for (entity = doomCanvas->game->entityDb[baseIndex + col]; entity != NULL; entity = entity->nextOnTile) {
-					if (visitedAndNotWall && entity->def->eType == 2) {
-						DoomRPG_setColor(doomCanvas->doomRpg, 0x33BB00);
-						DoomRPG_fillRect(doomCanvas->doomRpg,
-							i6 + (i5 * col) + (i5 / 2),
-							i7 + (i5 * row) + (i5 / 2) + screenOffsetY,
-							i5 / 2, i5 / 2);
-					}
-				}
-			}
-			baseIndex += 32;
-		}
+        // A. Draw visited tiles and entity markers
+        int baseIndex = 0;
+        for (int row = 0; row < 32; row++) {
+            int ty = originY + row * ts;
+            if (ty + ts >= mapFrameY + 1 && ty <= mapFrameY + mapFrameH - 1) {
+                for (int col = 0; col < 32; col++) {
+                    int tx = originX + col * ts;
+                    if (tx + ts >= mapFrameX + 1 && tx <= mapFrameX + mapFrameW - 1) {
+                        byte b = doomCanvas->render->mapFlags[baseIndex + col];
+                        boolean visitedAndNotWall = ((b & BIT_AM_VISITED) != 0 && (b & BIT_AM_WALL) == 0);
+                        if (visitedAndNotWall) {
+                            Uint32 color = ((b & BIT_AM_ENTRANCE) != 0) ? 0xFFFFAA00 : 0xFF660000;
+                            draw_fill_rect_clipped(sdlVideo.screenSurface, tx, ty, ts, ts, color);
+                        }
 
-		/* draw directional sprites / special sprite lines */
-		int baseIndex2 = 0;
-		for (int r = 0; r < 32; r++) {
-			for (int c = 0; c < 32; c++) {
-				for (entity = doomCanvas->game->entityDb[baseIndex2 + c]; entity != NULL; entity = entity->nextOnTile) {
-					if (entity->def->eType == 14 || entity->def->eType == 15) {
-						sprite = &doomCanvas->render->mapSprites[(entity->info & 65535) - 1];
-						if ((sprite->info & 268435456) != 0) {
-							if ((sprite->info & 262144) != 0) {
-								DoomRPG_setColor(doomCanvas->doomRpg, 0xCC0000);
-							} else {
-								DoomRPG_setColor(doomCanvas->doomRpg, 0x880000);
-							}
+                        for (entity = doomCanvas->game->entityDb[baseIndex + col]; entity != NULL; entity = entity->nextOnTile) {
+                            if (visitedAndNotWall && entity->def->eType == 2) {
+                                int markerSize = (ts >= 10) ? (ts / 2) : 3;
+                                draw_fill_rect_clipped(sdlVideo.screenSurface,
+                                    tx + (ts - markerSize) / 2,
+                                    ty + (ts - markerSize) / 2,
+                                    markerSize, markerSize, 0xFF33BB00);
+                            }
+                        }
+                    }
+                }
+            }
+            baseIndex += 32;
+        }
 
-							if ((sprite->info & 524288) != 0) {
-								i4 = ((sprite->x - 32) << 16) / i8;
-								i2 = ((sprite->x + 32) << 16) / i8;
-								i = (sprite->y << 16) / i8;
-								i3 = i;
-							}
-							else if ((sprite->info & 1048576) != 0) {
-								i4 = ((sprite->x - 32) << 16) / i8;
-								i2 = ((sprite->x + 32) << 16) / i8;
-								i = (sprite->y << 16) / i8;
-								i3 = i;
-							}
-							else if ((sprite->info & 4194304) != 0) {
-								i = ((sprite->y + 32) << 16) / i8;
-								i3 = ((sprite->y - 32) << 16) / i8;
-								i4 = (sprite->x << 16) / i8;
-								i2 = i4;
-							}
-							else {
-								i = ((sprite->y + 32) << 16) / i8;
-								i3 = ((sprite->y - 32) << 16) / i8;
-								i4 = (sprite->x << 16) / i8;
-								i2 = i4;
-							}
+        // B. Draw directional sprites / map sprites
+        int baseIndex2 = 0;
+        for (int r = 0; r < 32; r++) {
+            for (int c = 0; c < 32; c++) {
+                for (entity = doomCanvas->game->entityDb[baseIndex2 + c]; entity != NULL; entity = entity->nextOnTile) {
+                    if (entity->def->eType == 14 || entity->def->eType == 15) {
+                        sprite = &doomCanvas->render->mapSprites[(entity->info & 65535) - 1];
+                        if ((sprite->info & 268435456) != 0) {
+                            Uint8 sr = ((sprite->info & 262144) != 0) ? 0xCC : 0x88;
+                            int sx1, sy1, sx2, sy2;
+                            if ((sprite->info & 524288) != 0 || (sprite->info & 1048576) != 0) {
+                                sx1 = originX + (int)(((float)(sprite->x - 32) * (float)ts) / 64.0f);
+                                sx2 = originX + (int)(((float)(sprite->x + 32) * (float)ts) / 64.0f);
+                                sy1 = originY + (int)(((float)sprite->y * (float)ts) / 64.0f);
+                                sy2 = sy1;
+                            } else {
+                                sx1 = originX + (int)(((float)sprite->x * (float)ts) / 64.0f);
+                                sx2 = sx1;
+                                sy1 = originY + (int)(((float)(sprite->y + 32) * (float)ts) / 64.0f);
+                                sy2 = originY + (int)(((float)(sprite->y - 32) * (float)ts) / 64.0f);
+                            }
+                            SDL_SetRenderDrawColor(sdlVideo.screenSurface, sr, 0x00, 0x00, 255);
+                            SDL_RenderDrawLine(sdlVideo.screenSurface, sx1, sy1, sx2, sy2);
+                        }
+                    }
+                }
+            }
+            baseIndex2 += 32;
+        }
 
-							DoomRPG_drawLine(doomCanvas->doomRpg,
-								i6 + ((i4 + 128) >> 8),
-								i7 + ((i3 + 128) >> 8) + screenOffsetY,
-								i6 + ((i2 + 128) >> 8),
-								i7 + ((i + 128) >> 8) + screenOffsetY);
-						}
-					}
-				}
-			}
-			baseIndex2 += 32;
-		}
+        // C. Draw map lines (walls & doors)
+        for (int li = 0; li < doomCanvas->render->linesLength; li++) {
+            line = &doomCanvas->render->lines[li];
+            if ((line->flags & 128) != 0) {
+                int lx1 = originX + (int)(((float)line->vert1.x * (float)ts) / 64.0f);
+                int ly1 = originY + (int)(((float)line->vert1.y * (float)ts) / 64.0f);
+                int lx2 = originX + (int)(((float)line->vert2.x * (float)ts) / 64.0f);
+                int ly2 = originY + (int)(((float)line->vert2.y * (float)ts) / 64.0f);
 
-		/* draw lines marked with flag 128 */
-		DoomRPG_setColor(doomCanvas->doomRpg, 0xCC0000);
-		for (int li = 0; li < doomCanvas->render->linesLength; li++) {
-			line = &doomCanvas->render->lines[li];
-			if ((line->flags & 128) != 0) {
-				int i20 = (line->vert1.x << 16) / i8;
-				int i21 = (line->vert1.y << 16) / i8;
-				int i22 = (line->vert2.x << 16) / i8;
-				int i23 = (line->vert2.y << 16) / i8;
-				if ((line->flags & 4) != 0) {
-					DoomRPG_setColor(doomCanvas->doomRpg, 0xCC9900);
-				} else {
-					DoomRPG_setColor(doomCanvas->doomRpg, 0xCC0000);
-				}
-				DoomRPG_drawLine(doomCanvas->doomRpg,
-					i6 + ((i20 + 128) >> 8),
-					i7 + ((i21 + 128) >> 8) + screenOffsetY,
-					i6 + ((i22 + 128) >> 8),
-					i7 + ((i23 + 128) >> 8) + screenOffsetY);
-			}
-		}
-	}
+                Uint8 lr = 0xCC;
+                Uint8 lg = ((line->flags & 4) != 0) ? 0x99 : 0x00;
+                Uint8 lb = 0x00;
+                SDL_SetRenderDrawColor(sdlVideo.screenSurface, lr, lg, lb, 255);
+                SDL_RenderDrawLine(sdlVideo.screenSurface, lx1, ly1, lx2, ly2);
+            }
+        }
 
-	/* automap blink timing */
-	if (doomCanvas->time > doomCanvas->automapBlinkTime) {
-		doomCanvas->automapBlinkTime = doomCanvas->time + 333;
-		doomCanvas->automapBlinkState = !doomCanvas->automapBlinkState;
-	}
+        // Reset clipping before drawing overlay UI
+        SDL_RenderSetClipRect(sdlVideo.screenSurface, NULL);
+    }
 
-	/* compute cursor frame index based on angle */
-	int i24 = 0;
-	switch (doomCanvas->destAngle & 255) {
-	case 0:   i24 = 2; break;
-	case 128: i24 = 3; break;
-	case 192: i24 = 1; break;
-	default:  i24 = 0; break;
-	}
+    // 3. Automap cursor blink timing
+    if (doomCanvas->time > doomCanvas->automapBlinkTime) {
+        doomCanvas->automapBlinkTime = doomCanvas->time + 333;
+        doomCanvas->automapBlinkState = !doomCanvas->automapBlinkState;
+    }
 
-	int i25 = i24 * 6;
-	if (doomCanvas->automapBlinkState) {
-		i25 += 24;
-	}
+    int i24 = 0;
+    switch (doomCanvas->destAngle & 255) {
+        case 0:   i24 = 2; break; // East
+        case 128: i24 = 3; break; // West
+        case 192: i24 = 1; break; // North
+        default:  i24 = 0; break; // South
+    }
 
-	/* player marker position */
-	int px = i6 + ((i5 * (doomCanvas->viewX - 32)) / 64) + (i5 / 2);
-	int py = i7 + ((i5 * (doomCanvas->viewY - 32)) / 64) + (i5 / 2);
+    int i25 = i24 * 6;
+    if (doomCanvas->automapBlinkState) {
+        i25 += 24;
+    }
 
-	/* small adjustment so marker doesn't overlap map lines */
-	px += 1;
-	py += 1;
-	py += screenOffsetY;
+    // 4. Draw player cursor (always at map center + pan offset)
+    int px = mapCenterX + s_automapPanX;
+    int py = mapCenterY + s_automapPanY;
 
-	/* only draw cursor if inside display region (bottom screen region) */
-	if (py < (doomCanvas->displayRect.y + doomCanvas->displayRect.h + screenOffsetY)) {
-		DoomCanvas_drawImageSpecial(doomCanvas, &doomCanvas->imgMapCursor, 0, i25, 6, 6, 0, px, py, 0x30);
-	}
+    if (px >= mapFrameX + 4 && px <= mapFrameX + mapFrameW - 4 &&
+        py >= mapFrameY + 4 && py <= mapFrameY + mapFrameH - 4) {
+        if (doomCanvas->imgMapCursor.imgBitmap) {
+            SDL_Rect src = { 0, i25, 6, 6 };
+            SDL_Rect dst = { px - 3, py - 3, 6, 6 };
+            SDL_BlitSurface(doomCanvas->imgMapCursor.imgBitmap, &src, sdlVideo.screenSurface, &dst);
+        }
+    }
 
+    // 5. Draw tactical border around automap frame
+    Uint32 borderCol = 0xFF353C48;
+    Uint32* scrPx = (Uint32*)sdlVideo.screenSurface->pixels;
+    int surfW = sdlVideo.screenSurface->w;
+    // Top & bottom border
+    for (int x = mapFrameX; x < mapFrameX + mapFrameW; x++) {
+        scrPx[mapFrameY * surfW + x] = borderCol;
+        scrPx[(mapFrameY + mapFrameH - 1) * surfW + x] = borderCol;
+    }
+    // Left & right border
+    for (int y = mapFrameY; y < mapFrameY + mapFrameH; y++) {
+        scrPx[y * surfW + mapFrameX] = borderCol;
+        scrPx[y * surfW + (mapFrameX + mapFrameW - 1)] = borderCol;
+    }
+
+    // Corner tactical L-brackets (6px, vibrant cyan 0xFF00E5A3)
+    Uint32 cornerCol = 0xFF00E5A3;
+    for (int k = 0; k < 7; k++) {
+        // Top-Left
+        scrPx[mapFrameY * surfW + (mapFrameX + k)] = cornerCol;
+        scrPx[(mapFrameY + k) * surfW + mapFrameX] = cornerCol;
+        // Top-Right
+        scrPx[mapFrameY * surfW + (mapFrameX + mapFrameW - 1 - k)] = cornerCol;
+        scrPx[(mapFrameY + k) * surfW + (mapFrameX + mapFrameW - 1)] = cornerCol;
+        // Bottom-Left
+        scrPx[(mapFrameY + mapFrameH - 1) * surfW + (mapFrameX + k)] = cornerCol;
+        scrPx[(mapFrameY + mapFrameH - 1 - k) * surfW + mapFrameX] = cornerCol;
+        // Bottom-Right
+        scrPx[(mapFrameY + mapFrameH - 1) * surfW + (mapFrameX + mapFrameW - 1 - k)] = cornerCol;
+        scrPx[(mapFrameY + mapFrameH - 1 - k) * surfW + (mapFrameX + mapFrameW - 1)] = cornerCol;
+    }
+
+    // 6. On-Screen Touch Controls (Top of map: Y = 264..282)
+    // Zoom label at top-left
+    const char* zoomLabel;
+    switch (s_automapZoom) {
+        case 0:  zoomLabel = "MAP 1x"; break;
+        case 2:  zoomLabel = "MAP 3x"; break;
+        default: zoomLabel = "MAP 2x"; break;
+    }
+    DoomCanvas_drawString1(doomCanvas, (char*)zoomLabel, 10, 267, 0);
+
+    // [ CTR ] Recenter button: glows green when panned
+    boolean isPanned = (s_automapPanX != 0 || s_automapPanY != 0);
+    Uint32 ctrBorder = isPanned ? 0xFF00FF66 : 0xFF3A4452;
+    Uint32 ctrFill   = isPanned ? 0xFF102618 : 0xFF10151E;
+    draw_box(sdlVideo.screenSurface, 282, 264, 37, 19, ctrFill, ctrBorder);
+    DoomCanvas_drawString1(doomCanvas, "CTR", 300, 267, 16);
+
+    // [ - ] Zoom Out button
+    Uint32 minusBorder = (s_automapZoom > 0) ? 0xFF4A5568 : 0xFF2A2E36;
+    draw_box(sdlVideo.screenSurface, 322, 264, 33, 19, 0xFF10151E, minusBorder);
+    DoomCanvas_drawString1(doomCanvas, "-", 338, 267, 16);
+
+    // [ + ] Zoom In button
+    Uint32 plusBorder = (s_automapZoom < 2) ? 0xFF4A5568 : 0xFF2A2E36;
+    draw_box(sdlVideo.screenSurface, 358, 264, 33, 19, 0xFF10151E, plusBorder);
+    DoomCanvas_drawString1(doomCanvas, "+", 374, 267, 16);
 }
 
 #else
@@ -3542,6 +3747,7 @@ void DoomCanvas_loadMap(DoomCanvas_t* doomCanvas, int mapID)
 	int stateNum;
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x0);
 	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 240, 400, 240);
+	DoomCanvas_resetAutomapPan();
 	doomCanvas->loadMapID = mapID;
 	Sound_stopSounds(doomCanvas->doomRpg->sound);
 	if (doomCanvas->loadMapID == MAP_END_GAME) {
