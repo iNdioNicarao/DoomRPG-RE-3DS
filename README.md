@@ -7,6 +7,8 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
 ## Highlights (v1.0.7)
 
 - **Circle Pad Backward Fix**: Resolved signed 32-bit keycode comparison bug where `KEY_CPAD_DOWN = BIT(31) = 0x80000000` (`-2147483648`) was inadvertently discarded by `kb <= 0`. Circle Pad downward input now works reliably across both exploration and menu navigation.
+- **Repurposed SELECT Button (Recenter & Zoom)**: Pressing `SELECT` now snaps the automap camera back to the player (`[CTR]`). If already centered, pressing `SELECT` cycles through zoom levels (`1x` → `2x` → `3x`) with acoustic feedback, giving physical button control over the bottom-screen map.
+- **Native 3DS In-Game Prompts & Help Screen**: In-game NPC dialogue, computer terminals, combat guides, end-of-level screens (`Press A to continue`), and the Help/About menu now reference native 3DS controls (`A`, `B`, `ZL / ZR`, `START`, touch keypad, and lower-screen automap) instead of 2005 mobile phone keypads.
 - **Automatic Save Directory Creation**: The game recursively creates `sdmc:/3ds/doomrpg/saves/` at launch and prior to any save operation, enabling full standalone `.3dsx` use without needing manual folder creation or CIA pre-installation.
 - **Combat Turbo Button**: Dedicated bold green `[ TURBO ]` toggle button on the bottom-screen map control bar (adjacent to `[ CTR ]`). Accelerates enemy turns and combat pauses by ~3×, doubles missile flight speed, and accelerates attack animations for snappy turn-based encounters.
 - **Stereoscopic 3D Combat Particles**: All combat particle effects (blood splatters, sparks, monster gibs, weapon explosions) render to both left and right stereo buffers with depth-matched parallax offset, completely eliminating single-eye retinal flicker and adding full stereoscopic depth.
@@ -62,10 +64,9 @@ The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files p
 | Combat Turbo Toggle | — | Tap `[ TURBO ]` next to map controls |
 | Pan Automap | — | Touch & drag map with stylus / finger |
 | Zoom Automap | — | Tap `[+]` or `[-]` |
-| Recenter Automap | — | Tap `[O]` or tap player arrow |
+| Recenter / Zoom Automap | Select (recenter; tap again to cycle zoom) | Tap `[CTR]` or `[+]` / `[-]` |
 | Passcode Entry | D-pad / A | Tap numpad digits `0`–`9`, `C`, `OK` |
 | In-Game Menu / Back | Start | Tap `[ MENU ]` on top bar |
-| Automap | Select (persistent on bottom screen) | — |
 | 3D Depth Adjustment | Physical 3D Slider | — |
 
 NOTE: the D-pad/Circle Pad turns; **L/R are lateral movement (strafe)** — hold L or R to

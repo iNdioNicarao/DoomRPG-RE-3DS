@@ -16,7 +16,9 @@ Version 1.0.7 addresses hardware input and filesystem usability feedback reporte
 
 1. **Circle Pad Backward (Down) Fix**: Fixed an issue where pulling down on the Circle Pad failed to move the character backward or navigate menus down. In libctru, `KEY_CPAD_DOWN` is defined as `BIT(31)` (`0x80000000`), which represents a negative value when stored in a signed 32-bit `int` (`-2147483648`). The input handling loop previously checked `if (kb <= 0) continue;`, inadvertently discarding `KEY_CPAD_DOWN` as an empty slot sentinel. The loop now explicitly checks for empty slot sentinels (`-1` and `0`), restoring full Circle Pad backward support.
 2. **Automatic Save Directory Creation**: Implemented `Game_ensureSaveDir()` to recursively create `sdmc:/3ds/doomrpg/saves` on boot and prior to all file write routines. Fresh installs running exclusively via `.3dsx` no longer encounter fatal write errors when attempting to save game state or configuration.
-3. **Documentation Clarifications**: Explicitly documented `entities.db` and `help.txt` as required root asset files, and clarified that the original extraction's `.mid` music tracks must be converted to numbered `.mp3` files (`5039.mp3`, `5040.mp3`, `5043.mp3`).
+3. **Repurposed SELECT Button (Automap Recenter & Zoom)**: The automap is permanently active on the bottom touch screen, rendering the legacy phone `#` map toggle obsolete. The `SELECT` hardware button now acts as a dedicated Automap Recenter (`[CTR]`). If the map is already centered, tapping `SELECT` cycles the zoom scale between 1x, 2x, and 3x, complete with audio chime feedback and an on-screen notification banner.
+4. **Native 3DS Dialogue & UI Prompts**: Automatically adapts legacy phone keypad references found in level dialogue and computer logs into native 3DS controls in real-time (e.g., `* and 7` -> `ZL/ZR`, `0 key` -> `START`, `# key` -> touch screen automap, `9 button` -> `B button`, `OK button` -> `A button`). End-of-level summary screens, credits, and the in-game Help menu have also been refreshed for native 3DS gameplay.
+5. **Documentation Clarifications**: Explicitly documented `entities.db` and `help.txt` as required root asset files, and clarified that the original extraction's `.mid` music tracks must be converted to numbered `.mp3` files (`5039.mp3`, `5040.mp3`, `5043.mp3`).
 
 ---
 
@@ -24,6 +26,8 @@ Version 1.0.7 addresses hardware input and filesystem usability feedback reporte
 
 - **Hardware Circle Pad Fix**: Restored full 4-directional Circle Pad support (Up, Down, Left, Right) in both 3D exploration and 2D menu navigation.
 - **Standalone 3DSX Saves**: Full out-of-the-box compatibility for Homebrew Launcher users without needing manual directory creation or CIA pre-installation.
+- **SELECT Recenter & Zoom**: Quick-recenter and cycle automap zoom levels at any time during gameplay with `SELECT`.
+- **Modernized Text & Prompts**: No more legacy mobile keypad prompts—game logs, tutorials, and menus reflect actual 3DS hardware buttons.
 - **Enhanced Installation Guide**: Clearer accounting of all required loose asset files and music format conversions.
 
 ---
@@ -32,6 +36,8 @@ Version 1.0.7 addresses hardware input and filesystem usability feedback reporte
 
 - `fix(input): resolve Circle Pad Down by replacing signed keycode comparison with sentinel check`
 - `fix(fs): automatically create sdmc:/3ds/doomrpg/saves directory at boot and on save`
+- `feat(controls): repurpose SELECT button to recenter automap and cycle zoom levels`
+- `feat(dialog): dynamically adapt legacy phone keypad prompts to native 3DS controls`
 - `docs: update required asset file list and MIDI-to-MP3 conversion guidance`
 
 ---
@@ -54,11 +60,11 @@ Version 1.0.7 addresses hardware input and filesystem usability feedback reporte
 ## Binaries & Hashes
 
 - `DoomRPG-1.0.7.cia`
-  - **MD5**: `97c58b40003f89453642ed84cf704a7a`
-  - **SHA256**: `5caee49ee768e68fc6fb7c755362800aadb0aeb1e071744b83e65808519b514d`
+  - **MD5**: `527d55f7e7c728f42955747f03eb4c2a`
+  - **SHA256**: `64c451edec02f9adfc91392dab28ded0d8b7baa38e37a4d6f730e1c4146360ea`
 - `DoomRPG.3dsx`
-  - **MD5**: `2730734e499bc49cced1d51e79defc1e`
-  - **SHA256**: `98a14a3fb6e7359260269524ab42cfb6e36b6d3f25a788a4e75ea650128611c1`
+  - **MD5**: `2350c877631573b643c1d04b4dff206d`
+  - **SHA256**: `0e20b9365797aeb2da161c5c090982797a7b4d69f8577f70f68cf5fb6a4a763c`
 
 ---
 

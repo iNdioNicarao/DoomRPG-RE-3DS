@@ -44,14 +44,79 @@ int vendingMenuTable[MAXSTORELINES * MAXSTORES] = {
 	-1, -1, 4, 15, 30, 40, -1,  2,  2,  4,  5,  8, -1,  8,  8, 10, 10  // Price tags
 };
 
+static const char* s_help3DS[] = {
+	"~~ HELP/ABOUT ~~",
+	"Doom RPG RE 3DS",
+	"Port by Dennis",
+	"",
+	"In DOOM RPG you",
+	"will fight mon-",
+	"sters, solve puz-",
+	"zles and interact",
+	"with characters",
+	"in response to a",
+	"crisis on Mars.",
+	"",
+	" ~~~ GENERAL ~~~",
+	"Use Circle Pad",
+	"or D-Pad to move",
+	"around base and",
+	"navigate menus.",
+	"Press A to talk,",
+	"attack, and use.",
+	"Press B to pass",
+	"turn or dismiss.",
+	"",
+	"~~~ CONTROLS ~~~",
+	"CPad/D-Pad: Move",
+	"L / R: Strafe",
+	"ZL / ZR: Weapon",
+	"A: Atk/Talk/Use",
+	"B: Pass Turn",
+	"START: Game Menu",
+	"SELECT: Recenter",
+	"",
+	"~~~ TOUCH HUD ~~~",
+	"Hotbar: Use Item",
+	"Map: Drag to pan",
+	"Touch [+] / [-]",
+	"to zoom automap.",
+	"Touch [CTR] to",
+	"recenter map.",
+	"[TURBO]: Fast-fwd",
+	"Pad: Door codes",
+	"",
+	" ~~~ LEGALS ~~~",
+	"(c) 2005 Id",
+	"Software, Inc.",
+	"All rights",
+	"reserved."
+};
+
 void Menu_LoadHelpResource(Menu_t* menu)
 {
-	byte* fData;
+#ifdef __3DS__
+	MenuSystem_t* menuSystem = menu->doomRpg->menuSystem;
+	for (size_t i = 0; i < sizeof(s_help3DS) / sizeof(s_help3DS[0]); i++) {
+		char textLine[32];
+		const char* src = s_help3DS[i];
+		int j = 0;
+		while (src[j] && j < 17) {
+			if (src[j] == '~') textLine[j] = (char)0x80;
+			else textLine[j] = src[j];
+			j++;
+		}
+		textLine[j] = '\0';
+		MenuItem_Set(&menuSystem->items[menuSystem->numItems++], textLine, 0, 0);
+	}
+#else
+	byte *fData;
 	int dataPos, i, j;
 	byte c;
 	char textLine[32];
 
 	fData = DoomRPG_fileOpenRead(menu->doomRpg, "/help.txt");
+	if (!fData) return;
 
 	dataPos = 3;
 	for (i = 0; i < (fData[1] + (fData[0] * 10) - 528); i++) {
@@ -84,6 +149,7 @@ void Menu_LoadHelpResource(Menu_t* menu)
 	}
 
 	SDL_free(fData);
+#endif
 }
 
 void Menu_setNotes(Menu_t* menu)
@@ -476,7 +542,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 			Menu_fillStatus(menu, 1, 0, 0);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
-			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Press OK to", 2, 0);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Press A to ", 2, 0);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "continue   ", 2, 0);
 			Sound_playSound(menu->doomRpg->sound, 5043, SND_FLG_LOOP | SND_FLG_STOPSOUNDS | SND_FLG_ISMUSIC, 5);
 			menu->doomRpg->doomCanvas->numEvents = 0;
@@ -493,7 +559,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 			Menu_fillStatus(menu, 1, 0, 1);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
-			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Press OK to", 2, 0);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Press A to ", 2, 0);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "continue   ", 2, 0);
 			Sound_playSound(menu->doomRpg->sound, 5043, SND_FLG_LOOP | SND_FLG_STOPSOUNDS | SND_FLG_ISMUSIC, 5);
 			menuSystem->type = 5;

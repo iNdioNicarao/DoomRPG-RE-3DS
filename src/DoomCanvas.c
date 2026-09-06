@@ -659,6 +659,27 @@ void DoomCanvas_resetAutomapPan(void)
     s_isDragging = false;
 }
 
+void DoomCanvas_handleAutomapKey(DoomCanvas_t* doomCanvas)
+{
+    if (s_automapPanX != 0 || s_automapPanY != 0) {
+        s_automapPanX = 0;
+        s_automapPanY = 0;
+        s_isDragging = false;
+        Sound_playSound(doomCanvas->doomRpg->sound, 5060, 0, 3);
+        Hud_addMessage(doomCanvas, "Automap: Centered");
+    }
+    else {
+        s_automapZoom = (s_automapZoom + 1) % 3;
+        s_isDragging = false;
+        Sound_playSound(doomCanvas->doomRpg->sound, 5060, 0, 3);
+        if (s_automapZoom == 0)      Hud_addMessage(doomCanvas, "Automap Zoom: 1x");
+        else if (s_automapZoom == 1) Hud_addMessage(doomCanvas, "Automap Zoom: 2x");
+        else                         Hud_addMessage(doomCanvas, "Automap Zoom: 3x");
+    }
+    doomCanvas->automapDrawn = false;
+    doomCanvas->staleView = true;
+}
+
 static void draw_fill_rect_clipped(SDL_Surface* surf, int x, int y, int w, int h, Uint32 color)
 {
     if (!surf || !surf->pixels) return;
@@ -1682,7 +1703,7 @@ static void DoomCanvas_presentCutscene(SDL_Surface* surf128, SDL_Surface* dst32)
 #endif
 }
 
-static char creditsText[] = "     CREDITS\n\nProduced by\nJOHN CARMACK\nKATHERINE A. KANG\n\nProgramming by\nJOHN CARMACK\nJAH RAPHAEL\nHEATH MORRISON\n\nDesign by\nMATTHEW C. ROSS\nDAVID WHITLARK\n\nArt by\nDAVID WHITLARK\nMATTHEW C. ROSS\n\nSupport by\nBRETT ESTABROOK\n\n\n\n\n\nThanks for\nplaying.\n\n\n\nPress OK to\ncontinue.";
+static char creditsText[] = "     CREDITS\n\nProduced by\nJOHN CARMACK\nKATHERINE A. KANG\n\nProgramming by\nJOHN CARMACK\nJAH RAPHAEL\nHEATH MORRISON\n\nDesign by\nMATTHEW C. ROSS\nDAVID WHITLARK\n\nArt by\nDAVID WHITLARK\nMATTHEW C. ROSS\n\nSupport by\nBRETT ESTABROOK\n\n\n\n\n\nThanks for\nplaying.\n\n\n\nPress A to\ncontinue.";
 void DoomCanvas_drawCredits(DoomCanvas_t* doomCanvas)
 {
 	SDL_Surface* tmpSurface =
@@ -3291,6 +3312,12 @@ void DoomCanvas_handleEvent(DoomCanvas_t* doomCanvas, int i) {
 		break;
 
 	case ST_COMBAT:
+#ifdef __3DS__
+		if (DoomCanvas_getKeyAction(doomCanvas, i) == AUTOMAP) {
+			DoomCanvas_handleAutomapKey(doomCanvas);
+			break;
+		}
+#endif
 		if (doomCanvas->combatDone != 0) {
 			ParticleSystem_freeAllParticles(doomCanvas->particleSystem);
 			DoomCanvas_setState(doomCanvas, ST_PLAYING);
@@ -3553,7 +3580,11 @@ void DoomCanvas_handlePlayingEvents(DoomCanvas_t* doomCanvas, int i)
 
 	switch (key) {
 	case AUTOMAP: {
+#ifdef __3DS__
+		DoomCanvas_handleAutomapKey(doomCanvas);
+#else
 		DoomCanvas_setState(doomCanvas, (doomCanvas->state != ST_AUTOMAP) ? ST_AUTOMAP : ST_PLAYING);
+#endif
 		break;
 	}
 
@@ -4223,6 +4254,71 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 	}
 }
 
+#ifdef __3DS__
+static void str_replace(char* buf, size_t bufSize, const char* target, const char* replacement)
+{
+	char temp[512];
+	char* pos = strstr(buf, target);
+	if (!pos) return;
+
+	size_t targetLen = strlen(target);
+	size_t replLen = strlen(replacement);
+
+	while (pos) {
+		size_t prefixLen = (size_t)(pos - buf);
+		size_t suffixLen = strlen(pos + targetLen);
+		if (prefixLen + replLen + suffixLen >= bufSize) {
+			break;
+		}
+		strncpy(temp, pos + targetLen, sizeof(temp) - 1);
+		temp[sizeof(temp) - 1] = '\0';
+		memcpy(pos, replacement, replLen);
+		memcpy(pos + replLen, temp, suffixLen + 1);
+
+		pos = strstr(buf + prefixLen + replLen, target);
+	}
+}
+
+static void DoomCanvas_adapt3DSDialog(char* buf, size_t bufSize)
+{
+	/* Weapons: 7 and * */
+	str_replace(buf, bufSize, "pressing the *|and 7 keys", "pressing the ZL|and ZR buttons");
+	str_replace(buf, bufSize, "press-|ing the * and 7|buttons", "press-|ing the ZL and ZR|buttons");
+	str_replace(buf, bufSize, "pressing the * and 7 keys", "pressing ZL and ZR");
+	str_replace(buf, bufSize, "pressing the * and 7 buttons", "pressing ZL and ZR");
+	str_replace(buf, bufSize, "the * and 7 keys", "the ZL and ZR buttons");
+	str_replace(buf, bufSize, "the * and 7 buttons", "the ZL and ZR buttons");
+	str_replace(buf, bufSize, "the * and 7", "ZL and ZR");
+
+	/* Action / Confirmation */
+	str_replace(buf, bufSize, "press the OK|button", "press the A|button");
+	str_replace(buf, bufSize, "press the OK button", "press the A button");
+	str_replace(buf, bufSize, "pressing the OK", "pressing A");
+
+	/* Game Menu */
+	str_replace(buf, bufSize, "by pressing the 0|key", "by pressing START|(or [ MENU ])");
+	str_replace(buf, bufSize, "by pressing the 0 key", "by pressing START");
+	str_replace(buf, bufSize, "pressing the 0|key", "pressing START");
+	str_replace(buf, bufSize, "pressing the 0 key", "pressing START");
+	str_replace(buf, bufSize, "by pressing|the 0 key", "by pressing|START");
+	str_replace(buf, bufSize, "the 0 key", "START");
+
+	/* Automap */
+	str_replace(buf, bufSize, "Access your auto-|map by pressing|the # key, or|from the game|menu.", "Your automap is|always shown on|the touch screen.|Tap or drag to|navigate.");
+	str_replace(buf, bufSize, "by pressing|the # key", "on the bottom|screen");
+	str_replace(buf, bufSize, "by pressing the # key", "on the bottom screen");
+	str_replace(buf, bufSize, "the # key", "the bottom screen");
+
+	/* Pass Turn */
+	str_replace(buf, bufSize, "pressing|the 9 button", "pressing the B|button");
+	str_replace(buf, bufSize, "pressing the 9 button", "pressing B or [PASS]");
+	str_replace(buf, bufSize, "the 9 button", "the B button");
+
+	/* Passcodes */
+	str_replace(buf, bufSize, "numeric keypad", "touch keypad");
+}
+#endif
+
 void DoomCanvas_prepareDialog(DoomCanvas_t* doomCanvas, char* str, boolean dialogBackSoftKey)
 {
 	int strLen, i, lineStart, lastSpace;
@@ -4231,6 +4327,10 @@ void DoomCanvas_prepareDialog(DoomCanvas_t* doomCanvas, char* str, boolean dialo
 	doomCanvas->numDialogLines = 0;
 	strncpy(doomCanvas->dialogBuffer, str, sizeof(doomCanvas->dialogBuffer) - 1);
 	doomCanvas->dialogBuffer[sizeof(doomCanvas->dialogBuffer) - 1] = '\0';
+
+#ifdef __3DS__
+	DoomCanvas_adapt3DSDialog(doomCanvas->dialogBuffer, sizeof(doomCanvas->dialogBuffer));
+#endif
 
 	strLen = (int)SDL_strlen(doomCanvas->dialogBuffer);
 #ifdef __3DS__
