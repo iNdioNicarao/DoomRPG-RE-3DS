@@ -14,6 +14,7 @@
 #include "DoomRPG.h"
 #include "DoomCanvas.h"
 #include "Player.h"
+#include "Game.h"
 #include "Hud.h"
 #include "MenuSystem.h"
 #include "SDL_Video.h"
@@ -29,7 +30,7 @@ unsigned int __stacksize__ = 0x40000; // 256KB
 #endif
 
 // Build identity - bump on every build so we can verify what is actually running.
-static const char* BUILD_VERSION = "DOOMRPG-3DS v1.0.6";
+static const char* BUILD_VERSION = "DOOMRPG-3DS v1.0.7";
 
 int main(int argc, char* args[])
 {
@@ -37,6 +38,7 @@ int main(int argc, char* args[])
     /* Enable 804MHz CPU clock + L2 cache on New 3DS (safe no-op on Old 3DS) */
     osSetSpeedupEnable(true);
 #endif
+    Game_ensureSaveDir();
     printf("\n=== %s ===\n", BUILD_VERSION);
     {
         FILE* bv = fopen("sdmc:/3ds/doomrpg/version.log", "w");

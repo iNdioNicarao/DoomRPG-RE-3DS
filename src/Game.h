@@ -210,6 +210,7 @@ void Game_remove(Game_t* game, Entity_t* entity);
 boolean Game_executeEvent(Game_t* game, int event, int codeId, int arg1, int arg2, int flags);
 boolean Game_executeTile(Game_t* game, int x, int y, int flags);
 boolean Game_runEvent(Game_t* game, int event, int index, int flags);
+void Game_ensureSaveDir(void);
 void Game_saveConfig(Game_t* game, int num);
 void Game_savePlayerState(Game_t* game, char* fileName, char* fileMapName, int x, int y, int angle);
 void Game_saveState(Game_t* game, int mapId, int x, int y, int angleDir, boolean z);

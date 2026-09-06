@@ -2,6 +2,8 @@
 #include <SDL.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "DoomRPG.h"
 #include "DoomCanvas.h"
@@ -23,6 +25,20 @@
 
 #define CONFIG_VERSION 23 // New
 
+void Game_ensureSaveDir(void)
+{
+#ifdef __3DS__
+	mkdir("sdmc:/3ds", 0777);
+	mkdir("sdmc:/3ds/doomrpg", 0777);
+	mkdir("sdmc:/3ds/doomrpg/saves", 0777);
+#else
+	mkdir("sdmc", 0777);
+	mkdir("sdmc/3ds", 0777);
+	mkdir("sdmc/3ds/doomrpg", 0777);
+	mkdir("sdmc/3ds/doomrpg/saves", 0777);
+#endif
+}
+
 int Game_getResourceMapID(Game_t* game, char* mapName)
 {
 	for (int i = 0; i < MAPFILE_MAX; i++) {
@@ -42,6 +58,7 @@ Game_t* Game_init(Game_t* game, DoomRPG_t* doomRpg)
 	EntityMonster_t* entityMonst;
 
 	printf("Game_init\n");
+	Game_ensureSaveDir();
 
 	if (game == NULL)
 	{
@@ -1728,6 +1745,7 @@ void Game_saveConfig(Game_t* game, int num)
 	SDL_RWops* rw;
 	int version;
 
+	Game_ensureSaveDir();
 	rw = SDL_RWFromFile("sdmc:/3ds/doomrpg/saves/Config", "w");
 	if (rw == NULL) {
 		DoomRPG_Error("saveConfig: cannot open saves/Config for writing");
@@ -1770,7 +1788,12 @@ void Game_savePlayerState(Game_t* game, char* fileName, char* fileMapName, int x
 
 	printf("savePlayerState storeName: %s mapName: %s viewX: %d viewY: %d viewAngle: %d\n", fileName, fileMapName, x, y, angle);
 
+	Game_ensureSaveDir();
 	rw = SDL_RWFromFile(fileName, "w");
+	if (rw == NULL) {
+		DoomRPG_Error("savePlayerState: cannot open %s for writing", fileName);
+		return;
+	}
 
 	len = ((SDL_strlen(fileMapName) + 1) << 16) >> 16;
 	File_writeShort(rw, len);
@@ -1858,7 +1881,12 @@ void Game_saveWorldState(Game_t* game)
 	GameSprite_t* gSprite;
 	int i, j;
 
+	Game_ensureSaveDir();
 	rw = SDL_RWFromFile("sdmc:/3ds/doomrpg/saves/World", "wb");
+	if (rw == NULL) {
+		DoomRPG_Error("saveWorldState: cannot open saves/World for writing");
+		return;
+	}
 
 	// Map Entities
 	File_writeInt(rw, game->numEntities);

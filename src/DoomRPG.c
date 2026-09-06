@@ -339,7 +339,7 @@ int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
         for (i = 0; i < (sizeof(keyMapping) / sizeof(keyMapping_t)); ++i) {
             for (j = 0; j < KEYBINDS_MAX; j++) {
                 int kb = keyMapping[i].keyBinds[j];
-                if (kb <= 0) continue;
+                if (kb == -1 || kb == 0) continue;
                 if ((buttonID & (u32)kb) == (u32)kb) {
                     key |= keyMapping[i].avk_action;
                     break;
@@ -358,7 +358,7 @@ int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
         for (i = 0; i < (sizeof(keyMappingDefault) / sizeof(keyMapping_t)); ++i) {
             for (j = 0; j < KEYBINDS_MAX; j++) {
                 int kb = keyMappingDefault[i].keyBinds[j];
-                if (kb <= 0) continue;
+                if (kb == -1 || kb == 0) continue;
                 if ((buttonID & (u32)kb) == (u32)kb) {
                     menuBits |= keyMappingDefault[i].avk_action;
                     break;
