@@ -32,6 +32,21 @@ static char processing[] = "Processing...";
 static char justAMoment[] = "(Just a moment!)";
 static SDL_Surface* s_cutsceneSurf = NULL;
 
+#ifdef __3DS__
+static inline void DoomCanvas_resetStereoRight(void)
+{
+	extern int g_stereoRightValid;
+	extern int g_stereoFullFrame;
+	extern SDL_Surface* g_stereoRight;
+	g_stereoRightValid = 0;
+	g_stereoFullFrame = 0;
+	if (g_stereoRight) {
+		SDL_Rect r = { 0, 0, g_stereoRight->w, g_stereoRight->h };
+		SDL_FillRect(g_stereoRight, &r, 0);
+	}
+}
+#endif
+
 #define MOVEFORWARD	1
 #define MOVEBACK	2
 #define TURNLEFT	3
@@ -565,12 +580,24 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 		strBeg = doomCanvas->dialogIndexes[((doomCanvas->currentDialogLine + i) * 2) + 0];
 		strNxt = doomCanvas->dialogIndexes[((doomCanvas->currentDialogLine + i) * 2) + 1];
 		strEnd = 0;
+		int speedMs = 25;
+		if (g_typewriterSpeed == 2) {
+			speedMs = 1;
+		} else if (g_typewriterSpeed == 1 || g_turboCombat) {
+			speedMs = 5;
+		}
 		if (i == doomCanvas->dialogTypeLineIdx) {
-			strEnd = (doomCanvas->time - doomCanvas->dialogLineStartTime) / 25;
+			strEnd = (doomCanvas->time - doomCanvas->dialogLineStartTime) / speedMs;
 			if (strEnd >= strNxt) {
 				strEnd = strNxt;
 				doomCanvas->dialogTypeLineIdx++;
 				doomCanvas->dialogLineStartTime = doomCanvas->time;
+				if (doomCanvas->state == ST_DIALOGPASSWORD && doomCanvas->dialogTypeLineIdx >= 4 &&
+				    doomCanvas->currentDialogLine + 4 < doomCanvas->numDialogLines) {
+					doomCanvas->currentDialogLine++;
+					doomCanvas->dialogTypeLineIdx = 3;
+					doomCanvas->dialogLineStartTime = doomCanvas->time;
+				}
 			}
 		}
 		else if (i < doomCanvas->dialogTypeLineIdx) {
@@ -581,9 +608,15 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 		posY += 25;
 	}
 
-	if (doomCanvas->state == ST_DIALOGPASSWORD && doomCanvas->dialogTypeLineIdx == doomCanvas->numDialogLines) {
+	if (doomCanvas->state == ST_DIALOGPASSWORD) {
 		extern int Dialog_getTextFontWidth(const char* text, int len);
 		int lastLine = doomCanvas->numDialogLines - 1;
+		int passY;
+		if (lastLine >= doomCanvas->currentDialogLine && lastLine < doomCanvas->currentDialogLine + 4) {
+			passY = boxY + 7 + (lastLine - doomCanvas->currentDialogLine) * 25;
+		} else {
+			passY = boxY + 7 + 3 * 25;
+		}
 		int pBeg = doomCanvas->dialogIndexes[lastLine * 2 + 0];
 		int pLen = doomCanvas->dialogIndexes[lastLine * 2 + 1];
 		int promptW = Dialog_getTextFontWidth(doomCanvas->dialogBuffer + pBeg, pLen);
@@ -591,7 +624,7 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 		DoomCanvas_drawString2_2x(doomCanvas, 
 			doomCanvas->strPassCode, 
 			passX,
-			posY - 25, 0, -1);
+			passY, 0, -1);
 	}
 	if (doomCanvas->numDialogLines > 4) {
 		if (doomCanvas->currentDialogLine + 4 == doomCanvas->numDialogLines) {
@@ -607,8 +640,9 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 		strBeg = doomCanvas->dialogIndexes[((doomCanvas->currentDialogLine + i) * 2) + 0];
 		strNxt = doomCanvas->dialogIndexes[((doomCanvas->currentDialogLine + i) * 2) + 1];
 		strEnd = 0;
+		int speedMs = (g_typewriterSpeed == 2) ? 1 : ((g_typewriterSpeed == 1 || g_turboCombat) ? 5 : 25);
 		if (i == doomCanvas->dialogTypeLineIdx) {
-			strEnd = (doomCanvas->time - doomCanvas->dialogLineStartTime) / 25;
+			strEnd = (doomCanvas->time - doomCanvas->dialogLineStartTime) / speedMs;
 			if (strEnd >= strNxt) {
 				strEnd = strNxt;
 				doomCanvas->dialogTypeLineIdx++;
@@ -623,11 +657,18 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 		posY += 12;
 	}
 
-	if (doomCanvas->state == ST_DIALOGPASSWORD && doomCanvas->dialogTypeLineIdx == doomCanvas->numDialogLines) {
+	if (doomCanvas->state == ST_DIALOGPASSWORD) {
+		int lastLine = doomCanvas->numDialogLines - 1;
+		int passY;
+		if (lastLine >= doomCanvas->currentDialogLine && lastLine < doomCanvas->currentDialogLine + 4) {
+			passY = boxY + 2 + (lastLine - doomCanvas->currentDialogLine) * 12;
+		} else {
+			passY = boxY + 2 + 3 * 12;
+		}
 		DoomCanvas_drawString2(doomCanvas, 
 			doomCanvas->strPassCode, 
 			(doomCanvas->SCR_CX - 64) + ((doomCanvas->dialogIndexes[((doomCanvas->numDialogLines - 1) * 2) + 1] + 1) * 7),
-			posY - 12, 0, -1);
+			passY, 0, -1);
 	}
 	if (doomCanvas->numDialogLines > 4) {
 		if (doomCanvas->currentDialogLine + 4 == doomCanvas->numDialogLines) {
@@ -950,6 +991,12 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
 #endif
 }
 
+static int s_dialogDragStartY = 0;
+static int s_dialogDragStartLine = 0;
+static boolean s_dialogIsDragging = false;
+static int s_menuTouchStartTime = 0;
+static boolean s_menuTouchActive = false;
+
 void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
 {
     DoomCanvas_handleTouchHeld(doomCanvas, touchX, touchY, true);
@@ -958,8 +1005,17 @@ void DoomCanvas_handleTouch(DoomCanvas_t* doomCanvas, int touchX, int touchY)
 void DoomCanvas_handleTouchUp(DoomCanvas_t* doomCanvas)
 {
 #ifdef __3DS__
-    (void)doomCanvas;
     s_isDragging = false;
+    s_dialogIsDragging = false;
+    if (s_menuTouchActive) {
+        int holdDuration = DoomRPG_GetUpTimeMS() - s_menuTouchStartTime;
+        s_menuTouchActive = false;
+        if (g_touchMenuButton && holdDuration >= 100 && holdDuration <= 1500) {
+            DoomCanvas_keyPressed(doomCanvas, AVK_MENUOPEN);
+        }
+    }
+#else
+    (void)doomCanvas;
 #endif
 }
 
@@ -969,9 +1025,26 @@ void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY
     if (!doomCanvas || !doomCanvas->doomRpg) return;
     Player_t* player = doomCanvas->player;
 
-    // 1. Password Dialog keypad
+    // 1. Password Dialog keypad and text scrolling
     if (doomCanvas->state == ST_DIALOGPASSWORD) {
         s_isDragging = false;
+        if (touchY >= 295 && touchY <= 415 && touchX >= 30 && touchX <= 370) {
+            if (isDown) {
+                s_dialogIsDragging = true;
+                s_dialogDragStartY = touchY;
+                s_dialogDragStartLine = doomCanvas->currentDialogLine;
+            } else if (s_dialogIsDragging && doomCanvas->numDialogLines > 4) {
+                int dy = touchY - s_dialogDragStartY;
+                int newLine = s_dialogDragStartLine - (dy / 22);
+                if (newLine < 0) newLine = 0;
+                if (newLine > doomCanvas->numDialogLines - 4) newLine = doomCanvas->numDialogLines - 4;
+                if (newLine != doomCanvas->currentDialogLine) {
+                    doomCanvas->currentDialogLine = newLine;
+                    g_botScreenDirty = true;
+                }
+            }
+            return;
+        }
         if (!isDown) return;
         if (touchY >= 418 && touchY <= 446) {
             if (touchX >= 28 && touchX <= 82)        DoomCanvas_keyPressed(doomCanvas, AVK_1);
@@ -992,6 +1065,27 @@ void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY
         return;
     }
 
+    if (doomCanvas->state == ST_DIALOG) {
+        s_isDragging = false;
+        if (touchY >= 295 && touchY <= 415 && touchX >= 30 && touchX <= 370) {
+            if (isDown) {
+                s_dialogIsDragging = true;
+                s_dialogDragStartY = touchY;
+                s_dialogDragStartLine = doomCanvas->currentDialogLine;
+            } else if (s_dialogIsDragging && doomCanvas->numDialogLines > 4) {
+                int dy = touchY - s_dialogDragStartY;
+                int newLine = s_dialogDragStartLine - (dy / 22);
+                if (newLine < 0) newLine = 0;
+                if (newLine > doomCanvas->numDialogLines - 4) newLine = doomCanvas->numDialogLines - 4;
+                if (newLine != doomCanvas->currentDialogLine) {
+                    doomCanvas->currentDialogLine = newLine;
+                    g_botScreenDirty = true;
+                }
+            }
+            return;
+        }
+    }
+
     boolean inGameMenu = (doomCanvas->state == ST_MENU && doomCanvas->doomRpg->menuSystem->menu >= MENU_INGAME);
 
     // 2. In-game menu [ BACK ] button on top bar
@@ -1007,19 +1101,25 @@ void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY
     if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
         if (touchY >= 240 && touchY <= 260) {
             s_isDragging = false;
-            if (isDown) {
-                // [ PASS ] (touchX in 275..338)
-                if (touchX >= 275 && touchX <= 338) {
+            // [ PASS ] (touchX in 275..338)
+            if (touchX >= 275 && touchX <= 338) {
+                if (isDown) {
                     DoomCanvas_keyPressed(doomCanvas, AVK_PASSTURN);
-                    return;
                 }
-                // [ MENU ] (touchX in 339..400)
-                if (touchX >= 339 && touchX <= 400) {
-                    DoomCanvas_keyPressed(doomCanvas, AVK_MENUOPEN);
-                    return;
+                return;
+            }
+            // [ MENU ] (touchX in 345..394, touchY in 244..260)
+            if (g_touchMenuButton && touchX >= 345 && touchX <= 394 && touchY >= 244 && touchY <= 260) {
+                if (isDown) {
+                    s_menuTouchActive = true;
+                    s_menuTouchStartTime = DoomRPG_GetUpTimeMS();
                 }
+                return;
             }
             return;
+        }
+        else if (s_menuTouchActive) {
+            s_menuTouchActive = false;
         }
 
         // 4. Bottom Quick-Access Hotbar (Y in 452..480)
@@ -2518,7 +2618,9 @@ void DoomCanvas_drawScrollBar(DoomCanvas_t* doomCanvas, int y, int totalHeight, 
 		int barOffset_y = offSetY + 7;
 
 #ifdef __3DS__
-		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1) ? (doomCanvas->SCR_CX + 140) - 2 : (doomCanvas->SCR_CX + 64);
+		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1) ? ((doomCanvas->SCR_CX + 140) - 2) :
+		              (doomCanvas->doomRpg->menuSystem->type == 5) ? ((doomCanvas->SCR_CX + 180) - 2) :
+		              (doomCanvas->SCR_CX + 64);
 #else
 		int scrollX = doomCanvas->SCR_CX + 64;
 #endif
@@ -2549,7 +2651,9 @@ void DoomCanvas_drawScrollBarSur(DoomCanvas_t* doomCanvas, int y, int totalHeigh
 		int barOffset_y = offSetY + 7;
 
 #ifdef __3DS__
-		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1) ? (doomCanvas->SCR_CX + 140) - 2 : (doomCanvas->SCR_CX + 64);
+		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1) ? ((doomCanvas->SCR_CX + 140) - 2) :
+		              (doomCanvas->doomRpg->menuSystem->type == 5) ? ((doomCanvas->SCR_CX + 180) - 2) :
+		              (doomCanvas->SCR_CX + 64);
 #else
 		int scrollX = doomCanvas->SCR_CX + 64;
 #endif
@@ -3571,8 +3675,17 @@ void DoomCanvas_handlePlayingEvents(DoomCanvas_t* doomCanvas, int i)
 		}
 
 		if (doomCanvas->state != ST_PLAYING && doomCanvas->state != ST_AUTOMAP) {
+#ifdef __3DS__
+			if (doomCanvas->state != ST_LOADING && doomCanvas->state != ST_SAVING) {
+				DoomCanvas_renderScene(doomCanvas, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewAngle);
+				DoomCanvas_drawRGB(doomCanvas);
+			} else {
+				DoomCanvas_resetStereoRight();
+			}
+#else
 			DoomCanvas_renderScene(doomCanvas, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewAngle);
 			DoomCanvas_drawRGB(doomCanvas);
+#endif
 			DoomCanvas_handleEvent(doomCanvas, i);
 			return;
 		}
@@ -3743,8 +3856,17 @@ void DoomCanvas_handlePlayingEvents(DoomCanvas_t* doomCanvas, int i)
 	}
 
 	if (z && doomCanvas->state != ST_PLAYING && doomCanvas->state != ST_AUTOMAP) {
+#ifdef __3DS__
+		if (doomCanvas->state != ST_LOADING && doomCanvas->state != ST_SAVING) {
+			DoomCanvas_renderScene(doomCanvas, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewAngle);
+			DoomCanvas_drawRGB(doomCanvas);
+		} else {
+			DoomCanvas_resetStereoRight();
+		}
+#else
 		DoomCanvas_renderScene(doomCanvas, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewAngle);
 		DoomCanvas_drawRGB(doomCanvas);
+#endif
 	}
 }
 
@@ -3895,6 +4017,9 @@ void DoomCanvas_keyPressed(DoomCanvas_t* doomCanvas, int keyCode)
 
 void DoomCanvas_loadMap(DoomCanvas_t* doomCanvas, int mapID)
 {
+#ifdef __3DS__
+	DoomCanvas_resetStereoRight();
+#endif
 	int stateNum;
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x0);
 	DoomRPG_fillRect(doomCanvas->doomRpg, 0, 240, 400, 240);
@@ -3916,6 +4041,9 @@ void DoomCanvas_loadMap(DoomCanvas_t* doomCanvas, int mapID)
 
 boolean DoomCanvas_loadMedia(DoomCanvas_t* doomCanvas)
 {
+#ifdef __3DS__
+	DoomCanvas_resetStereoRight();
+#endif
 	DoomCanvas_unloadMedia(doomCanvas);
 	doomCanvas->menuSystem->imgBG = NULL;
 	Render_freeRuntime(doomCanvas->render);
@@ -3938,6 +4066,9 @@ boolean DoomCanvas_loadMedia(DoomCanvas_t* doomCanvas)
 			DoomCanvas_drawString1(doomCanvas, "Game Loaded", doomCanvas->SCR_CX, doomCanvas->displayRect.h, 18);
 		}
 
+#ifdef __3DS__
+		DoomCanvas_resetStereoRight();
+#endif
 		DoomRPG_flushGraphics(doomCanvas->doomRpg);
 
 		if (Render_beginLoadMapData(doomCanvas->render))
@@ -3975,6 +4106,9 @@ boolean DoomCanvas_loadMedia(DoomCanvas_t* doomCanvas)
 			ParticleSystem_freeAllParticles(doomCanvas->particleSystem);
 			doomCanvas->numEvents = 0;
 			doomCanvas->isUpdateView = true;
+#ifdef __3DS__
+			DoomCanvas_resetStereoRight();
+#endif
 			DoomCanvas_setState(doomCanvas, ST_PLAYING);
 			doomCanvas->idleTime = doomCanvas->time + 8000;
 			return true;
@@ -4014,6 +4148,9 @@ void DoomCanvas_LoadMenuMap(DoomCanvas_t* doomCanvas)
 
 void DoomCanvas_loadState(DoomCanvas_t* doomCanvas, int i, char* text)
 {
+#ifdef __3DS__
+	DoomCanvas_resetStereoRight();
+#endif
 	doomCanvas->loadType = i;
 
 	if (text == NULL) {
@@ -4912,6 +5049,9 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 
 void DoomCanvas_saveState(DoomCanvas_t* doomCanvas, int i, char* text)
 {
+#ifdef __3DS__
+	DoomCanvas_resetStereoRight();
+#endif
 	doomCanvas->saveType = i;
 
 	if (text == NULL) {
@@ -4972,8 +5112,7 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 
 #ifdef __3DS__
 	if (stateNum != ST_PLAYING && stateNum != ST_COMBAT && stateNum != ST_CAST) {
-		extern int g_stereoRightValid;
-		g_stereoRightValid = 0;
+		DoomCanvas_resetStereoRight();
 	}
 #endif
 
@@ -5041,6 +5180,9 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 		DoomCanvas_drawString1(doomCanvas, justAMoment, doomCanvas->SCR_CX, doomCanvas->SCR_CY, 0x11);
 		DoomCanvas_drawSoftKeys(doomCanvas, NULL, NULL);
 
+#ifdef __3DS__
+		DoomCanvas_resetStereoRight();
+#endif
 		DoomRPG_flushGraphics(doomCanvas->doomRpg);
 	}
 	else if (stateNum == ST_PARTICLE)
@@ -5450,8 +5592,9 @@ boolean DoomCanvas_updatePlayerAnimDoors(DoomCanvas_t* doomCanvas)
 			changeMap = true;
 		}
 
+		int speedMult = (g_turboCombat && g_turboScope >= 1) ? 2 : 1;
 		if ((flags & 4) != 0) {
-			int i3 = (flags & 64) != 0 ? doomCanvas->animPos : -doomCanvas->animPos;
+			int i3 = ((flags & 64) != 0 ? doomCanvas->animPos : -doomCanvas->animPos) * speedMult;
 			if ((flags & 512) != 0) {
 				vert1->y += i3;
 				vert2->z -= i3;
@@ -5464,7 +5607,7 @@ boolean DoomCanvas_updatePlayerAnimDoors(DoomCanvas_t* doomCanvas)
 		else {
 			foundSecret = true;
 			if (doomCanvas->animFrameCount >= doomCanvas->animFrames / 2) {
-				int i4 = 64 / (doomCanvas->animFrames - (doomCanvas->animFrames / 2));
+				int i4 = (64 / (doomCanvas->animFrames - (doomCanvas->animFrames / 2))) * speedMult;
 				if ((flags & 512) != 0) {
 					if ((flags & 8) != 0) {
 						vert1->y += i4;
@@ -5485,28 +5628,31 @@ boolean DoomCanvas_updatePlayerAnimDoors(DoomCanvas_t* doomCanvas)
 				}
 			}
 			else if ((flags & 512) != 0) {
+				int dpos = doomCanvas->animPos * speedMult;
 				if ((flags & 8) != 0) {
-					vert1->x += doomCanvas->animPos;
-					vert2->x += doomCanvas->animPos;
+					vert1->x += dpos;
+					vert2->x += dpos;
 				}
 				else {
-					vert1->x -= doomCanvas->animPos;
-					vert2->x -= doomCanvas->animPos;
+					vert1->x -= dpos;
+					vert2->x -= dpos;
 				}
 			}
 			else if ((flags & 8) != 0) {
-				vert1->y += doomCanvas->animPos;
-				vert2->y += doomCanvas->animPos;
+				int dpos = doomCanvas->animPos * speedMult;
+				vert1->y += dpos;
+				vert2->y += dpos;
 			}
 			else {
-				vert1->y -= doomCanvas->animPos;
-				vert2->y -= doomCanvas->animPos;
+				int dpos = doomCanvas->animPos * speedMult;
+				vert1->y -= dpos;
+				vert2->y -= dpos;
 			}
 		}
 	}
 
-	++doomCanvas->animFrameCount;
-	if (doomCanvas->animFrameCount != doomCanvas->animFrames) {
+	doomCanvas->animFrameCount += ((g_turboCombat && g_turboScope >= 1) ? 2 : 1);
+	if (doomCanvas->animFrameCount < doomCanvas->animFrames) {
 		return true;
 	}
 
@@ -5517,6 +5663,9 @@ boolean DoomCanvas_updatePlayerAnimDoors(DoomCanvas_t* doomCanvas)
 	}
 
 	if (changeMap) {
+#ifdef __3DS__
+		DoomCanvas_resetStereoRight();
+#endif
 		Sound_playSound(doomCanvas->doomRpg->sound, 5068, 0, 3);
 		Game_changeMap(doomCanvas->game);
 	}
@@ -5538,38 +5687,41 @@ void DoomCanvas_updateView(DoomCanvas_t* doomCanvas)
 	boolean z = doomCanvas->viewX == doomCanvas->destX && doomCanvas->viewY == doomCanvas->destY;
 	boolean z2 = doomCanvas->viewAngle == doomCanvas->destAngle;
 
+	int step = (g_turboCombat && g_turboScope >= 1) ? (doomCanvas->animPos * 2) : doomCanvas->animPos;
+	int astep = (g_turboCombat && g_turboScope >= 1) ? (doomCanvas->animAngle * 2) : doomCanvas->animAngle;
+
 	if (doomCanvas->viewX < doomCanvas->destX) {
-		doomCanvas->viewX += doomCanvas->animPos;
+		doomCanvas->viewX += step;
 		if (doomCanvas->viewX > doomCanvas->destX) {
 			doomCanvas->viewX = doomCanvas->destX;
 		}
 	}
 	else if (doomCanvas->viewX > doomCanvas->destX) {
-		doomCanvas->viewX -= doomCanvas->animPos;
+		doomCanvas->viewX -= step;
 		if (doomCanvas->viewX < doomCanvas->destX) {
 			doomCanvas->viewX = doomCanvas->destX;
 		}
 	}
 	if (doomCanvas->viewY < doomCanvas->destY) {
-		doomCanvas->viewY += doomCanvas->animPos;
+		doomCanvas->viewY += step;
 		if (doomCanvas->viewY > doomCanvas->destY) {
 			doomCanvas->viewY = doomCanvas->destY;
 		}
 	}
 	else if (doomCanvas->viewY > doomCanvas->destY) {
-		doomCanvas->viewY -= doomCanvas->animPos;
+		doomCanvas->viewY -= step;
 		if (doomCanvas->viewY < doomCanvas->destY) {
 			doomCanvas->viewY = doomCanvas->destY;
 		}
 	}
 	if (doomCanvas->viewAngle < doomCanvas->destAngle) {
-		doomCanvas->viewAngle += doomCanvas->animAngle;
+		doomCanvas->viewAngle += astep;
 		if (doomCanvas->viewAngle > doomCanvas->destAngle) {
 			doomCanvas->viewAngle = doomCanvas->destAngle;
 		}
 	}
 	else if (doomCanvas->viewAngle > doomCanvas->destAngle) {
-		doomCanvas->viewAngle -= doomCanvas->animAngle;
+		doomCanvas->viewAngle -= astep;
 		if (doomCanvas->viewAngle < doomCanvas->destAngle) {
 			doomCanvas->viewAngle = doomCanvas->destAngle;
 		}

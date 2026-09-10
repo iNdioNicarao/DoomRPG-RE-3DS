@@ -30,7 +30,7 @@ unsigned int __stacksize__ = 0x40000; // 256KB
 #endif
 
 // Build identity - bump on every build so we can verify what is actually running.
-static const char* BUILD_VERSION = "DOOMRPG-3DS v1.0.7";
+static const char* BUILD_VERSION = "DOOMRPG-3DS v1.1.0";
 
 int main(int argc, char* args[])
 {
@@ -74,13 +74,59 @@ int main(int argc, char* args[])
         u32 kUp   = hidKeysUp();
 
         if (kHeld & KEY_TOUCH) {
+            g_botScreenDirty = true;
             touchPosition touch;
             hidTouchRead(&touch);
             int touchX = (touch.px * 400) / 320;
             int touchY = 240 + touch.py;
             DoomCanvas_handleTouchHeld(doomRpg->doomCanvas, touchX, touchY, (kDown & KEY_TOUCH) != 0);
         } else if (kUp & KEY_TOUCH) {
+            g_botScreenDirty = true;
             DoomCanvas_handleTouchUp(doomRpg->doomCanvas);
+        }
+
+        /* Instant text reveal on dialogs when tapping A or Touch */
+        if ((kDown & (KEY_A | KEY_TOUCH)) &&
+            (doomRpg->doomCanvas->state == ST_DIALOG || doomRpg->doomCanvas->state == ST_DIALOGPASSWORD)) {
+            if (doomRpg->doomCanvas->dialogTypeLineIdx < doomRpg->doomCanvas->numDialogLines) {
+                doomRpg->doomCanvas->dialogTypeLineIdx = doomRpg->doomCanvas->numDialogLines;
+                if (doomRpg->doomCanvas->state == ST_DIALOGPASSWORD && doomRpg->doomCanvas->numDialogLines > 4) {
+                    doomRpg->doomCanvas->currentDialogLine = doomRpg->doomCanvas->numDialogLines - 4;
+                }
+            }
+        }
+
+        /* Right Nub (C-Stick) scrolling across dialogs, terminals, and menus */
+        circlePosition cstick;
+        hidCstickRead(&cstick);
+        if (doomRpg->doomCanvas->state == ST_DIALOG || doomRpg->doomCanvas->state == ST_DIALOGPASSWORD) {
+            static int s_cstickScrollTime = 0;
+            int curTime = DoomRPG_GetUpTimeMS();
+            if (curTime > s_cstickScrollTime) {
+                if (cstick.dy > 40 || (kDown & KEY_CSTICK_UP)) {
+                    if (doomRpg->doomCanvas->currentDialogLine > 0) {
+                        doomRpg->doomCanvas->currentDialogLine--;
+                        s_cstickScrollTime = curTime + 120;
+                    }
+                } else if (cstick.dy < -40 || (kDown & KEY_CSTICK_DOWN)) {
+                    if (doomRpg->doomCanvas->currentDialogLine + 4 < doomRpg->doomCanvas->numDialogLines) {
+                        doomRpg->doomCanvas->currentDialogLine++;
+                        s_cstickScrollTime = curTime + 120;
+                    }
+                }
+            }
+        } else if (doomRpg->doomCanvas->state == ST_MENU) {
+            static int s_cstickMenuScrollTime = 0;
+            int curTime = DoomRPG_GetUpTimeMS();
+            if (curTime > s_cstickMenuScrollTime) {
+                if (cstick.dy > 40 || (kDown & KEY_CSTICK_UP)) {
+                    MenuSystem_scrollUp(doomRpg->menuSystem);
+                    s_cstickMenuScrollTime = curTime + 120;
+                } else if (cstick.dy < -40 || (kDown & KEY_CSTICK_DOWN)) {
+                    MenuSystem_scrollDown(doomRpg->menuSystem);
+                    s_cstickMenuScrollTime = curTime + 120;
+                }
+            }
         }
 #endif
         int currentTimeMillis = DoomRPG_GetUpTimeMS();
@@ -168,6 +214,20 @@ int main(int argc, char* args[])
         } else if (key == 0 && doomRpg->menuSystem->setBind) {
             DoomRPG_setBind(doomRpg, mouse_Button, state);
         }
+#ifdef __3DS__
+        /* Attack Buffering / Hold-to-Fire: holding A or R continuously executes weapon strike */
+        if (g_attackBuffer || g_turboCombat) {
+            static int s_lastHoldAttackTime = 0;
+            if ((kHeld & (KEY_A | KEY_R)) && !doomRpg->menuSystem->setBind) {
+                if (doomRpg->doomCanvas->state == ST_PLAYING &&
+                    doomRpg->doomCanvas->animFrameCount == 0 &&
+                    currentTimeMillis > s_lastHoldAttackTime + 180) {
+                    DoomCanvas_keyPressed(doomRpg->doomCanvas, AVK_SELECT);
+                    s_lastHoldAttackTime = currentTimeMillis;
+                }
+            }
+        }
+#endif
         if (currentTimeMillis > UpTime) {
             UpTime = currentTimeMillis + 15;
             DoomRPG_loopGame(doomRpg);

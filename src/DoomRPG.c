@@ -327,6 +327,34 @@ int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
     int i, j;
 
     u32 buttonID = hidKeysHeld() | hidKeysDown();
+
+    /* Direct Hardware Polling: Circle Pad (Left Thumbstick) */
+    circlePosition circlePos;
+    hidCircleRead(&circlePos);
+    if (circlePos.dy > 40) {
+        buttonID |= KEY_CPAD_UP;
+        key |= (AVK_UP | AVK_MENU_UP);
+    } else if (circlePos.dy < -40) {
+        buttonID |= KEY_CPAD_DOWN;
+        key |= (AVK_DOWN | AVK_MENU_DOWN);
+    }
+    if (circlePos.dx > 40) {
+        buttonID |= KEY_CPAD_RIGHT;
+        key |= (AVK_RIGHT | AVK_MENU_PAGE_DOWN);
+    } else if (circlePos.dx < -40) {
+        buttonID |= KEY_CPAD_LEFT;
+        key |= (AVK_LEFT | AVK_MENU_PAGE_UP);
+    }
+
+    /* Direct Hardware Polling: Right Nub (C-Stick) */
+    circlePosition cstickPos;
+    hidCstickRead(&cstickPos);
+    if (cstickPos.dy > 40 || (buttonID & KEY_CSTICK_UP)) {
+        key |= AVK_MENU_UP;
+    } else if (cstickPos.dy < -40 || (buttonID & KEY_CSTICK_DOWN)) {
+        key |= AVK_MENU_DOWN;
+    }
+
     int ctrlID = SDL_JoystickGetButtonID();
 
     int menuBits = AVK_UNDEFINED;

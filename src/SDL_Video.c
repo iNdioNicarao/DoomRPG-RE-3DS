@@ -21,6 +21,7 @@
 
 #include "DoomRPG.h"
 #include "Game.h"
+#include "DoomCanvas.h"
 #include "SDL_Video.h"
 
 /* Global instances (declared extern in SDL_Video.h). */
@@ -60,6 +61,21 @@ float g_stereoSep = 0.0f;
 int g_stereoDepthMode = 1;      /* 0: Low (0.7x), 1: Normal (1.0x), 2: High (1.4x), 3: Max (1.8x) */
 float g_stereoMultiplier = 1.0f;
 int g_textureFiltering = 0;     /* 0: Crisp (GPU_NEAREST), 1: Smooth (GPU_LINEAR) */
+
+/* Hardware detection globals */
+boolean g_isNew3DS = false;
+boolean g_isOldHardware = false;
+boolean g_is2DS = false;
+Uint8   g_consoleModel = 0;
+
+/* v1.1.0 Configuration variables */
+int     g_systemProfile = 0;      /* 0: Auto, 1: High Quality (N3DS), 2: Performance (O3DS) */
+int     g_renderScaling = 0;      /* 0: Crisp (Native 400px), 1: Retro 2x (200px GPU-Scaled) */
+int     g_turboScope = 0;         /* 0: Combat Only, 1: Combat + Exploration, 2: Full Speedrun */
+boolean g_attackBuffer = true;    /* true: Hold A/R to attack continuously */
+int     g_typewriterSpeed = 0;    /* 0: Classic (25ms), 1: Fast (5ms), 2: Instant */
+boolean g_touchMenuButton = true; /* true: Touchscreen [MENU] button enabled */
+boolean g_botScreenDirty = true;  /* true when bottom screen needs redraw */
 
 /* citro2d top-screen present (suspend-safe stereo path). The TOP screen is handed to citro2d
    render targets; citro3d owns the present + suspend lifecycle (devkitPro stereoscopic_2d example
@@ -121,6 +137,27 @@ void SDL_InitVideo(void) {
 #ifdef __3DS__
 	putenv("SDL_N3DS_CONSOLE=");
 	SDL_memset(&sdlVideo, 0, sizeof(sdlVideo));
+
+	/* Dynamic Hardware Architecture Detection (v1.1.0 Universal Binary) */
+	bool isNew = false;
+	APT_CheckNew3DS(&isNew);
+	g_isNew3DS = isNew;
+	g_isOldHardware = !isNew;
+
+	u8 model = 0;
+	CFGU_GetSystemModel(&model);
+	g_consoleModel = model;
+	/* 0 = O3DS (CTR), 1 = O3DS XL (SPR), 2 = N3DS (KTR),
+	   3 = O2DS (FTR), 4 = N3DS XL (RED), 5 = New 2DS XL (JAN) */
+	g_is2DS = (model == 3 || model == 5);
+
+	/* Default hardware performance profiles */
+	if (g_isOldHardware) {
+		g_renderScaling = 1; // Default to Retro 2x (200px GPU-scaled) on 268 MHz
+	} else {
+		g_renderScaling = 0; // Default to Crisp (Native 400px) on New 3DS
+	}
+
 	/* NO SDL_INIT_VIDEO. We OWN gfx raw via gfxInit() below. SDL_Init with VIDEO
 	   calls gfxInitDefault() internally and claims the screens (SDL_DUALSCR
 	   blue-collision) -- that is what we must NOT do. SDL is input/audio only. */
@@ -129,9 +166,7 @@ void SDL_InitVideo(void) {
 	                                           stereo eye buffers to the display (the stereoscopic_2d reference leaves this
 	                                           at default ON; forcing false left the GPU target undisplayed = black top). */
 	gfxSetDoubleBuffering(GFX_BOTTOM, false); /* bottom stays raw-gfx single-buffer (its flush is direct, works). */
-	gfxSet3D(true);              /* stereo ON at the gfx layer; citro2d render targets present both
-	                            eyes and own the suspend-safe stereo transfer (dumps 122-134 were
-	                            caused by raw gfxSet3D + gfxSwapBuffers 800-tall transfers). */
+	gfxSet3D(!g_is2DS);         /* stereo ON on 3DS models; completely disabled on 2DS */
 	/* citro2d top-screen present: software scene -> RGB565 texture -> GPU dual-eye targets.
 	   This is the devkitPro stereoscopic_2d pattern and is suspend-safe. */
 	C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
@@ -465,7 +500,10 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
 
     /* Slider gate (main thread): enable 3D when the slider is pushed.
        Refreshed by hidScanInput() called once per frame in Main.c. */
-    {
+    if (g_is2DS) {
+        g_top3D = 0;
+        g_stereoSep = 0.0f;
+    } else {
         float s = osGet3DSliderState();  /* 0.0 off .. 1.0 full */
         if (s > 0.0f) { g_top3D = 1; g_stereoSep = s * g_stereoMultiplier; }
         else          { g_top3D = 0; g_stereoSep = 0.0f; }
@@ -485,33 +523,38 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
     }
     (void)g_topFbR;
 
-    /* BOTTOM: 240x320 portrait framebuffer. The working SDL config (devkitPro
-       3DS driver, SDL_DUALSCR 400x480) maps the surface LOWER HALF (rows 240..479)
-       onto the bottom screen UPRIGHT (NO rotation). The LCD optically rotates the
-       portrait buffer 90deg, so an upright landscape must be written rotated 90deg
-       CW into the buffer. 3DS portrait rotation mapping:
-           buffer_col = g_botW-1 - (src_row - 240)   (src_row 240..479 -> col 239..0)
-           buffer_row = src_col * g_botH / 400         (src_col 0..399 -> row 0..319)
-       The original bar was killed by clearing SOURCE rows 240..359 (the blank strip
-       above the automap tiles, which start at y>=363) to opaque black EVERY frame
-       -- the automap bg clear (SDL_FillRect) is a no-op on this surface, so without
-       this the stale/garbage strip showed through. We replicate that here. */
-    /* Blit the FULL lower half (rows 240..479) into g_botTmp, rotated 90deg so it
-       appears UPRIGHT on screen. */
-    {
+    /* BOTTOM: 240x320 portrait framebuffer with 400-entry LUT and automap dirty checking.
+       Removes 96,000 integer division subroutine calls and skips stationary re-blitting. */
+    static int s_lutBotH[400];
+    static bool s_lutBotHInited = false;
+    if (!s_lutBotHInited) {
+        for (int sx = 0; sx < 400; sx++) {
+            int dy = (sx * g_botH) / 400;
+            if (dy < 0) dy = 0; else if (dy >= g_botH) dy = g_botH - 1;
+            s_lutBotH[sx] = dy;
+        }
+        s_lutBotHInited = true;
+    }
+
+    static int s_botFrameCounter = 0;
+    s_botFrameCounter++;
+    if (g_botScreenDirty || (s_botFrameCounter >= 10)) {
         u8* dst = g_botTmp ? g_botTmp : g_botFb;
         for (int sy = 240; sy < 480; sy++) {
             int dx = g_botW - 1 - (sy - 240);
             const Uint32* row = src + sy * 400;
             for (int sx = 0; sx < 400; sx++) {
-                int dy = (sx * g_botH) / 400;
-                if (dy < 0) dy = 0; else if (dy >= g_botH) dy = g_botH - 1;
+                int dy = s_lutBotH[sx];
                 int bi = (dy * g_botW + dx) * 3;
                 put_bgr8(&dst[bi], rgba32_to_bgr8(row[sx]));
             }
         }
+        if (g_botTmp && g_botFb && !g_gfx_suspended) {
+            SDL_memcpy(g_botFb, g_botTmp, (size_t)g_botW * g_botH * 3);
+        }
+        g_botScreenDirty = false;
+        s_botFrameCounter = 0;
     }
-    if (g_botTmp && g_botFb && !g_gfx_suspended) SDL_memcpy(g_botFb, g_botTmp, (size_t)g_botW * g_botH * 3);
 
     /* Clear bottom-screen rows 240..479 to opaque black for NEXT frame so stale pixels never linger */
     {
@@ -521,17 +564,15 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
                 sp[sy * 400 + sx] = 0xFF000000u;  /* A=255, RGB=0 */
     }
 
-    /* TOP screen: hand to citro2d. Copy the top region (screenSurface rows 0..239, 400x240)
+    /* TOP screen: hand to citro2d. Copy the top region (screenSurface rows 0..239, 400x240 or 200x240)
        directly into 512x256 RGB565 scratch texture, upload, and draw to BOTH stereo eye targets.
-       citro2d's scene target automatically applies the 3DS screen rotation tilt via Mtx_OrthoTilt,
-       so no manual software rotation is needed. citro3d owns the dual-eye present and suspend lifecycle. */
+       With g_renderScaling == 1, 200 columns are swizzled and scaled 2.0x in hardware by the PICA200 GPU. */
     if (g_topCitroInited && !g_gfx_suspended) {
-        /* PICA200 GPU textures require 8x8 Morton (Z-order) tiled pixel data.
-           We tile the 400x240 RGB565 source into 512x256 POT texture memory (rows 0..239).
-           g_topSub has top=1.0f (row 0) and bottom=(256-240)/256=16/256 (row 239).
-           In GPU texture space, mapping source row sy = by + py displays the
-           entire 400x240 scene right-side up with status bar at top (y=0..20)
-           and HUD at bottom (y=192..240) spanning the entire 240-height screen with no vertical offset. */
+        int renderWidth = (g_renderScaling == 1) ? 200 : 400;
+        float scaleX = (g_renderScaling == 1) ? 2.0f : 1.0f;
+        g_topSub.width = renderWidth;
+        g_topSub.right = (float)renderWidth / 512.0f;
+
         static const u8 s_morton8x8[64] = {
              0,  1,  4,  5, 16, 17, 20, 21,
              2,  3,  6,  7, 18, 19, 22, 23,
@@ -545,7 +586,7 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
         u16* dst = g_topScratch;
         for (int by = 0; by < 240; by += 8) {
             int ty = by / 8;
-            for (int bx = 0; bx < 400; bx += 8) {
+            for (int bx = 0; bx < renderWidth; bx += 8) {
                 int tx = bx / 8;
                 u16* tileDst = dst + (ty * (512 / 8) + tx) * 64;
                 for (int py = 0; py < 8; py++) {
@@ -565,6 +606,18 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
         }
         C3D_TexUpload(&g_topTex, g_topScratch);
 
+        /* State Guard: force mono presentation during transitions/loading/saving/story screens */
+        extern DoomRPG_t* doomRpg;
+        if (doomRpg && doomRpg->doomCanvas) {
+            int st = doomRpg->doomCanvas->state;
+            if (st == ST_LOADING || st == ST_SAVING || st == ST_INTRO ||
+                st == ST_EPILOGUE || st == ST_CREDITS || st == ST_SORRY ||
+                st == ST_DYING || st == ST_LEGALS) {
+                g_stereoRightValid = 0;
+                g_stereoFullFrame = 0;
+            }
+        }
+
         /* If 3D slider is active and Right Eye scene was rendered, construct Right Eye texture */
         if (g_top3D && g_stereoRightValid && g_stereoRight && g_topScratchR) {
             /* Copy status bar (0..19) and HUD (212..239) from Left Eye if partial frame */
@@ -577,7 +630,7 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
             int endBy   = g_stereoFullFrame ? 240 : 216;
             for (int by = startBy; by < endBy; by += 8) {
                 int ty = by / 8;
-                for (int bx = 0; bx < 400; bx += 8) {
+                for (int bx = 0; bx < renderWidth; bx += 8) {
                     int tx = bx / 8;
                     u16* tileDst = g_topScratchR + (ty * (512 / 8) + tx) * 64;
                     for (int py = 0; py < 8; py++) {
@@ -611,14 +664,14 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
         {
             C2D_TargetClear(g_topTargetL, C2D_Color32(0, 0, 0, 255));
             C2D_SceneBegin(g_topTargetL);
-            C2D_DrawImageAt(g_topImg, 0.0f, 0.0f, 0.0f, NULL, 1.0f, 1.0f);
+            C2D_DrawImageAt(g_topImg, 0.0f, 0.0f, 0.0f, NULL, scaleX, 1.0f);
 
             C2D_TargetClear(g_topTargetR, C2D_Color32(0, 0, 0, 255));
             C2D_SceneBegin(g_topTargetR);
             if (g_top3D && g_stereoRightValid) {
-                C2D_DrawImageAt(g_topImgR, 0.0f, 0.0f, 0.0f, NULL, 1.0f, 1.0f);
+                C2D_DrawImageAt(g_topImgR, 0.0f, 0.0f, 0.0f, NULL, scaleX, 1.0f);
             } else {
-                C2D_DrawImageAt(g_topImg, 0.0f, 0.0f, 0.0f, NULL, 1.0f, 1.0f);
+                C2D_DrawImageAt(g_topImg, 0.0f, 0.0f, 0.0f, NULL, scaleX, 1.0f);
             }
         }
         C3D_FrameEnd(0);

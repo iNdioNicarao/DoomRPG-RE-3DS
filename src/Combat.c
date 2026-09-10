@@ -1,4 +1,5 @@
 #ifdef __3DS__
+#include <3ds.h>
 #include <SDL/SDL.h>
 #else
 
@@ -1078,12 +1079,18 @@ boolean Combat_playerSeq(Combat_t* combat)
 				}
 			}
 			if (combat->curTarget->def->eType != 1 || CombatEntity_getHealth(&combat->curTarget->monster->ce) <= 0) {
-				combat->f339c = doomCanvas->time + COMBAT_DELAY(1000);
+				combat->f339c = doomCanvas->time + (g_turboCombat ? 75 : COMBAT_DELAY(1000));
 				return true;
 			}
-			combat->nextStageTime = doomCanvas->time + COMBAT_DELAY(1000);
+			combat->nextStageTime = doomCanvas->time + (g_turboCombat ? 75 : COMBAT_DELAY(1000));
 		}
-		else if (doomCanvas->time > combat->nextStageTime) {
+		else if (doomCanvas->time > combat->nextStageTime ||
+#ifdef __3DS__
+		         (g_turboCombat && (hidKeysDown() & (KEY_A | KEY_R)))
+#else
+		         false
+#endif
+		) {
 			combat->nextStageTime = 0;
 			return true;
 		}
@@ -1311,7 +1318,7 @@ void Combat_updateProjectile(Combat_t* combat)
 			}
 
 			if (g_turboCombat) {
-				speed <<= 1;
+				speed <<= 2;
 			}
 
 			spX = speed;

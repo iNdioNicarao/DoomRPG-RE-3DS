@@ -1,4 +1,7 @@
 
+#ifdef __3DS__
+#include <3ds.h>
+#endif
 #include <SDL.h>
 #include <stdio.h>
 #include <string.h>
@@ -575,6 +578,17 @@ Entity_t* Game_findMapEntityXY(Game_t* game, int x, int y)
 
 void Game_changeMap(Game_t* game)
 {
+#ifdef __3DS__
+	extern int g_stereoRightValid;
+	extern int g_stereoFullFrame;
+	extern SDL_Surface* g_stereoRight;
+	g_stereoRightValid = 0;
+	g_stereoFullFrame = 0;
+	if (g_stereoRight) {
+		SDL_Rect r = { 0, 0, g_stereoRight->w, g_stereoRight->h };
+		SDL_FillRect(g_stereoRight, &r, 0);
+	}
+#endif
 	int mapNameId;
 	DoomRPG_setColor(game->doomRpg, 0x0);
 	DoomRPG_fillRect(game->doomRpg, 0, 240, 320, 240);
@@ -798,6 +812,49 @@ void Game_loadConfig(Game_t* game)
 						keyMapping[i].keyBinds[j] = File_readInt(rw);
 					}
 				}
+#ifdef __3DS__
+				/* v1.1.0 Config Migration: detect if keyMapping lacks Circle Pad bindings
+				   (e.g. legacy configs saved in v1.0.0-v1.0.6 where slot 1 had -1) and backfill */
+				for (int i = 0; i < 12; i++) {
+					for (int j = 0; j < KEYBINDS_MAX; j++) {
+						int defBind = keyMappingDefault[i].keyBinds[j];
+						if (defBind == KEY_CPAD_UP || defBind == KEY_CPAD_DOWN ||
+						    defBind == KEY_CPAD_LEFT || defBind == KEY_CPAD_RIGHT) {
+							boolean found = false;
+							for (int k = 0; k < KEYBINDS_MAX; k++) {
+								if (keyMapping[i].keyBinds[k] == defBind) {
+									found = true;
+									break;
+								}
+							}
+							if (!found) {
+								if (keyMapping[i].keyBinds[j] == -1 || keyMapping[i].keyBinds[j] == 0) {
+									keyMapping[i].keyBinds[j] = defBind;
+								} else {
+									for (int k = 0; k < KEYBINDS_MAX; k++) {
+										if (keyMapping[i].keyBinds[k] == -1 || keyMapping[i].keyBinds[k] == 0) {
+											keyMapping[i].keyBinds[k] = defBind;
+											break;
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+
+				/* Read v1.1.0 settings if available in file */
+				if (SDL_RWseek(rw, 0, SEEK_CUR) < SDL_RWseek(rw, 0, SEEK_END)) {
+					// rewind back to after keyMapping
+					SDL_RWseek(rw, 4 + 1 + 4 + 4 + 4 + 1 + 1 + 1 + 1 + 4 + 4 + 1 + 4 + 4 + 1 + 1 + (12 * KEYBINDS_MAX * 4), SEEK_SET);
+					g_systemProfile = File_readByte(rw);
+					g_renderScaling = File_readByte(rw);
+					g_turboScope = File_readByte(rw);
+					g_attackBuffer = File_readByte(rw) != 0;
+					g_typewriterSpeed = File_readByte(rw);
+					g_touchMenuButton = File_readByte(rw) != 0;
+				}
+#endif
 				SDL_memcpy(keyMappingTemp, keyMapping, sizeof(keyMapping));
 			}
 
@@ -1777,6 +1834,16 @@ void Game_saveConfig(Game_t* game, int num)
 			File_writeInt(rw, keyMapping[i].keyBinds[j]);
 		}
 	}
+
+#ifdef __3DS__
+	/* v1.1.0 Extended settings */
+	File_writeByte(rw, (byte)g_systemProfile);
+	File_writeByte(rw, (byte)g_renderScaling);
+	File_writeByte(rw, (byte)g_turboScope);
+	File_writeByte(rw, (byte)(g_attackBuffer ? 1 : 0));
+	File_writeByte(rw, (byte)g_typewriterSpeed);
+	File_writeByte(rw, (byte)(g_touchMenuButton ? 1 : 0));
+#endif
 
 	SDL_RWclose(rw);
 }

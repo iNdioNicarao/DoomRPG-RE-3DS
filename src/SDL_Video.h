@@ -80,6 +80,21 @@ extern int g_textureFiltering;     /* 0: Crisp (GPU_NEAREST), 1: Smooth (GPU_LIN
 extern volatile int g_topProbePending;  /* set by SDL_Video.c present; drained in Main loop */
 extern int g_topProbed;
 
+/* Hardware detection globals */
+extern boolean g_isNew3DS;
+extern boolean g_isOldHardware;
+extern boolean g_is2DS;
+extern Uint8   g_consoleModel;
+
+/* v1.1.0 Configuration variables */
+extern int     g_systemProfile;      /* 0: Auto, 1: High Quality (N3DS), 2: Performance (O3DS) */
+extern int     g_renderScaling;      /* 0: Crisp (Native 400px), 1: Retro 2x (200px GPU-Scaled) */
+extern int     g_turboScope;         /* 0: Combat Only, 1: Combat + Exploration, 2: Full Speedrun */
+extern boolean g_attackBuffer;       /* true: Hold A/R to attack continuously */
+extern int     g_typewriterSpeed;    /* 0: Classic (25ms), 1: Fast (5ms), 2: Instant */
+extern boolean g_touchMenuButton;    /* true: Touchscreen [MENU] button enabled */
+extern boolean g_botScreenDirty;     /* true when bottom screen needs redraw */
+
 typedef struct SDLVidModes_s
 {
 	int width, height;

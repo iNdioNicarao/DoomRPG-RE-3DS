@@ -882,6 +882,10 @@ boolean Render_loadBitShapes(Render_t* render)
 	SDL_free(render->shapeData);
 	int shapeDataCap = shapeDataSize * (int)sizeof(short);
 	render->shapeData = SDL_malloc(shapeDataCap + 64); /* slack for walk overshoot */
+	if (!render->shapeData) {
+		DoomRPG_Error("Render_loadBitShapes: failed to allocate %d bytes for shapeData\n", shapeDataCap + 64);
+		return false;
+	}
 
 	updtCnt = 0;
 	shapeOffset = 0;

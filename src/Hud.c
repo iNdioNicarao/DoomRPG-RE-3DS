@@ -107,10 +107,10 @@ void Hud_calcMsgTime(DoomCanvas_t* doomCanvas)
     len = strlen(hud->messages[0]);
 
     if (len <= hud->msgMaxChars) {
-        hud->msgDuration = MSG_DISPLAY_TIME;
+        hud->msgDuration = g_turboCombat ? 500 : MSG_DISPLAY_TIME;
     }
     else {
-        hud->msgDuration = len * 100;
+        hud->msgDuration = g_turboCombat ? (len * 50) : (len * 100);
     }
 }
 #if caching
@@ -279,16 +279,18 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
 #endif
     //if (doomCanvas->menuSystem->menu)
     //------creating surface & variables
-    SDL_Surface* tmpSurface =
-        SDL_CreateRGBSurface(SDL_SWSURFACE,
+    static SDL_Surface* s_bottomBarSurface = NULL;
+    if (!s_bottomBarSurface) {
+        s_bottomBarSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
             sdlVideo.screenW,
             doomCanvas->hud->statusBarHeight,
             sdlVideo.screenSurface->format->BitsPerPixel,
-    sdlVideo.screenSurface->format->Rmask,
-    sdlVideo.screenSurface->format->Gmask,
-    sdlVideo.screenSurface->format->Bmask,
-    sdlVideo.screenSurface->format->Amask
-);
+            sdlVideo.screenSurface->format->Rmask,
+            sdlVideo.screenSurface->format->Gmask,
+            sdlVideo.screenSurface->format->Bmask,
+            sdlVideo.screenSurface->format->Amask);
+    }
+    SDL_Surface* tmpSurface = s_bottomBarSurface;
     Image_t* img;
     CombatEntity_t* ce;
     Combat_t* combat;
@@ -317,6 +319,7 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
         y -= 5;
         x = 8;
     }
+
 
     //drawing bottom bar rect
     Hud_drawBarTilesSur(doomCanvas, 0, dispH - stbH, 400, doomCanvas->hud->largeHud, tmpSurface);
@@ -353,9 +356,6 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
         maxHealth = CombatEntity_getMaxHealth(ce);
 
         if (health <= maxHealth / 4) {
-            faceState = 3;
-        }
-        else if (health <= maxHealth / 3) {
             faceState = 2;
         }
         else if (health <= maxHealth / 2) {
@@ -384,21 +384,17 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
     }
 
     faceX = doomCanvas->hud->statusHudFacesXpos + cx;
-    DoomRPG_setColor(doomCanvas->doomRpg, 0x323232);
-    Hud_drawBarLine(doomCanvas, faceX - 1, dispH - doomCanvas->hud->statusBarHeight, faceX - 1, dispH -1, tmpSurface);
-    DoomCanvas_drawImageSpecialSur(doomCanvas,
-        &doomCanvas->hud->imgHudFaces,
-        0,
-        faceState * doomCanvas->hud->hudFaceHeight,
-        doomCanvas->hud->hudFaceWidth,
-        doomCanvas->hud->hudFaceHeight,
-        0,
-        faceX,
-        dy,
-        0x24,
-        tmpSurface);
+
+    DoomCanvas_drawImageSpecialSur(doomCanvas, &doomCanvas->hud->imgHudFaces, 0, faceState * doomCanvas->hud->hudFaceHeight, doomCanvas->hud->hudFaceWidth, doomCanvas->hud->hudFaceHeight, 0, faceX, dy, 0x24, tmpSurface);
+
+    DoomRPG_setColor(doomCanvas->doomRpg,
+        0x313131);
+    Hud_drawBarLine(doomCanvas, faceX, dispH - doomCanvas->hud->statusBarHeight, faceX, dispH + -1, tmpSurface);
+    Hud_drawBarLine(doomCanvas, faceX + doomCanvas->hud->hudFaceWidth - 1, dispH - doomCanvas->hud->statusBarHeight, faceX + doomCanvas->hud->hudFaceWidth - 1, dispH + -1, tmpSurface);
+
     DoomRPG_setColor(doomCanvas->doomRpg,
         0x828282);
+    Hud_drawBarLine(doomCanvas, faceX + 1, dispH - doomCanvas->hud->statusBarHeight, faceX + 1, dispH + -1, tmpSurface);
     Hud_drawBarLine(doomCanvas, faceX + doomCanvas->hud->hudFaceWidth, dispH - doomCanvas->hud->statusBarHeight, faceX + doomCanvas->hud->hudFaceWidth, dispH + -1, tmpSurface);
 
     // draw weapon and ammo
@@ -407,7 +403,7 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
 
         if (weapon == 0) {
             DoomCanvas_drawImageSpecialSur(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight << 1, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusAmmoXpos + cx, dy, 0x24, tmpSurface);
-            strncpy(doomCanvas->hud->ammoNum, "--", 4);
+            strncpy(doomCanvas->hud->ammoNum, "--", 3);
         }
         else {
             combat = doomCanvas->doomRpg->combat;
@@ -438,9 +434,6 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
     DoomCanvas_drawImageSur(doomCanvas, &doomCanvas->hud->imgStatusArrow, doomCanvas->hud->statusOrientationArrowXpos + cx, y - 3, 9, tmpSurface);
     DoomCanvas_drawFontSur(doomCanvas, dir, doomCanvas->hud->statusOrientationXpos + cx, y + 2, 9, 0, 1, doomCanvas->hud->largeHud, tmpSurface);
     if (tmpSurface == NULL || tmpSurface->pixels == NULL) {
-        // SDL_CreateRGBSurface can fail under memory pressure; dereferencing a
-        // NULL surface here takes the game down. Skip this frame's bar instead.
-        if (tmpSurface) SDL_FreeSurface(tmpSurface);
         return;
     }
     SDL_Rect srcRect;
@@ -456,7 +449,6 @@ void Hud_drawBottomBar(DoomCanvas_t* doomCanvas)
     dstRect.y = 240 - doomCanvas->hud->statusBarHeight;
 
     SDL_BlitSurface(tmpSurface, &srcRect, sdlVideo.screenSurface, &dstRect);
-    SDL_FreeSurface(tmpSurface);
 }
 void Hud_drawBottomBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
 {
@@ -596,7 +588,7 @@ void Hud_drawBottomBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
 
         if (weapon == 0) {
             DoomCanvas_drawImageSpecialSur(doomCanvas, img, 0, doomCanvas->hud->iconSheetHeight << 1, doomCanvas->hud->iconSheetWidth, doomCanvas->hud->iconSheetHeight, 0, doomCanvas->hud->statusAmmoXpos + cx, dy, 0x24, tmpSurface);
-            strncpy(doomCanvas->hud->ammoNum, "--", 4);
+            strncpy(doomCanvas->hud->ammoNum, "--", 3);
         }
         else {
             combat = doomCanvas->doomRpg->combat;
@@ -718,20 +710,22 @@ void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
         return;
     }
 #endif
-    SDL_Surface* tmpSurface =
-        SDL_CreateRGBSurface(SDL_SWSURFACE,
+    static SDL_Surface* s_topBarSurface = NULL;
+    if (!s_topBarSurface) {
+        s_topBarSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
             sdlVideo.screenW,
             doomCanvas->hud->statusBarHeight,
             sdlVideo.screenSurface->format->BitsPerPixel,
-    sdlVideo.screenSurface->format->Rmask,
-    sdlVideo.screenSurface->format->Gmask,
-    sdlVideo.screenSurface->format->Bmask,
-    sdlVideo.screenSurface->format->Amask
-);
+            sdlVideo.screenSurface->format->Rmask,
+            sdlVideo.screenSurface->format->Gmask,
+            sdlVideo.screenSurface->format->Bmask,
+            sdlVideo.screenSurface->format->Amask);
+    }
+    SDL_Surface* tmpSurface = s_topBarSurface;
     if (tmpSurface == NULL) {
         return;
     }
-    char* text;
+    char* text = NULL;
     int len;
     int time, w;
     int strBeg, strEnd;
@@ -747,8 +741,13 @@ void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
         }
     }
 
+    /* Hard Watchdog Timeout: enforce hard 3.0s maximum lifespan for active message */
+    if (doomCanvas->hud->msgCount > 0 && (doomCanvas->time - doomCanvas->hud->msgTime) > 3000) {
+        Hud_shiftMsgs(doomCanvas);
+    }
+
     if (updateTime) {
-        if ((doomCanvas->hud->msgCount > 0) && ((doomCanvas->time - doomCanvas->hud->msgTime) > (doomCanvas->hud->msgDuration + 150))) {
+        if ((doomCanvas->hud->msgCount > 0) && ((doomCanvas->time - doomCanvas->hud->msgTime) > (doomCanvas->hud->msgDuration + (g_turboCombat ? 50 : 150)))) {
             Hud_shiftMsgs(doomCanvas);
         }
     }
@@ -756,21 +755,22 @@ void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
     strBeg = 0;
     if (doomCanvas->hud->msgCount > 0)
     {
-        text = doomCanvas->hud->messages[0];
-        if (updateTime) {
-            if (doomCanvas->hud->msgDuration < (doomCanvas->time - doomCanvas->hud->msgTime)) {
-                return;
-            }
-        
-            len = SDL_strlen(text) - doomCanvas->hud->msgMaxChars;
+        if (updateTime && (doomCanvas->hud->msgDuration < (doomCanvas->time - doomCanvas->hud->msgTime))) {
+            // Message expired: fall through to clean metallic bar (do NOT return early to prevent memory leak / black bar)
+            text = NULL;
+        } else {
+            text = doomCanvas->hud->messages[0];
+            if (updateTime) {
+                len = SDL_strlen(text) - doomCanvas->hud->msgMaxChars;
 
-            if (len > 0) {
-                time = (doomCanvas->time - doomCanvas->hud->msgTime);
-                if (time > SCROLL_START_DELAY)
-                {
-                    strBeg = ((unsigned int)((time - SCROLL_START_DELAY) / 100));
-                    if (strBeg > len - 1) {
-                        strBeg = len - 1;
+                if (len > 0) {
+                    time = (doomCanvas->time - doomCanvas->hud->msgTime);
+                    if (time > SCROLL_START_DELAY)
+                    {
+                        strBeg = ((unsigned int)((time - SCROLL_START_DELAY) / 100));
+                        if (strBeg > len - 1) {
+                            strBeg = len - 1;
+                        }
                     }
                 }
             }
@@ -785,13 +785,13 @@ void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
     else if ((doomCanvas->state == ST_PLAYING) && (doomCanvas->player->facingEntity) && (doomCanvas->player->facingEntity->def->eType != 9)) {
         text = doomCanvas->player->facingEntity->def->name;
     }
-    else {
-        // No status message: still paint the metallic strip at the top.
+
+    if (text == NULL || text[0] == '\0') {
+        // No status message: blit clean metallic strip at the top.
         SDL_Rect sRect, dRect;
         sRect.x = 0; sRect.y = 0; sRect.w = tmpSurface->w; sRect.h = tmpSurface->h;
         dRect.x = 0; dRect.y = 0; dRect.w = tmpSurface->w; dRect.h = tmpSurface->h;
         SDL_BlitSurface(tmpSurface, &sRect, sdlVideo.screenSurface, &dRect);
-        SDL_FreeSurface(tmpSurface);
         return;
     }
 
@@ -823,7 +823,6 @@ void Hud_drawTopBar(DoomCanvas_t* doomCanvas)
     dstRect.y = 0; // status/info text bar at the TOP, above the 3D view
 
     SDL_BlitSurface(tmpSurface, &srcRect, sdlVideo.screenSurface, &dstRect);
-    SDL_FreeSurface(tmpSurface);
 }
 void Hud_drawTopBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
 {

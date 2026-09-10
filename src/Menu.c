@@ -154,36 +154,80 @@ void Menu_LoadHelpResource(Menu_t* menu)
 
 void Menu_setNotes(Menu_t* menu)
 {
-	MenuSystem_t* menuSystem;
-	MenuItem_t* item;
-	char* tmpStr;
-	char* nbStr;
-	char text[32];
+	MenuSystem_t* menuSystem = menu->doomRpg->menuSystem;
+	const char* nbStr = menu->doomRpg->player->NotebookString;
+	char header[64];
 
-	menuSystem = menu->doomRpg->menuSystem;
-
-	nbStr = menu->doomRpg->player->NotebookString;
-	SDL_snprintf(text, sizeof(text), "%s notes...", menu->doomRpg->render->mapName);
-
-	MenuItem_Set(&menuSystem->items[menuSystem->numItems++], text, 0, 0);
+	SDL_snprintf(header, sizeof(header), "=== %s Mission Notes ===", menu->doomRpg->render->mapName);
+	MenuItem_Set(&menuSystem->items[menuSystem->numItems++], header, 0, 0);
 	MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 
-	
-	while (tmpStr = SDL_strchr(nbStr, 0x7c), tmpStr != NULL) {
+	if (!nbStr || nbStr[0] == '\0') {
+		MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "  [ No notes recorded in this sector ]", 0, 0);
+		return;
+	}
 
-		if(tmpStr == nbStr) {
-			item = &menuSystem->items[menuSystem->numItems++];
-			nbStr = (char*)0x0;
-		}
-		else {
-			strncpy(text, nbStr, (int)(tmpStr - (int)nbStr));
-			text[(int)(tmpStr -(int)nbStr)] = '\0';
-			item = &menuSystem->items[menuSystem->numItems++];
-			nbStr = text;
+	char noteBuf[512];
+	const char* p = nbStr;
+
+	while (*p != '\0' && menuSystem->numItems < MAX_MENUITEMS - 2) {
+		const char* end = SDL_strstr(p, "||");
+		int noteLen;
+		if (end != NULL) {
+			noteLen = (int)(end - p);
+		} else {
+			noteLen = (int)SDL_strlen(p);
 		}
 
-		MenuItem_Set(item, nbStr, 0, 0);
-		nbStr = tmpStr + 1;
+		if (noteLen > 0) {
+			if (noteLen >= (int)sizeof(noteBuf)) {
+				noteLen = (int)sizeof(noteBuf) - 1;
+			}
+			SDL_memcpy(noteBuf, p, noteLen);
+			noteBuf[noteLen] = '\0';
+
+			for (int j = 0; j < noteLen; j++) {
+				if (noteBuf[j] == '|') {
+					noteBuf[j] = ' ';
+				}
+			}
+
+			char* lineStart = noteBuf;
+			while (*lineStart != '\0' && menuSystem->numItems < MAX_MENUITEMS - 1) {
+				while (*lineStart == ' ') lineStart++;
+				if (*lineStart == '\0') break;
+
+				int maxLineLen = 48;
+				int curLen = (int)SDL_strlen(lineStart);
+				if (curLen <= maxLineLen) {
+					MenuItem_Set(&menuSystem->items[menuSystem->numItems++], lineStart, 0, 0);
+					break;
+				}
+
+				int splitIdx = maxLineLen;
+				while (splitIdx > 0 && lineStart[splitIdx] != ' ') {
+					splitIdx--;
+				}
+				if (splitIdx == 0) {
+					splitIdx = maxLineLen;
+				}
+
+				char saved = lineStart[splitIdx];
+				lineStart[splitIdx] = '\0';
+				MenuItem_Set(&menuSystem->items[menuSystem->numItems++], lineStart, 0, 0);
+				lineStart[splitIdx] = saved;
+				lineStart += splitIdx;
+			}
+
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "----------------------------------------", 0, 0);
+		}
+
+		if (end != NULL) {
+			p = end + 2;
+			while (*p == '|') p++;
+		} else {
+			break;
+		}
 	}
 }
 
@@ -1111,12 +1155,18 @@ void Menu_initMenu(Menu_t* menu, int i)
 
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Back", 0, 0);
 #ifdef __3DS__
+			static char* s_profileNames[3] = { "Auto", "N3DS (High)", "O3DS (Perf)" };
+			static char* s_scaleNames[2] = { "Crisp (400)", "Retro (200)" };
 			static char* s_depthNames[4] = { "Low", "Normal", "High", "Max" };
-			textDivider = MenuSystem_buildDivider(menuSystem, "3D & Display");
+
+			textDivider = MenuSystem_buildDivider(menuSystem, "Performance & Display");
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], textDivider, 3, 0);
+
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Profile:", s_profileNames[g_systemProfile % 3], 0, 0);
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Scaling:", s_scaleNames[g_renderScaling % 2], 0, 0);
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Floor/Ceil:", menu->doomRpg->doomCanvas->renderFloorCeilingTextures ? "on" : "off", 0, 0);
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "3D Depth:", s_depthNames[g_stereoDepthMode & 3], 0, 0);
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Filter:", g_textureFiltering ? "Smooth" : "Crisp", 0, 0);
-			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Floor/Ceil:", menu->doomRpg->doomCanvas->renderFloorCeilingTextures ? "on" : "off", 0, 0);
 #else
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "FullScreen:", sdlVideo.fullScreen ? "on" : "off", 0, 0);
 
@@ -1150,6 +1200,19 @@ void Menu_initMenu(Menu_t* menu, int i)
 
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Back", 0, 0);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Bindings", 0, 0);
+#ifdef __3DS__
+			static char* s_turboScopes[3] = { "Combat", "Explore", "All" };
+			static char* s_typewriterSpeeds[3] = { "Classic", "Fast", "Instant" };
+
+			textDivider = MenuSystem_buildDivider(menuSystem, "Input & Turbo");
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], textDivider, 3, 0);
+
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Touch Menu:", g_touchMenuButton ? "on" : "off", 0, 0);
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Hold Fire:", g_attackBuffer ? "on" : "off", 0, 0);
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Turbo Scope:", s_turboScopes[g_turboScope % 3], 0, 0);
+			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Typewriter:", s_typewriterSpeeds[g_typewriterSpeed % 3], 0, 0);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Reset Defaults", 0, 0);
+#endif
 			break;
 		}
 
@@ -1568,12 +1631,34 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 		case MENU_MAP_STATS:
 		case MENU_MAP_STATS_OVERALL:
 		{ 
+#ifdef __3DS__
+			extern int g_stereoRightValid;
+			extern int g_stereoFullFrame;
+			extern SDL_Surface* g_stereoRight;
+			g_stereoRightValid = 0;
+			g_stereoFullFrame = 0;
+			if (g_stereoRight) {
+				SDL_Rect r = { 0, 0, g_stereoRight->w, g_stereoRight->h };
+				SDL_FillRect(g_stereoRight, &r, 0);
+			}
+#endif
 			DoomCanvas_loadMap(doomCanvas, menu->mapNameId);
 			break;
 		}
 
 		case MENU_GOTO_JUNCTION: {	// MENU_GOTO_JUNCTION
 			if (action == 0) {
+#ifdef __3DS__
+				extern int g_stereoRightValid;
+				extern int g_stereoFullFrame;
+				extern SDL_Surface* g_stereoRight;
+				g_stereoRightValid = 0;
+				g_stereoFullFrame = 0;
+				if (g_stereoRight) {
+					SDL_Rect r = { 0, 0, g_stereoRight->w, g_stereoRight->h };
+					SDL_FillRect(g_stereoRight, &r, 0);
+				}
+#endif
 				DoomCanvas_loadMap(doomCanvas, MAP_JUNCTION);
 			}
 			else if(action == 1) {
@@ -2097,22 +2182,52 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 				return menuSystem->oldMenu;
 			}
 #ifdef __3DS__
-			else if (itemId == 2) { // 3D Depth
-				static const char* s_depthNames[4] = { "Low", "Normal", "High", "Max" };
-				static const float s_depthMults[4] = { 0.7f, 1.0f, 1.4f, 1.8f };
-				g_stereoDepthMode = (g_stereoDepthMode + 1) % 4;
-				g_stereoMultiplier = s_depthMults[g_stereoDepthMode];
-				strncpy(menuSystem->items[itemId].textField2, s_depthNames[g_stereoDepthMode], sizeof(menuSystem->items[itemId].textField2));
+			else if (itemId == 2) { // Profile
+				static const char* s_profileNames[3] = { "Auto", "N3DS (High)", "O3DS (Perf)" };
+				static const char* s_scaleNames[2] = { "Crisp (400)", "Retro (200)" };
+				g_systemProfile = (g_systemProfile + 1) % 3;
+				if (g_systemProfile == 0) {
+					if (g_isOldHardware) {
+						g_renderScaling = 1;
+						doomCanvas->renderFloorCeilingTextures = false;
+					} else {
+						g_renderScaling = 0;
+						doomCanvas->renderFloorCeilingTextures = true;
+					}
+				} else if (g_systemProfile == 1) {
+					g_renderScaling = 0;
+					doomCanvas->renderFloorCeilingTextures = true;
+				} else if (g_systemProfile == 2) {
+					g_renderScaling = 1;
+					doomCanvas->renderFloorCeilingTextures = false;
+				}
+				strncpy(menuSystem->items[2].textField2, s_profileNames[g_systemProfile], sizeof(menuSystem->items[2].textField2));
+				strncpy(menuSystem->items[3].textField2, s_scaleNames[g_renderScaling % 2], sizeof(menuSystem->items[3].textField2));
+				strncpy(menuSystem->items[4].textField2, doomCanvas->renderFloorCeilingTextures ? "on" : "off", sizeof(menuSystem->items[4].textField2));
 				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
 			}
-			else if (itemId == 3) { // Filter
-				g_textureFiltering = !g_textureFiltering;
-				strncpy(menuSystem->items[itemId].textField2, g_textureFiltering ? "Smooth" : "Crisp", sizeof(menuSystem->items[itemId].textField2));
+			else if (itemId == 3) { // Scaling
+				static const char* s_scaleNames[2] = { "Crisp (400)", "Retro (200)" };
+				g_renderScaling = (g_renderScaling + 1) % 2;
+				strncpy(menuSystem->items[3].textField2, s_scaleNames[g_renderScaling], sizeof(menuSystem->items[3].textField2));
 				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
 			}
 			else if (itemId == 4) { // Floor/Ceil
 				doomCanvas->renderFloorCeilingTextures ^= true;
-				strncpy(menuSystem->items[itemId].textField2, doomCanvas->renderFloorCeilingTextures ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
+				strncpy(menuSystem->items[4].textField2, doomCanvas->renderFloorCeilingTextures ? "on" : "off", sizeof(menuSystem->items[4].textField2));
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+			}
+			else if (itemId == 5) { // 3D Depth
+				static const char* s_depthNames[4] = { "Low", "Normal", "High", "Max" };
+				static const float s_depthMults[4] = { 0.7f, 1.0f, 1.4f, 1.8f };
+				g_stereoDepthMode = (g_stereoDepthMode + 1) % 4;
+				g_stereoMultiplier = s_depthMults[g_stereoDepthMode];
+				strncpy(menuSystem->items[5].textField2, s_depthNames[g_stereoDepthMode], sizeof(menuSystem->items[5].textField2));
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+			}
+			else if (itemId == 6) { // Filter
+				g_textureFiltering = !g_textureFiltering;
+				strncpy(menuSystem->items[6].textField2, g_textureFiltering ? "Smooth" : "Crisp", sizeof(menuSystem->items[6].textField2));
 				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
 			}
 #else
@@ -2169,6 +2284,39 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			else if (itemId == 1) { // Bindings
 				return (menuSystem->type == 1) ? MENU_INGAME_BINDINGS : MENU_BINDINGS;
 			}
+#ifdef __3DS__
+			else if (itemId == 3) { // Touch Menu
+				g_touchMenuButton ^= true;
+				strncpy(menuSystem->items[3].textField2, g_touchMenuButton ? "on" : "off", sizeof(menuSystem->items[3].textField2));
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+			}
+			else if (itemId == 4) { // Hold Fire
+				g_attackBuffer ^= true;
+				strncpy(menuSystem->items[4].textField2, g_attackBuffer ? "on" : "off", sizeof(menuSystem->items[4].textField2));
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+			}
+			else if (itemId == 5) { // Turbo Scope
+				static const char* s_turboScopes[3] = { "Combat", "Explore", "All" };
+				g_turboScope = (g_turboScope + 1) % 3;
+				strncpy(menuSystem->items[5].textField2, s_turboScopes[g_turboScope], sizeof(menuSystem->items[5].textField2));
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+			}
+			else if (itemId == 6) { // Typewriter
+				static const char* s_typewriterSpeeds[3] = { "Classic", "Fast", "Instant" };
+				g_typewriterSpeed = (g_typewriterSpeed + 1) % 3;
+				strncpy(menuSystem->items[6].textField2, s_typewriterSpeeds[g_typewriterSpeed], sizeof(menuSystem->items[6].textField2));
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+			}
+			else if (itemId == 7) { // Reset Defaults
+				SDL_memcpy(keyMappingTemp, keyMappingDefault, sizeof(keyMapping));
+				SDL_memcpy(keyMapping, keyMappingDefault, sizeof(keyMapping));
+				Hud_addMessage(doomCanvas, "Controls Reset to Default");
+				Sound_playSound(menu->doomRpg->sound, 5060, 0, 3);
+			}
+			Game_saveConfig(menu->doomRpg->game, 0);
+			menuSystem->paintMenu = true;
+			return menuSystem->menu;
+#else
 			else if (itemId == 2) { // Mouse
 				return (menuSystem->type == 1) ? MENU_INGAME_MOUSE : MENU_MOUSE;
 			}
@@ -2177,6 +2325,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 			}
 
 			return menuSystem->menu;
+#endif
 			break;
 
 			// NEW MENU OPTIONS

@@ -688,27 +688,41 @@ boolean Entity_renderOnlyStateMonsters(Entity_t* entity)
         return false;
     }
 
+    /* Turbo Mode: Off-Screen Monster AI Instant Snap */
+    if (g_turboCombat) {
+        int dx = abs(sprite->x - entity->doomRpg->doomCanvas->viewX);
+        int dy = abs(sprite->y - entity->doomRpg->doomCanvas->viewY);
+        if (dx > 512 || dy > 512) {
+            sprite->x = entity->monster->x;
+            sprite->y = entity->monster->y;
+            Render_relinkSprite(entity->doomRpg->render, sprite);
+            Entity_aiMoveToGoal(entity);
+            return false;
+        }
+    }
+
+    int curAnimPos = (g_turboCombat && g_turboScope >= 1) ? (entity->doomRpg->doomCanvas->animPos * 2) : entity->doomRpg->doomCanvas->animPos;
     if (sprite->x < entity->monster->x) {
-        sprite->x += entity->doomRpg->doomCanvas->animPos;
+        sprite->x += curAnimPos;
         if (sprite->x > entity->monster->x) {
             sprite->x = entity->monster->x;
         }
     }
     else if (sprite->x > entity->monster->x) {
-        sprite->x -= entity->doomRpg->doomCanvas->animPos;
+        sprite->x -= curAnimPos;
         if (sprite->x < entity->monster->x) {
             sprite->x = entity->monster->x;
         }
     }
 
     if (sprite->y < entity->monster->y) {
-        sprite->y += entity->doomRpg->doomCanvas->animPos;
+        sprite->y += curAnimPos;
         if (sprite->y > entity->monster->y) {
             sprite->y = entity->monster->y;
         }
     }
     else if (sprite->y > entity->monster->y) {
-        sprite->y -= entity->doomRpg->doomCanvas->animPos;
+        sprite->y -= curAnimPos;
         if (sprite->y < entity->monster->y) {
             sprite->y = entity->monster->y;
         }

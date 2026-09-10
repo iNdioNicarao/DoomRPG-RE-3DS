@@ -15,13 +15,22 @@ assets/
 # Build-tooling asset required by make_cia.sh (not game data)
 !tools/cia/silence.wav
 
-# Local agent scratch, plans, postmortems, and logs (never commit or push)
+# Local agent scratch, plans, postmortems, roadmaps, devlogs, and logs (never commit or push)
 *plan*.md
 *Plan*.md
 *PLAN*.md
 *postmortem*.md
 *Postmortem*.md
 *POSTMORTEM*.md
+*roadmap*.md
+*Roadmap*.md
+*ROADMAP*.md
+*devlog*.md
+*Devlog*.md
+*DEVLOG*.md
+*devnote*.md
+*Devnote*.md
+*DEVNOTE*.md
 doomRPG_build.md
 _patch*.py
 _build*.log

@@ -2,29 +2,35 @@
 
 This is a Nintendo 3DS port of the [reverse engineered Doom RPG](https://github.com/Erick194/DoomRPG-RE) by [GEC]. All credits go to the GEC team, this project would not exist without their hard work.
 
-This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) created by **Dennis Isaac Gutierrez Zeledon** to provide a **home-menu `.cia` build** (installable on a New 3DS from the HOME Menu via FBI), **hardware autostereoscopic 3D with dynamic motion damping**, an interactive **bottom-screen Touch HUD with draggable automap and combat turbo**, a custom **3D parallax diorama HOME banner**, and stability fixes that make the port shine on real hardware. Recent enhancements are detailed in [`docs/RELEASE_NOTES_v1.0.7.md`](docs/RELEASE_NOTES_v1.0.7.md).
+This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) created by **Dennis Isaac Gutierrez Zeledon** to provide a **home-menu `.cia` build** (installable on any 3DS/2DS model from the HOME Menu via FBI), **hardware autostereoscopic 3D with dynamic motion damping**, an interactive **bottom-screen Touch HUD with draggable automap and Turbo 2.0**, a custom **3D parallax diorama HOME banner**, dynamic hardware adaptation for Old 3DS / 2DS, and stability fixes that make the port shine on real hardware. Recent enhancements are detailed in [`docs/RELEASE_NOTES_v1.1.0.md`](docs/RELEASE_NOTES_v1.1.0.md).
 
-## Highlights (v1.0.7)
+> ### ⚠️ Notice for Upgrading Players (From v1.0.0 – v1.0.7)
+> If you are upgrading from an earlier version and your Circle Pad (left thumbstick) or other newly mapped controls feel unresponsive, your existing saved configuration file (`sdmc:/3ds/doomrpg/saves/Config`) may still contain the older binding table where secondary slots were unset (`-1`).
+> 
+> **To restore all default controls:**
+> 1. In the in-game menu, navigate to **Options $\to$ Controls / Bindings $\to$ Reset Defaults**.
+> 2. Alternatively, you can delete or rename `sdmc:/3ds/doomrpg/saves/Config` on your SD card. *(Your save games in `saves/` are completely separate and will NOT be lost).*
+> 
+> *Note: v1.1.0 includes an in-engine auto-migration that backfills missing Circle Pad bindings into legacy config files automatically, but manual reset is documented as the recommended first troubleshooting step.*
 
-- **Circle Pad Backward Fix**: Resolved signed 32-bit keycode comparison bug where `KEY_CPAD_DOWN = BIT(31) = 0x80000000` (`-2147483648`) was inadvertently discarded by `kb <= 0`. Circle Pad downward input now works reliably across both exploration and menu navigation.
-- **Repurposed SELECT Button (Recenter & Zoom)**: Pressing `SELECT` now snaps the automap camera back to the player (`[CTR]`). If already centered, pressing `SELECT` cycles through zoom levels (`1x` → `2x` → `3x`) with acoustic feedback, giving physical button control over the bottom-screen map.
-- **Native 3DS In-Game Prompts & Help Screen**: In-game NPC dialogue, computer terminals, combat guides, end-of-level screens (`Press A to continue`), and the Help/About menu now reference native 3DS controls (`A`, `B`, `ZL / ZR`, `START`, touch keypad, and lower-screen automap) instead of 2005 mobile phone keypads.
-- **Automatic Save Directory Creation**: The game recursively creates `sdmc:/3ds/doomrpg/saves/` at launch and prior to any save operation, enabling full standalone `.3dsx` use without needing manual folder creation or CIA pre-installation.
-- **Combat Turbo Button**: Dedicated bold green `[ TURBO ]` toggle button on the bottom-screen map control bar (adjacent to `[ CTR ]`). Accelerates enemy turns and combat pauses by ~3×, doubles missile flight speed, and accelerates attack animations for snappy turn-based encounters.
-- **Stereoscopic 3D Combat Particles**: All combat particle effects (blood splatters, sparks, monster gibs, weapon explosions) render to both left and right stereo buffers with depth-matched parallax offset, completely eliminating single-eye retinal flicker and adding full stereoscopic depth.
-- **In-Game 3D Depth Multiplier**: Seamlessly modulate hardware 3D stereoscopic depth between `Low 0.7x`, `Normal 1.0x` (default), `High 1.4x`, and `Max 1.8x` directly from the in-game Pause Menu (`MENU_INGAME`) or *Video Options* (`MENU_VIDEO`).
-- **Real-Time Texture Filtering Toggle**: Toggle Citro3D texture filtering between `Crisp` (`GPU_NEAREST` — authentic pixel art) and `Smooth` (`GPU_LINEAR` — bilinear filtered scaling) on the fly in the Pause Menu and Video Options.
-- **2x Scaled Cutscenes & Story Presentation**: High-definition 2x scaling for legal splash screens, teaser graphics (`g.bmp`), intro story cutscene (text pages, animated spaceship flyby, speed lines, planet layers, red tracking reticle), epilogue, scrolling credits, and error screens.
-- **Stereoscopic 3D Rotating Title Menu**: Full autostereoscopic 3D depth applied to the rotating title menu background with the DOOM RPG logo, menu items, cursor, and prompts floating cleanly at screen depth (zero parallax).
-- **Interactive Bottom-Screen Automap**: Smooth real-time player centering and tracking as you walk. Touch-and-drag pan across the map, with dedicated on-screen Zoom In `[+]`, Zoom Out `[-]`, and Recenter `[O]` touch buttons.
-- **Full Metallic Quick-Access Bar**: Seamless metallic texture extended across the entire bottom screen down to the bezel (row 479) with clean beveled dividers.
-- **Hotbar Feedback & Dimming**: Empty hotbar slots (count = 0) are visually dimmed by 50%. Tapping an empty slot triggers a red highlight flash, a distinct negative audio cue, and a top-screen notification banner.
-- **Default-Enabled Textured Floors & Ceilings**: Authentic textured floors, ceilings, and ceiling lights enabled out-of-the-box with smooth performance.
-- **Synchronized 3D Motion Recovery**: Depth recovery dynamically synchronizes with grid movement completion to eliminate settling lag.
-- **Horizontally Centered HUD Messages**: Top-screen status messages centered for natural eye focus.
-- **Lid-Close Audio Suspension & Power Management**: Clam-shell closure immediately mutes audio and enters low-power sleep; reopening resumes audio and visuals gracefully.
-- **3D Parallax Diorama HOME Menu Banner & Audio Stinger**: Custom 3DS extended banner featuring a rotating 2-sided plaque (Mars Base diorama on front, brushed steel with embossed horned demon skull on back), matched pixel-art icon, and dual shotgun blast + grunt death scream audio stinger.
-- **Pixel-Perfect 1:1 Dialogue Typography**: Proportional kerning and 5/2 virtual scaling for mathematically square ($2\times 2$ pixel) glyphs on the physical LCD.
+## Highlights (v1.1.0)
+
+- **Universal Single Binary & Dynamic Hardware Profiles**: A single unified `.cia` and `.3dsx` release boots on all 3DS and 2DS consoles. Automatically probes console capabilities (`APT_CheckNew3DS`, `CFGU_GetSystemModel`) at boot, dynamically applying Old 3DS / 2DS vs New 3DS profiles without user intervention. Stereo 3D is automatically bypassed on Nintendo 2DS hardware.
+- **Old 3DS & 2DS Performance Suite**: Resolves CPU raycasting bottlenecks on legacy 268 MHz hardware. Scales internal software raycasting to 200 columns (saving 50% CPU raycasting and fitting inside the 32 KB L1 data cache), with zero-overhead PICA200 GPU upscaling to the 400px top screen via Citro2D. Combines with flat floor/ceiling presets, a 400-entry bottom-screen LUT (saving 96,000 divisions/frame), and automap dirty blit caching for locked 60 FPS gameplay.
+- **360px Widescreen Notebook**: Replaced the legacy 128px flip-phone container (`menuHalfW = 64`) with a widescreen 360px container (`menuHalfW = 180`), utilizing the entire 400px top screen. Mission notes and terminal messages are parsed across double-pipe entries (`||`), joining mobile wrap segments into natural sentences and wrapping cleanly up to 48–50 characters per line with metallic headers and dividers.
+- **HUD Memory Leak & Failsafe Watchdog Resolution**: Eliminated the 60 FPS RAM leak in `Hud_drawTopBar` which previously leaked ~1.92 MB/s on message expiration, causing black screens and heap exhaustion after saving. Allocated persistent static HUD surfaces (`s_topBarSurface`, `s_bottomBarSurface`), eliminating 120 dynamic heap allocations per second. Added a 3.0-second watchdog ceiling to prevent queue deadlocks from freezing notifications, and added OOM safety checks in BitShapes loader.
+- **Turbo Mode 2.0 & Gameplay Acceleration Suite**:
+  - Truncated post-attack tail wait from 333ms to 75ms in Turbo mode, with instant bypass on pressing `A` or `R`.
+  - Continuous "Hold-to-Fire" attack buffering: holding `A` or `R` automatically executes attacks the exact frame the player's turn opens.
+  - Quadrupled projectile travel velocity (4x missile speed, `speed <<= 2`) crossing rooms in 3–4 frames while preserving full 3D rendering, smoke trails, and explosions.
+  - Off-screen monster AI instant snap for distant or non-visible monster patrol turns.
+  - 2-frame exploration grid traversal (33ms at 60 FPS) and 2x fast door opening in Turbo exploration mode.
+  - Accelerated typewriter terminal text (5ms/char) with instant page reveal on tapping `A` or the touchscreen.
+- **Direct Analog Circle Pad Polling**: Polled directly via `hidCircleRead` with deadzones, guaranteeing Circle Pad thumbstick movement regardless of save file state.
+- **Right Nub (C-Stick) Universal Scrolling**: Smooth scrolling using the C-Stick across dialogs, terminals, notebooks, menus, and help documentation.
+- **Terminal Password Auto-Scroll & Passcode Pinning**: In `ST_DIALOGPASSWORD`, the text automatically scrolls to reveal the prompt line, and the code input box remains pinned and visible at all times.
+- **Touchscreen Menu Debounce & Phantom Rejection**: Implemented touch-up release verification, 100ms hold debounce, bezel corner inset ($X = 345..394, Y = 244..260$), and an optional menu toggle to eliminate accidental pause menu popups from hand grip or bezel flex.
+- **New In-Game Video & Input Options**: Dedicated menu toggles for System Profiles (`Auto`, `High`, `Perf`), Render Scaling (`Crisp 400`, `Retro 200`), Floor/Ceiling textures, 3D Depth, Touch Menu, Hold Fire, Turbo Scope (`Combat`, `Explore`, `All`), Typewriter speed, and Reset Defaults.
 
 ## How to install
 
@@ -36,7 +42,7 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
    [archive.org](https://archive.org/details/doomrpg_brew). Extract `doomrpg.bar`
    (a BREW asset container; the upstream PC tools such as `BarToZip` turn it into
    loose files) and copy those loose files — no further zip step is needed.
-2. Install `DoomRPG-1.0.7.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
+2. Install `DoomRPG-1.1.0.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
 3. On the SD card, copy the **extracted data files** into
    `sdmc:/3ds/doomrpg/` so they sit loose in that folder. Required files include:
    - `entities.db` and `help.txt`
@@ -50,23 +56,24 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
 
 The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files present.
 
-## Controls (New 3DS)
+## Controls (3DS Family)
 
 | Action | Physical Button | Touch Screen |
 |--------|-----------------|--------------|
-| Move Forward / Backward | D-pad Up / Down or Circle Pad | — |
+| Move Forward / Backward | D-pad Up / Down or Circle Pad (Left Stick) | — |
 | Strafe Left / Right | L / R | — |
-| Turn Left / Right | D-pad Left / Right or Circle Pad | — |
-| Attack / Talk / Use / Confirm | A | On-screen dialog tap |
+| Turn Left / Right | D-pad Left / Right or Circle Pad (Left Stick) | — |
+| Attack / Talk / Use / Confirm | A (Hold for Attack Buffering) | On-screen dialog tap |
 | Back / Dismiss Dialog / Pass Turn | B | Tap `[ PASS ]` on top bar |
 | Next / Prev Weapon | ZR / ZL | — |
+| Scroll Dialogs, Menus & Notebook | C-Stick (Right Nub Up / Down) | Touch & drag dialog text or scrollbar |
 | Quick Use Items | Hotbar touch | Tap `S.MED`, `L.MED`, `SOUL`, `BRSK`, `DOG` |
 | Combat Turbo Toggle | — | Tap `[ TURBO ]` next to map controls |
 | Pan Automap | — | Touch & drag map with stylus / finger |
 | Zoom Automap | — | Tap `[+]` or `[-]` |
 | Recenter / Zoom Automap | Select (recenter; tap again to cycle zoom) | Tap `[CTR]` or `[+]` / `[-]` |
 | Passcode Entry | D-pad / A | Tap numpad digits `0`–`9`, `C`, `OK` |
-| In-Game Menu / Back | Start | Tap `[ MENU ]` on top bar |
+| In-Game Menu / Back | Start | Tap `[ MENU ]` on top bar (100ms hold) |
 | 3D Depth Adjustment | Physical 3D Slider | — |
 
 NOTE: the D-pad/Circle Pad turns; **L/R are lateral movement (strafe)** — hold L or R to
@@ -103,6 +110,10 @@ If you find a bug, please open an issue here on GitHub.
 ## Acknowledgments
 
 This fork was developed by **Dennis Isaac Gutierrez Zeledon** with the assistance of AI coding assistants across its development milestones:
+
+- **v1.1.0 (Universal Binary, Old 3DS GPU Scaling, Widescreen Notebook, Turbo 2.0 & Stability Suite):**
+  - **Assistant:** **Gemini Antigravity** (Google DeepMind)
+  - **Role:** Architectural design and implementation of universal single binary with runtime console detection (`APT_CheckNew3DS`), internal 200×240 raycaster scaling with zero-overhead PICA200 GPU scaling, 360px widescreen notebook with pipe-delimited note merging, elimination of HUD 60 FPS RAM leak and implementation of persistent static HUD surfaces and watchdog timer, Turbo Mode 2.0 gameplay acceleration suite (truncated post-attack wait, hold-to-fire attack buffering, 4x missile speed, off-screen monster AI snap, 2-frame exploration grid traversal, fast door animations, typewriter acceleration), direct Circle Pad analog polling via `hidCircleRead`, C-Stick scrolling, and touchscreen debounce.
 
 - **v1.0.3 – v1.0.7 (Stereo 3D, Motion Damping, 3D Banner, Touch HUD & Engine Polish):**
   - **Assistant:** **Gemini Antigravity** (Google DeepMind)

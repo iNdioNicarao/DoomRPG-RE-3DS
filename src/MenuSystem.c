@@ -453,11 +453,16 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 		}
 
 #ifdef __3DS__
-		int menuHalfW = (menuSystem->type == 1) ? 140 : 64;
+		int menuHalfW = (menuSystem->type == 1) ? 140 :
+		                (menuSystem->type == 5) ? 180 : 64;
 		int i101;
 		if (menuSystem->type == 1) {
 			// Wide 280px container for lists/store (centered on 400px screen)
 			i101 = doomCanvas->SCR_CX - menuHalfW + 16; // 76
+		}
+		else if (menuSystem->type == 5) {
+			// Wide 360px container for Notebook / Help / Mission Logs
+			i101 = doomCanvas->SCR_CX - menuHalfW; // 200 - 180 = 20
 		}
 		else if (menuSystem->type == 4) {
 			// Startup menu ("Start Game", "Help/About", "Exit") centered under DOOM RPG logo
@@ -801,6 +806,17 @@ void MenuSystem_setMenu(MenuSystem_t* menuSystem, int menu)
 			DoomCanvas_setState(menuSystem->doomRpg->doomCanvas, ST_PLAYING);
 			Player_selectWeapon(menuSystem->doomRpg->player, menuSystem->doomRpg->player->weapon);
 		}
+#ifdef __3DS__
+		extern int g_stereoRightValid;
+		extern int g_stereoFullFrame;
+		extern SDL_Surface* g_stereoRight;
+		g_stereoRightValid = 0;
+		g_stereoFullFrame = 0;
+		if (g_stereoRight) {
+			SDL_Rect r = { 0, 0, g_stereoRight->w, g_stereoRight->h };
+			SDL_FillRect(g_stereoRight, &r, 0);
+		}
+#endif
 		DoomCanvas_invalidateRectAndUpdateView(menuSystem->doomRpg->doomCanvas);
 	}
 }
