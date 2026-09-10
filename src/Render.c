@@ -695,6 +695,7 @@ boolean Render_beginLoadMapData(Render_t* render)
 	// Read ByteCodes
 
 	numByteCodes = DoomRPG_shortAtNext(ioBuffer, &render->ioBufferPos);
+	render->numByteCodes = numByteCodes;
 	//printf("numByteCodes %d\n", numByteCodes);
 
 	SDL_free(render->mapByteCode);
@@ -831,8 +832,94 @@ boolean Render_beginLoadMapData(Render_t* render)
 	render->mapMemory = (DoomRPG_freeMemory() + render->mapMemory) - mem;
 	//printf("mapMemory %d\n", render->mapMemory);
 
+	Render_identifyDoorKeyTypes(render);
 
 	return true;
+}
+
+void Render_identifyDoorKeyTypes(Render_t* render)
+{
+	if (!render || !render->lines || !render->mapByteCode || !render->tileEvents) return;
+
+	for (int i = 0; i < render->linesLength; i++) {
+		render->lines[i].keyType = 0;
+	}
+
+	/* Pass 1: Correlate tileEvents with key checks and door lines */
+	for (int te = 0; te < render->numTileEvents; te++) {
+		int event = render->tileEvents[te];
+		int tilePos = event & 1023;
+		int tileX = tilePos % 32;
+		int tileY = tilePos / 32;
+		int commandCount = ((event & 0x1F80000) >> 19) * BYTE_CODE_MAX;
+		int commandIndex = ((event & 0x7FC00) >> 10) * BYTE_CODE_MAX;
+
+		int keyReq = -1; // 0=Green, 1=Yellow, 2=Blue, 3=Red
+		for (int c = 0; c < commandCount; c += BYTE_CODE_MAX) {
+			int cmd = render->mapByteCode[commandIndex + c + BYTE_CODE_ID];
+			int a1  = render->mapByteCode[commandIndex + c + BYTE_CODE_ARG1];
+			if (cmd == 41 /* EV_CHECK_KEY */) {
+				if (a1 >= 0 && a1 <= 3) {
+					keyReq = a1;
+					break;
+				}
+			}
+		}
+
+		if (keyReq >= 0) {
+			int foundLine = -1;
+			for (int c = 0; c < commandCount; c += BYTE_CODE_MAX) {
+				int cmd = render->mapByteCode[commandIndex + c + BYTE_CODE_ID];
+				int a1  = render->mapByteCode[commandIndex + c + BYTE_CODE_ARG1];
+				if (cmd == 6 /* EV_MOVELINE */ || cmd == 15 /* EV_OPENLINE */ ||
+					cmd == 16 /* EV_CLOSELINE */ || cmd == 17 /* EV_MOVELINE2 */ ||
+					cmd == 12 /* EV_LOCK */ || cmd == 13 /* EV_UNLOCK */ ||
+					cmd == 14 /* EV_TOGGLELOCK */) {
+					if (a1 >= 0 && a1 < render->linesLength) {
+						render->lines[a1].keyType = (byte)(keyReq + 1);
+						foundLine = a1;
+					}
+				}
+			}
+
+			if (foundLine == -1) {
+				for (int li = 0; li < render->linesLength; li++) {
+					Line_t* l = &render->lines[li];
+					if ((l->flags & 4) != 0) { // is a door
+						int midX = (l->vert1.x + l->vert2.x) / (2 * 64);
+						int midY = (l->vert1.y + l->vert2.y) / (2 * 64);
+						if (abs(midX - tileX) <= 1 && abs(midY - tileY) <= 1) {
+							if (l->keyType == 0) {
+								l->keyType = (byte)(keyReq + 1);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/* Pass 2: Sequential bytecode scan for any unlinked EV_CHECK_KEY instances */
+	for (int bci = 0; bci < render->numByteCodes; bci++) {
+		if (render->mapByteCode[bci * BYTE_CODE_MAX + BYTE_CODE_ID] == 41 /* EV_CHECK_KEY */) {
+			int kReq = render->mapByteCode[bci * BYTE_CODE_MAX + BYTE_CODE_ARG1];
+			if (kReq >= 0 && kReq <= 3) {
+				int start = (bci > 6) ? bci - 6 : 0;
+				int end = (bci + 6 < render->numByteCodes) ? bci + 6 : render->numByteCodes - 1;
+				for (int c = start; c <= end; c++) {
+					int cmd = render->mapByteCode[c * BYTE_CODE_MAX + BYTE_CODE_ID];
+					int a1  = render->mapByteCode[c * BYTE_CODE_MAX + BYTE_CODE_ARG1];
+					if (cmd == 6 || cmd == 12 || cmd == 13 || cmd == 14 || cmd == 15 || cmd == 16 || cmd == 17) {
+						if (a1 >= 0 && a1 < render->linesLength) {
+							if (render->lines[a1].keyType == 0) {
+								render->lines[a1].keyType = (byte)(kReq + 1);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 boolean Render_loadBitShapes(Render_t* render)

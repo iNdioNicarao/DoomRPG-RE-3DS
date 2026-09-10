@@ -1392,11 +1392,37 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
                 int lx2 = originX + (int)(((float)line->vert2.x * (float)ts) / 64.0f);
                 int ly2 = originY + (int)(((float)line->vert2.y * (float)ts) / 64.0f);
 
-                Uint8 lr = 0xCC;
-                Uint8 lg = ((line->flags & 4) != 0) ? 0x99 : 0x00;
-                Uint8 lb = 0x00;
+                Uint8 lr, lg, lb;
+                boolean isDoor = ((line->flags & 4) != 0);
+                boolean isDoorOpen = ((line->flags & 64) != 0);
+
+                if (isDoor) {
+                    if (line->keyType == 4) { // Red Keycard Door
+                        lr = 0xFF; lg = 0x22; lb = 0x22;
+                    } else if (line->keyType == 3) { // Blue Keycard Door
+                        lr = 0x00; lg = 0xD0; lb = 0xFF;
+                    } else if (line->keyType == 2) { // Yellow Keycard Door
+                        lr = 0xFF; lg = 0xEE; lb = 0x00;
+                    } else if (line->keyType == 1) { // Green Keycard Door
+                        lr = 0x20; lg = 0xFF; lb = 0x50;
+                    } else if (isDoorOpen) {
+                        lr = 0x66; lg = 0x88; lb = 0xAA;
+                    } else {
+                        lr = 0xEE; lg = 0xAA; lb = 0x33;
+                    }
+                } else {
+                    lr = 0xCC; lg = 0x00; lb = 0x00;
+                }
+
                 SDL_SetRenderDrawColor(sdlVideo.screenSurface, lr, lg, lb, 255);
                 SDL_RenderDrawLine(sdlVideo.screenSurface, lx1, ly1, lx2, ly2);
+                if (isDoor && line->keyType > 0 && !isDoorOpen) {
+                    if (lx1 == lx2) {
+                        SDL_RenderDrawLine(sdlVideo.screenSurface, lx1 + 1, ly1, lx2 + 1, ly2);
+                    } else {
+                        SDL_RenderDrawLine(sdlVideo.screenSurface, lx1, ly1 + 1, lx2, ly2 + 1);
+                    }
+                }
             }
         }
 
@@ -1640,7 +1666,20 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
 				int i22 = (line->vert2.x << 16) / i8;
 				int i23 = (line->vert2.y << 16) / i8;
 				if ((line->flags & 4) != 0) {
-					DoomRPG_setColor(doomCanvas->doomRpg, 0xCC9900);
+					boolean isDoorOpen = ((line->flags & 64) != 0);
+					if (line->keyType == 4) {
+						DoomRPG_setColor(doomCanvas->doomRpg, 0xFF2222); // Red
+					} else if (line->keyType == 3) {
+						DoomRPG_setColor(doomCanvas->doomRpg, 0x00D0FF); // Blue
+					} else if (line->keyType == 2) {
+						DoomRPG_setColor(doomCanvas->doomRpg, 0xFFEE00); // Yellow
+					} else if (line->keyType == 1) {
+						DoomRPG_setColor(doomCanvas->doomRpg, 0x20FF50); // Green
+					} else if (isDoorOpen) {
+						DoomRPG_setColor(doomCanvas->doomRpg, 0x6688AA);
+					} else {
+						DoomRPG_setColor(doomCanvas->doomRpg, 0xEEAA33);
+					}
 				} else {
 					DoomRPG_setColor(doomCanvas->doomRpg, 0xCC0000);
 				}

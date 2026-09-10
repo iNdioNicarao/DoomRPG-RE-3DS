@@ -85,6 +85,7 @@ typedef struct Line_s
 	Vertex_t vert2;
 	short texture;
 	int flags;
+	byte keyType; // 0=none, 1=Green, 2=Yellow, 3=Blue, 4=Red
 } Line_t;
 
 typedef struct Sprite_s
@@ -121,6 +122,7 @@ typedef struct Render_s
 	int* tileEvents;
 	int numTileEvents;
 	int* mapByteCode;
+	int numByteCodes;
 	char** mapStringsIDs;
 	int mapStringCount;
 	char mapFlags[1024];
@@ -243,6 +245,7 @@ boolean Render_beginLoadMap(Render_t* render, int mapNameID);
 boolean Render_beginLoadMapData(Render_t* render);
 boolean Render_loadBitShapes(Render_t* render);
 boolean Render_loadTexels(Render_t* render);
+void Render_identifyDoorKeyTypes(Render_t* render);
 int Render_getSTexelOffsets(Render_t* render, int i);
 int Render_getSTexelBufferSize(Render_t* render, int i);
 
