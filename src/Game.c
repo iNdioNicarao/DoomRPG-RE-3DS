@@ -819,7 +819,8 @@ void Game_loadConfig(Game_t* game)
 					for (int j = 0; j < KEYBINDS_MAX; j++) {
 						int defBind = keyMappingDefault[i].keyBinds[j];
 						if (defBind == KEY_CPAD_UP || defBind == KEY_CPAD_DOWN ||
-						    defBind == KEY_CPAD_LEFT || defBind == KEY_CPAD_RIGHT) {
+						    defBind == KEY_CPAD_LEFT || defBind == KEY_CPAD_RIGHT ||
+						    defBind == KEY_X || defBind == KEY_Y) {
 							boolean found = false;
 							for (int k = 0; k < KEYBINDS_MAX; k++) {
 								if (keyMapping[i].keyBinds[k] == defBind) {

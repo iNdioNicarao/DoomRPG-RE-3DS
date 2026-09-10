@@ -1086,7 +1086,7 @@ boolean Combat_playerSeq(Combat_t* combat)
 		}
 		else if (doomCanvas->time > combat->nextStageTime ||
 #ifdef __3DS__
-		         (g_turboCombat && (hidKeysDown() & (KEY_A | KEY_R)))
+		         (g_turboCombat && (hidKeysDown() & KEY_A))
 #else
 		         false
 #endif

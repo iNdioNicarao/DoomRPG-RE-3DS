@@ -49,8 +49,8 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
    - **OOM Safety Check in BitShapes**: Added explicit NULL validation in `Render_loadBitShapes` to prevent ARM11 Data Aborts (Crash Dump #146).
 
 5. **Turbo Mode 2.0 & Gameplay Acceleration Suite**:
-   - **Truncated Post-Attack Recovery**: Reduced post-action tail wait from 333ms to 75ms in Turbo mode, with immediate skip on pressing `A` or `R`.
-   - **"Hold-to-Fire" Attack Buffering**: Holding `A` or `R` continuously queues and executes attacks the exact frame the player's turn opens.
+   - **Truncated Post-Attack Recovery**: Reduced post-action tail wait from 333ms to 75ms in Turbo mode, with immediate skip on pressing `A`.
+   - **"Hold-to-Fire" Attack Buffering**: Holding `A` continuously queues and executes attacks the exact frame the player's turn opens.
    - **4x Projectile Velocity**: High-speed missiles (`speed <<= 2`) cross rooms in 3–4 frames while retaining full 3D rendering, smoke trails, and sound effects.
    - **Off-Screen Monster AI Instant Snap**: Distant or non-visible patrolling monsters resolve their movement turns instantly without multi-frame stepping.
    - **2-Frame Grid Traversal & Snappy Turning**: Walking and 90° turning dynamically step in 2 frames (33ms at 60 FPS) when Turbo exploration is active.
@@ -58,6 +58,7 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
    - **Accelerated Typewriters & Instant Reveal**: Terminal text speeds up from 25ms to 5ms per character in Turbo mode, with instant page reveals on tapping `A` or touching the screen.
 
 6. **Control Modernization & Usability Enhancements**:
+   - **Dedicated Weapon Cycling Face Buttons (`X` / `Y`)**: Mapped `X` to Next Weapon and `Y` to Previous Weapon in the default controls and config migration table. This enables physical weapon switching on Old 3DS, 3DS XL, and 2DS consoles (which lack `ZL`/`ZR` triggers) while giving New 3DS players both face button and trigger options.
    - **Direct Analog Circle Pad Polling**: Deflections are polled directly via `hidCircleRead` with deadzones, guaranteeing Circle Pad thumbstick movement regardless of save file state.
    - **Right Nub (C-Stick) Universal Scrolling**: Smooth scrolling using the C-Stick across dialogs, terminals, notebooks, menus, and help documentation.
    - **Terminal Password Auto-Scroll & Passcode Pinning**: In `ST_DIALOGPASSWORD`, the text automatically scrolls to reveal the prompt line, and the code input box remains pinned and visible at all times.

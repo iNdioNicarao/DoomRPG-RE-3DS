@@ -215,10 +215,10 @@ int main(int argc, char* args[])
             DoomRPG_setBind(doomRpg, mouse_Button, state);
         }
 #ifdef __3DS__
-        /* Attack Buffering / Hold-to-Fire: holding A or R continuously executes weapon strike */
+        /* Attack Buffering / Hold-to-Fire: holding A continuously executes weapon strike */
         if (g_attackBuffer || g_turboCombat) {
             static int s_lastHoldAttackTime = 0;
-            if ((kHeld & (KEY_A | KEY_R)) && !doomRpg->menuSystem->setBind) {
+            if ((kHeld & KEY_A) && !doomRpg->menuSystem->setBind) {
                 if (doomRpg->doomCanvas->state == ST_PLAYING &&
                     doomRpg->doomCanvas->animFrameCount == 0 &&
                     currentTimeMillis > s_lastHoldAttackTime + 180) {
