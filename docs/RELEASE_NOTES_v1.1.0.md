@@ -59,6 +59,7 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 
 6. **Control Modernization & Usability Enhancements**:
    - **Dedicated Weapon Cycling Face Buttons (`X` / `Y`)**: Mapped `X` to Next Weapon and `Y` to Previous Weapon in the default controls and config migration table. This enables physical weapon switching on Old 3DS, 3DS XL, and 2DS consoles (which lack `ZL`/`ZR` triggers) while giving New 3DS players both face button and trigger options.
+   - **Contextual Dialog & Terminal Message Scrolling via `X` / `Y`**: Because weapons cannot be fired or switched while reading terminals or NPC speech, `X` and `Y` dynamically double as **Scroll Down (`X`)** and **Scroll Up (`Y`)** buttons whenever dialogs or computer passcode prompts are displayed. This gives Old 3DS and 2DS players without a C-Stick nub full hardware message scrolling parity.
    - **Direct Analog Circle Pad Polling**: Deflections are polled directly via `hidCircleRead` with deadzones, guaranteeing Circle Pad thumbstick movement regardless of save file state.
    - **Right Nub (C-Stick) Universal Scrolling**: Smooth scrolling using the C-Stick across dialogs, terminals, notebooks, menus, and help documentation.
    - **Terminal Password Auto-Scroll & Passcode Pinning**: In `ST_DIALOGPASSWORD`, the text automatically scrolls to reveal the prompt line, and the code input box remains pinned and visible at all times.
@@ -98,6 +99,7 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 - `feat(input): add direct analog Circle Pad polling via hidCircleRead and config migration`
 - `feat(input): add Right Nub (C-Stick) scrolling for dialogs, terminals, and menus`
 - `feat(input): map X and Y face buttons to weapon cycle next/prev and add config migration`
+- `feat(input): support contextual message scroll down (X) and up (Y) during dialogs and terminals`
 - `fix(input): restrict interaction trigger to A and remove strafe dual-purpose on R`
 - `feat(dialog): auto-scroll password dialogs and pin code input box to visible viewport`
 - `feat(touch): add touch-up release verification, 100ms debounce, and inset for [ MENU ] button`
@@ -110,14 +112,14 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 ## Verification & File Hashes
 
 - `DoomRPG-1.1.0.cia`
-  - **MD5**: `f5fc98759377252f46eb1090b8a2d61d`
-  - **SHA256**: `70d6bbabfa4a4f68f0a565371ed602aaa550ce543e7453735aa9e1a404f031a5`
+  - **MD5**: `c611048de3a755ffba01faa3d57dc286`
+  - **SHA256**: `cf1c2c35b05113709b8244cf66a23f3b2faf5475788db2fa753ba65b7ec2da08`
 - `DoomRPG.3dsx`
-  - **MD5**: `fdb287e5b6b242a9040030478cddefb6`
-  - **SHA256**: `3d6361a5ffb514eec725d1add9a080f1c74011887bda218cc19e4f78738a2d47`
+  - **MD5**: `2ce686f7e2b1c7e46776164f1bfb06d7`
+  - **SHA256**: `41f45b9131cb3a31d43cb574884b2bf7c6468e112a020c1fabf7364eaa70e259`
 - `DoomRPG.elf`
-  - **MD5**: `252f13c031cdaf8e36f9111886a6fcf2`
-  - **SHA256**: `39afc4a5efa89dda7eb66384acdc03779e6f8ecd84ad16c2d38d194936ff9866`
+  - **MD5**: `05cea894c2242347491d6bb2140a736b`
+  - **SHA256**: `cc77b570978fe5bd18dc8f472e0cbc8e516849f0b8073a9905372b3b844cae7a`
 
 ---
 

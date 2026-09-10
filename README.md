@@ -27,7 +27,7 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
   - 2-frame exploration grid traversal (33ms at 60 FPS) and 2x fast door opening in Turbo exploration mode.
   - Accelerated typewriter terminal text (5ms/char) with instant page reveal on tapping `A` or the touchscreen.
 - **Direct Analog Circle Pad Polling**: Polled directly via `hidCircleRead` with deadzones, guaranteeing Circle Pad thumbstick movement regardless of save file state.
-- **Right Nub (C-Stick) Universal Scrolling**: Smooth scrolling using the C-Stick across dialogs, terminals, notebooks, menus, and help documentation.
+- **Right Nub (C-Stick) & X/Y Face Button Scrolling**: Smooth scrolling using the C-Stick (New 3DS) or dedicated **X (Scroll Down)** and **Y (Scroll Up)** face buttons during dialogs and computer terminals, giving Old 3DS and 2DS players without a right nub identical hardware scrolling capabilities.
 - **Terminal Password Auto-Scroll & Passcode Pinning**: In `ST_DIALOGPASSWORD`, the text automatically scrolls to reveal the prompt line, and the code input box remains pinned and visible at all times.
 - **Touchscreen Menu Debounce & Phantom Rejection**: Implemented touch-up release verification, 100ms hold debounce, bezel corner inset ($X = 345..394, Y = 244..260$), and an optional menu toggle to eliminate accidental pause menu popups from hand grip or bezel flex.
 - **New In-Game Video & Input Options**: Dedicated menu toggles for System Profiles (`Auto`, `High`, `Perf`), Render Scaling (`Crisp 400`, `Retro 200`), Floor/Ceiling textures, 3D Depth, Touch Menu, Hold Fire, Turbo Scope (`Combat`, `Explore`, `All`), Typewriter speed, and Reset Defaults.
@@ -70,8 +70,8 @@ The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files p
 | Turn Left / Right | D-pad Left / Right or Circle Pad (Left Stick) | — |
 | Attack / Talk / Use / Confirm | A (Hold for Attack Buffering) | On-screen dialog tap |
 | Back / Dismiss Dialog / Pass Turn | B | Tap `[ PASS ]` on top bar |
-| Next / Prev Weapon | ZR / ZL or X / Y | — |
-| Scroll Dialogs, Menus & Notebook | C-Stick (Right Nub Up / Down) | Touch & drag dialog text or scrollbar |
+| Next / Prev Weapon | ZR / ZL or X / Y (during gameplay) | — |
+| Scroll Dialogs, Terminals & Menus | C-Stick (Right Nub) or X / Y (during dialogs: X = Down, Y = Up) | Touch & drag dialog text or scrollbar |
 | Quick Use Items | Hotbar touch | Tap `S.MED`, `L.MED`, `SOUL`, `BRSK`, `DOG` |
 | Combat Turbo Toggle | — | Tap `[ TURBO ]` next to map controls |
 | Pan Automap | — | Touch & drag map with stylus / finger |

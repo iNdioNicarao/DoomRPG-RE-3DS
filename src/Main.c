@@ -96,23 +96,24 @@ int main(int argc, char* args[])
             }
         }
 
-        /* Right Nub (C-Stick) scrolling across dialogs, terminals, and menus */
+        /* Right Nub (C-Stick) & X/Y button scrolling across dialogs, terminals, and menus */
         circlePosition cstick;
         hidCstickRead(&cstick);
         if (doomRpg->doomCanvas->state == ST_DIALOG || doomRpg->doomCanvas->state == ST_DIALOGPASSWORD) {
             static int s_cstickScrollTime = 0;
             int curTime = DoomRPG_GetUpTimeMS();
-            if (curTime > s_cstickScrollTime) {
-                if (cstick.dy > 40 || (kDown & KEY_CSTICK_UP)) {
-                    if (doomRpg->doomCanvas->currentDialogLine > 0) {
-                        doomRpg->doomCanvas->currentDialogLine--;
-                        s_cstickScrollTime = curTime + 120;
-                    }
-                } else if (cstick.dy < -40 || (kDown & KEY_CSTICK_DOWN)) {
-                    if (doomRpg->doomCanvas->currentDialogLine + 4 < doomRpg->doomCanvas->numDialogLines) {
-                        doomRpg->doomCanvas->currentDialogLine++;
-                        s_cstickScrollTime = curTime + 120;
-                    }
+            boolean tapUp   = (kDown & (KEY_Y | KEY_CSTICK_UP)) != 0;
+            boolean tapDown = (kDown & (KEY_X | KEY_CSTICK_DOWN)) != 0;
+
+            if (tapUp || (curTime > s_cstickScrollTime && (cstick.dy > 40 || (kHeld & (KEY_Y | KEY_CSTICK_UP))))) {
+                if (doomRpg->doomCanvas->currentDialogLine > 0) {
+                    doomRpg->doomCanvas->currentDialogLine--;
+                    s_cstickScrollTime = curTime + 120;
+                }
+            } else if (tapDown || (curTime > s_cstickScrollTime && (cstick.dy < -40 || (kHeld & (KEY_X | KEY_CSTICK_DOWN))))) {
+                if (doomRpg->doomCanvas->currentDialogLine + 4 < doomRpg->doomCanvas->numDialogLines) {
+                    doomRpg->doomCanvas->currentDialogLine++;
+                    s_cstickScrollTime = curTime + 120;
                 }
             }
         } else if (doomRpg->doomCanvas->state == ST_MENU) {
