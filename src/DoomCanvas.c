@@ -943,7 +943,7 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
             for (int b = 0; b < 5; b++) {
                 int centerX = 40 + b * 80;
                 int count = player ? player->inventory[hotbar[b].itemIndex] : 0;
-                SDL_snprintf(text, sizeof(text), "%s: %d", hotbar[b].name, count);
+                SDL_snprintf(text, sizeof(text), "%s:%d", hotbar[b].name, count);
 
                 // Perfectly centered vertically at Y = 461 in 26px bar (454..479)
                 DoomCanvas_drawString1(doomCanvas, text, centerX, 461, 16);
