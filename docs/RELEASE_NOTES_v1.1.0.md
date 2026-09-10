@@ -75,6 +75,10 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
    - **Typewriter**: `[ Classic | Fast | Instant ]`
    - **Reset Defaults**: Restores factory controls and binding tables instantly.
 
+8. **High-Quality Roland SC-55 Soundtrack**:
+   - Upgraded in-game music tracks (`5039.mp3`, `5040.mp3`, `5043.mp3`) with authentic Roland Sound Canvas SC-55 recordings from [sc55.duke4.net](https://sc55.duke4.net/games.php) (`d_dead.mp3`, `d_e1m1.mp3`, `d_inter.mp3`).
+   - Sincere thanks to GBAtemp user **bakuDD** for identifying that the downmixed mobile BREW MIDI tracks correspond directly to original Doom and Doom II compositions and recommending these definitive Roland SC-55 recordings.
+
 ---
 
 ## Detailed Changelog
@@ -93,24 +97,27 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 - `feat(turbo): support 2-frame exploration grid traversal and 2x door opening speed`
 - `feat(input): add direct analog Circle Pad polling via hidCircleRead and config migration`
 - `feat(input): add Right Nub (C-Stick) scrolling for dialogs, terminals, and menus`
+- `feat(input): map X and Y face buttons to weapon cycle next/prev and add config migration`
+- `fix(input): restrict interaction trigger to A and remove strafe dual-purpose on R`
 - `feat(dialog): auto-scroll password dialogs and pin code input box to visible viewport`
 - `feat(touch): add touch-up release verification, 100ms debounce, and inset for [ MENU ] button`
 - `feat(menu): add dedicated Video and Input options for profiles, scaling, turbo, and defaults`
 - `fix(video): prevent stereoscopic eye desynchronization during sector loading and transition screens`
+- `feat(audio): replace downmixed MIDI tracks with authentic Roland SC-55 recordings (credit bakuDD)`
 
 ---
 
 ## Verification & File Hashes
 
 - `DoomRPG-1.1.0.cia`
-  - **MD5**: `1d0bad99dc1978cf6c1fe9e9642a12f5`
-  - **SHA256**: `59bb04eef441ec32f372f883e2418ac9d94daca677e03280c49f8130fc068a70`
+  - **MD5**: `68b60c7c926f60b6e49137fac98b37de`
+  - **SHA256**: `978950440a34e9626f5dfcaa4bdd8a9118d8ed5fcf2f12f775f6a771039699bc`
 - `DoomRPG.3dsx`
-  - **MD5**: `62bb5c4f14310cb3749afa8987cc697f`
-  - **SHA256**: `2c6da470990b9edb6ba26d47aa02eab7c4522b3c61501a1b5460c5a975de4687`
+  - **MD5**: `39a52599e39d5c69283d0c2c51630afc`
+  - **SHA256**: `91fecce3fb87e02de9ba4058bf72469216200e44431ace73ec387e3b902cb8d9`
 - `DoomRPG.elf`
-  - **MD5**: `0bcd54d597e377ef1911998b901ee689`
-  - **SHA256**: `4e8f471c381bec6ab0038bc940a478b92ad03cbe8909838cb1a43e006a7efb7b`
+  - **MD5**: `f09b36fc8f84b06b2d3162049846f009`
+  - **SHA256**: `0ea1c4ae1c0887daf641f1209e8a5feb6c5afffb59e1380434a18de6101cc560`
 
 ---
 
@@ -118,6 +125,7 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 
 - **Port & 3DS Enhancements**: Dennis Isaac Gutierrez Zeledon
 - **AI Coding Partner**: Gemini Antigravity (Google DeepMind)
+- **Soundtrack Research & Recommendation**: bakuDD (GBAtemp)
 - **Original Reverse Engineering**: GEC Team (Erick194 and contributors)
 - **Initial 3DS Port Base**: Efim Andreev (`efimandreev0`)
 - **Doom RPG**: id Software / Fountainhead Entertainment

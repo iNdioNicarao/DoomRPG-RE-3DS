@@ -51,7 +51,12 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
    - Engine data tables: `wtexels.bin`, `stexels.bin`, `bitshapes.bin`, `palettes.bin`, `mappings.bin`, and `sintable.bin`.
 4. Add audio next to the data, also under `sdmc:/3ds/doomrpg/`:
    - SFX as numbered `.wav` files (`5042.wav` through `5138.wav`).
-   - Music as numbered `.mp3` files (`5039.mp3`, `5040.mp3`, `5043.mp3`). Note: Original BREW extractions provide `.mid` (MIDI) tracks; convert these to `.mp3` before copying.
+   - Music as numbered `.mp3` files (`5039.mp3`, `5040.mp3`, `5043.mp3`):
+     > **High-Quality Roland SC-55 Music (Recommended):**
+     > The original BREW extractions only provide low-bitrate downmixed MIDI files. As identified by GBAtemp user **bakuDD**, these tracks are the exact same compositions as the original Doom and Doom II music. For authentic, high-quality audio, download the Roland Sound Canvas SC-55 recordings from [sc55.duke4.net](https://sc55.duke4.net/games.php) and place them as:
+     > - `5039.mp3` $\leftarrow$ `d_dead.mp3` from Doom II ("The Demon's Dead" / "Waiting for Romero to Play")
+     > - `5040.mp3` $\leftarrow$ `d_e1m1.mp3` from Doom ("At Doom's Gate")
+     > - `5043.mp3` $\leftarrow$ `d_inter.mp3` from Doom ("Sweet Little Dead Bunny" / Intermission)
 5. Launch from the HOME Menu or Homebrew Menu. Save files will automatically be created under `sdmc:/3ds/doomrpg/saves/`.
 
 The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files present.
@@ -65,7 +70,7 @@ The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files p
 | Turn Left / Right | D-pad Left / Right or Circle Pad (Left Stick) | — |
 | Attack / Talk / Use / Confirm | A (Hold for Attack Buffering) | On-screen dialog tap |
 | Back / Dismiss Dialog / Pass Turn | B | Tap `[ PASS ]` on top bar |
-| Next / Prev Weapon | ZR / ZL | — |
+| Next / Prev Weapon | ZR / ZL or X / Y | — |
 | Scroll Dialogs, Menus & Notebook | C-Stick (Right Nub Up / Down) | Touch & drag dialog text or scrollbar |
 | Quick Use Items | Hotbar touch | Tap `S.MED`, `L.MED`, `SOUL`, `BRSK`, `DOG` |
 | Combat Turbo Toggle | — | Tap `[ TURBO ]` next to map controls |
@@ -123,6 +128,9 @@ This fork was developed by **Dennis Isaac Gutierrez Zeledon** with the assistanc
   - **Assistant:** **Hermes Agent** (Nous Research)
   - **Model:** `tencent/hy3:free`
   - **Role:** Tracing the initial 3DS boot/render path, resolving early heap-exhaustion and null-surface crashes, establishing the New 3DS home-menu `.cia` build pipeline, and initial repository setup.
+
+- **Community Contributors & Research:**
+  - **bakuDD (GBAtemp)**: Research identifying that the downmixed mobile BREW MIDI tracks match original Doom and Doom II songs, and recommending the authentic Roland Sound Canvas SC-55 recordings from [sc55.duke4.net](https://sc55.duke4.net/games.php).
 
 ## License
 
