@@ -1945,7 +1945,8 @@ void Game_saveState(Game_t* game, int mapId, int x, int y, int angleDir, boolean
 		}
 		else {
 			//DoomCanvas_updateLoadingBar(game->doomRpg->doomCanvas);
-			Game_savePlayerState(game, "sdmc:/3ds/doomrpg/saves/Player", "/junction.bsp", 0, 0, 0);
+			char* mapPath = (mapId > 0 && mapId <= MAPNAME_MAX) ? game->mapFiles[mapId - 1] : "/junction.bsp";
+			Game_savePlayerState(game, "sdmc:/3ds/doomrpg/saves/Player", mapPath, x, y, angleDir);
 		}
 	}
 }

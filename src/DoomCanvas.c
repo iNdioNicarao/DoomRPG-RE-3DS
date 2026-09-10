@@ -4136,6 +4136,7 @@ boolean DoomCanvas_loadMedia(DoomCanvas_t* doomCanvas)
 
 			if ((doomCanvas->loadMapID != MAP_END_GAME) && (doomCanvas->game->isLoaded == false)) {
 				Game_saveState(doomCanvas->game, doomCanvas->loadMapID, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewAngle, false);
+				Hud_addMessage(doomCanvas, "Checkpoint saved");
 			}
 
 			doomCanvas->game->isLoaded = false;
