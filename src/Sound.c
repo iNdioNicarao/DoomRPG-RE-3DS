@@ -88,6 +88,8 @@ Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
 	sound->priority = 3;
 	sound->channel = 0;
 	sound->volume = 100;
+	sound->musicVolume = 100;
+	sound->sfxVolume = 100;
 	i = 0;
 	do {
 		chan = &sound->soundChannel[i];
@@ -102,15 +104,15 @@ Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
 
 
 	Mix_AllocateChannels(MAX_SOUNDCHANNELS);
-	//Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
-	Mix_Volume(-1, (sound->volume * MIX_MAX_VOLUME) / 100);
+	//Mix_VolumeMusic((sound->musicVolume * MIX_MAX_VOLUME) / 100);
+	Mix_Volume(-1, (sound->sfxVolume * MIX_MAX_VOLUME) / 100);
 
 	//printf("Num Channes is: %d\n", Mix_AllocateChannels(-1));
 	//printf("Music volume is: %d\n", Mix_VolumeMusic(-1));
 	//printf("Sound volume is: %d\n", Mix_Volume(-1, -1));
 
 	// Allowed range of synth.gain is 0.0 to 10.0
-	fluid_settings_setnum(fluidSynth.settings, "synth.gain", 1.0 * ((sound->volume * MIX_MAX_VOLUME) / 100) / 128.0);
+	fluid_settings_setnum(fluidSynth.settings, "synth.gain", 1.0 * ((sound->musicVolume * MIX_MAX_VOLUME) / 100) / 128.0);
 
 #if INIT_ALLSOUNDS
 	sound->audioFiles = SDL_malloc(sizeof(AudioFile_t) * MAX_AUDIOFILES);
@@ -359,12 +361,12 @@ void Sound_readySound(Sound_t* sound, int chan)
 	sChannel = &sound->soundChannel[chan];
 
 	if (sChannel->flags & SND_FLG_ISMUSIC) {
-		//Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
+		//Mix_VolumeMusic((sound->musicVolume * MIX_MAX_VOLUME) / 100);
 		// Allowed range of synth.gain is 0.0 to 10.0
-		fluid_settings_setnum(fluidSynth.settings, "synth.gain", 1.0 * ((sound->volume * MIX_MAX_VOLUME) / 100) / 128.0);
+		fluid_settings_setnum(fluidSynth.settings, "synth.gain", 1.0 * ((sound->musicVolume * MIX_MAX_VOLUME) / 100) / 128.0);
 	}
 	else {
-		Mix_VolumeChunk(sound->soundChannel[chan].mediaAudioSound, (sound->volume * MIX_MAX_VOLUME) / 100);
+		Mix_VolumeChunk(sound->soundChannel[chan].mediaAudioSound, (sound->sfxVolume * MIX_MAX_VOLUME) / 100);
 	}
 }
 
@@ -454,16 +456,16 @@ void Sound_updateVolume(Sound_t* sound)
 	do {
 		if (sound->soundChannel[chan].flags & SND_FLG_ISMUSIC) {
 			/*if (Mix_PlayingMusic()) {
-				Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
+				Mix_VolumeMusic((sound->musicVolume * MIX_MAX_VOLUME) / 100);
 			}*/
 			if (fluid_player_get_status(sound->soundChannel[chan].mediaAudioMusic) == FLUID_PLAYER_PLAYING) {
 				// Allowed range of synth.gain is 0.0 to 10.0
-				fluid_settings_setnum(fluidSynth.settings, "synth.gain", 1.0 * ((sound->volume * MIX_MAX_VOLUME) / 100) / 128.0);
+				fluid_settings_setnum(fluidSynth.settings, "synth.gain", 1.0 * ((sound->musicVolume * MIX_MAX_VOLUME) / 100) / 128.0);
 			}
 		}
 		else {
 			if (Mix_Playing(chan)) {
-				Mix_VolumeChunk(sound->soundChannel[chan].mediaAudioSound, (sound->volume * MIX_MAX_VOLUME) / 100);
+				Mix_VolumeChunk(sound->soundChannel[chan].mediaAudioSound, (sound->sfxVolume * MIX_MAX_VOLUME) / 100);
 			}
 		}
 	} while (++chan < (MAX_SOUNDCHANNELS + 1));
@@ -515,6 +517,8 @@ int Sound_addVolume(Sound_t* sound, int volume)
 	sound->priority = 3;
 	sound->channel = 0;
 	sound->volume = 100;
+	sound->musicVolume = 100;
+	sound->sfxVolume = 100;
 
 	i = 0;
 	do {
@@ -528,10 +532,10 @@ int Sound_addVolume(Sound_t* sound, int volume)
 	sound->doomRpg = doomRpg;
 
 	Mix_AllocateChannels(MAX_SOUNDCHANNELS);
-	Mix_Volume(-1, (sound->volume * MIX_MAX_VOLUME) / 100);
-	Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
+	Mix_Volume(-1, (sound->sfxVolume * MIX_MAX_VOLUME) / 100);
+	Mix_VolumeMusic((sound->musicVolume * MIX_MAX_VOLUME) / 100);
 #ifdef __3DS__
-	MusicStream_setVolume((sound->volume * 128) / 100);
+	MusicStream_setVolume((sound->musicVolume * 128) / 100);
 #endif
 
 
@@ -743,13 +747,13 @@ void Sound_readySound(Sound_t* sound, int chan)
     	SoundChannel_t* sChannel = &sound->soundChannel[chan];
 
     	if (sChannel->flags & SND_FLG_ISMUSIC) {
-    		Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
+    		Mix_VolumeMusic((sound->musicVolume * MIX_MAX_VOLUME) / 100);
 #ifdef __3DS__
-    		MusicStream_setVolume((sound->volume * 128) / 100);
+    		MusicStream_setVolume((sound->musicVolume * 128) / 100);
 #endif
     	} else {
     		if (sChannel->mediaAudioSound) {
-    			Mix_VolumeChunk(sChannel->mediaAudioSound, (sound->volume * MIX_MAX_VOLUME) / 100);
+    			Mix_VolumeChunk(sChannel->mediaAudioSound, (sound->sfxVolume * MIX_MAX_VOLUME) / 100);
     		}
     	}
     }
@@ -830,19 +834,19 @@ int Sound_getFromResourceID(int resourceID)
 
 void Sound_updateVolume(Sound_t* sound)
 {
-    int new_volume = (sound->volume * MIX_MAX_VOLUME) / 100;
+    int sfx_volume = (sound->sfxVolume * MIX_MAX_VOLUME) / 100;
+    int mus_volume = (sound->musicVolume * 128) / 100;
 
-
-    Mix_VolumeMusic(new_volume);
+    Mix_VolumeMusic((sound->musicVolume * MIX_MAX_VOLUME) / 100);
 #ifdef __3DS__
-    MusicStream_setVolume(new_volume);
+    MusicStream_setVolume(mus_volume);
 #endif
-    Mix_Volume(-1, new_volume);
+    Mix_Volume(-1, sfx_volume);
 
     // if need update volume for already loaded mp3 chunks
     for (int chan = 0; chan < MAX_SOUNDCHANNELS; ++chan) {
         if (sound->soundChannel[chan].mediaAudioSound) {
-            Mix_VolumeChunk(sound->soundChannel[chan].mediaAudioSound, new_volume);
+            Mix_VolumeChunk(sound->soundChannel[chan].mediaAudioSound, sfx_volume);
         }
     }
 

@@ -466,7 +466,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 			menuSystem->imgBG = &menuSystem->imgLogo;
 			menuSystem->oldMenu = -1;
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Start Game", 2, 0);
-			//MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Options   ", 2, 0);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Options   ", 2, 0);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Help/About", 2, 2);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Exit      ", 2, 3);
 			break;
@@ -517,7 +517,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 			break;
 		}
 
-		/*case MENU_MAIN_OPTIONS:
+		case MENU_MAIN_OPTIONS:
 		case MENU_INGAME_OPTIONS: {
 			if (i == MENU_INGAME_OPTIONS) {
 				strncpy(menu->doomRpg->hud->logMessage, "Options", sizeof(menu->doomRpg->hud->logMessage));
@@ -525,7 +525,6 @@ void Menu_initMenu(Menu_t* menu, int i)
 				menuSystem->oldMenu = MENU_INGAME;
 			}
 			else {
-				//menuSystem->type = 4; // MENUTYPE_MAIN
 				menuSystem->type = 7; // MENUTYPE_MAIN2
 				menuSystem->oldMenu = MENU_MAIN;
 			}
@@ -539,35 +538,8 @@ void Menu_initMenu(Menu_t* menu, int i)
 			// New Option
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Sound", 0, (i == MENU_INGAME_OPTIONS) ? true : false);
 
-
-#if 0 // Original Code
-			if (doomCanvas->sndFXOnly == false) {
-				MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Vibrate:",
-					doomCanvas->vibrateEnabled ? "on" : "off", 0, 0);
-
-				MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Sound:",
-					menu->doomRpg->sound->soundEnabled ? "on" : "off", 0, 0);
-			}
-			else {
-				MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "FX:",
-					menu->doomRpg->sound->soundEnabled ? "Sound" :
-					doomCanvas->vibrateEnabled ? "Vibrate" : "None", 0, 0);
-			}
-
-			if (menu->doomRpg->sound->soundEnabled) {
-				MenuItem_Set2(&menuSystem->items[menuSystem->numItems], "Volume:", "", 0, 0);
-
-				SDL_snprintf(menuSystem->items[menuSystem->numItems].textField2,
-					sizeof(menuSystem->items[menuSystem->numItems].textField2), "%d%%", (menu->doomRpg->sound->volume * 100) / 100);
-				menuSystem->numItems++;
-			}
-			else {
-				MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
-			}
-#endif
-
 			break;
-		}*/
+		}
 
 		case MENU_ENABLE_SOUNDS: {
 			Menu_setYesNo(menu, "Enable sounds?");
@@ -668,6 +640,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Main Menu", 0, MENU_INGAME_EXIT);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Debug", 0, MENU_DEBUG);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Controls", 0, MENU_INGAME_INPUT);
+			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Sound", 0, MENU_INGAME_SOUND);
 			break;
 		}
 
@@ -1219,9 +1192,9 @@ void Menu_initMenu(Menu_t* menu, int i)
 		// NEW MENU OPTIONS
 		case MENU_SOUND:
 		case MENU_INGAME_SOUND: {
-			if (menuSystem->type == 1) {
+			if (i == MENU_INGAME_SOUND || menuSystem->type == 1) {
 				strncpy(menu->doomRpg->hud->logMessage, "Sound Options", sizeof(menu->doomRpg->hud->logMessage));
-				menuSystem->oldMenu = MENU_INGAME_OPTIONS;
+				menuSystem->oldMenu = (menuSystem->oldMenu == MENU_INGAME_OPTIONS) ? MENU_INGAME_OPTIONS : MENU_INGAME;
 				menuSystem->type = 1;
 			}
 			else {
@@ -1234,16 +1207,21 @@ void Menu_initMenu(Menu_t* menu, int i)
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Sound:",
 				menu->doomRpg->sound->soundEnabled ? "on" : "off", 0, 0);
 			if (menu->doomRpg->sound->soundEnabled) {
-				MenuItem_Set2(&menuSystem->items[menuSystem->numItems], "Volume:", "", 0, 0);
-
+				MenuItem_Set2(&menuSystem->items[menuSystem->numItems], "Music Vol:", "", 0, 0);
 				SDL_snprintf(menuSystem->items[menuSystem->numItems].textField2,
-					sizeof(menuSystem->items[menuSystem->numItems].textField2), "%d%%", (menu->doomRpg->sound->volume * 100) / 100);
+					sizeof(menuSystem->items[menuSystem->numItems].textField2), "%d%%", menu->doomRpg->sound->musicVolume);
+				menuSystem->numItems++;
+
+				MenuItem_Set2(&menuSystem->items[menuSystem->numItems], "SFX Vol:", "", 0, 0);
+				SDL_snprintf(menuSystem->items[menuSystem->numItems].textField2,
+					sizeof(menuSystem->items[menuSystem->numItems].textField2), "%d%%", menu->doomRpg->sound->sfxVolume);
 				menuSystem->numItems++;
 
 				MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Priority:",
 					menu->doomRpg->doomCanvas->sndPriority ? "on" : "off", 0, 0);
 			}
 			else {
+				MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 				MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 				MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 			}
@@ -2350,14 +2328,16 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 					}
 					strncpy(menuSystem->items[itemId].textField2, "on", sizeof(menuSystem->items[itemId].textField2));
 
-					MenuItem_Set2(&menuSystem->items[itemId + 1], "Volume:", "", 0, 0);
-
+					MenuItem_Set2(&menuSystem->items[itemId + 1], "Music Vol:", "", 0, 0);
 					SDL_snprintf(menuSystem->items[itemId + 1].textField2,
-						sizeof(menuSystem->items[itemId + 1].textField2), "%d%%", (doomRpg->sound->volume * 100) / 100);
+						sizeof(menuSystem->items[itemId + 1].textField2), "%d%%", doomRpg->sound->musicVolume);
 
+					MenuItem_Set2(&menuSystem->items[itemId + 2], "SFX Vol:", "", 0, 0);
+					SDL_snprintf(menuSystem->items[itemId + 2].textField2,
+						sizeof(menuSystem->items[itemId + 2].textField2), "%d%%", doomRpg->sound->sfxVolume);
 
-					MenuItem_Set2(&menuSystem->items[itemId + 2], "Priority:", "", 0, 0);
-					strncpy(menuSystem->items[itemId + 2].textField2, doomCanvas->sndPriority ? "on" : "off", sizeof(menuSystem->items[itemId + 2].textField2));
+					MenuItem_Set2(&menuSystem->items[itemId + 3], "Priority:", "", 0, 0);
+					strncpy(menuSystem->items[itemId + 3].textField2, doomCanvas->sndPriority ? "on" : "off", sizeof(menuSystem->items[itemId + 3].textField2));
 				}
 				else {
 					strncpy(menuSystem->items[itemId].textField2, "off", sizeof(menuSystem->items[itemId].textField2));
@@ -2365,19 +2345,31 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 					Sound_freeSounds(doomRpg->sound);
 					MenuItem_Set(&menuSystem->items[itemId + 1], NULL, 0, 0);
 					MenuItem_Set(&menuSystem->items[itemId + 2], NULL, 0, 0);
+					MenuItem_Set(&menuSystem->items[itemId + 3], NULL, 0, 0);
 				}
 			}
-			else if (itemId == 2) {
-
-				if (doomRpg->sound->volume == 100) {
-					doomRpg->sound->volume = 0;
-					Sound_updateVolume(menu->doomRpg->sound);
+			else if (itemId == 2) { // Music Vol
+				doomRpg->sound->musicVolume += 10;
+				if (doomRpg->sound->musicVolume > 100) {
+					doomRpg->sound->musicVolume = 0;
 				}
-				else {
-					Sound_addVolume(menu->doomRpg->sound, 10);
-				}
+				Sound_updateVolume(doomRpg->sound);
+				SDL_snprintf(menuSystem->items[itemId].textField2,
+					sizeof(menuSystem->items[itemId].textField2), "%d%%", doomRpg->sound->musicVolume);
+				menuSystem->paintMenu = true;
 			}
-			else if (itemId == 3) {
+			else if (itemId == 3) { // SFX Vol
+				doomRpg->sound->sfxVolume += 10;
+				if (doomRpg->sound->sfxVolume > 100) {
+					doomRpg->sound->sfxVolume = 0;
+				}
+				Sound_updateVolume(doomRpg->sound);
+				SDL_snprintf(menuSystem->items[itemId].textField2,
+					sizeof(menuSystem->items[itemId].textField2), "%d%%", doomRpg->sound->sfxVolume);
+				Sound_playSound(doomRpg->sound, 5046, 0, 3);
+				menuSystem->paintMenu = true;
+			}
+			else if (itemId == 4) { // Priority
 				doomCanvas->sndPriority ^= true;
 				strncpy(menuSystem->items[itemId].textField2, doomCanvas->sndPriority ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
 			}

@@ -854,6 +854,13 @@ void Game_loadConfig(Game_t* game)
 					g_attackBuffer = File_readByte(rw) != 0;
 					g_typewriterSpeed = File_readByte(rw);
 					g_touchMenuButton = File_readByte(rw) != 0;
+					if (SDL_RWseek(rw, 0, SEEK_CUR) < SDL_RWseek(rw, 0, SEEK_END)) {
+						int mus = File_readByte(rw);
+						int sfx = File_readByte(rw);
+						if (mus >= 0 && mus <= 100) game->doomRpg->sound->musicVolume = mus;
+						if (sfx >= 0 && sfx <= 100) game->doomRpg->sound->sfxVolume = sfx;
+					}
+					Sound_updateVolume(game->doomRpg->sound);
 				}
 #endif
 				SDL_memcpy(keyMappingTemp, keyMapping, sizeof(keyMapping));
@@ -1844,6 +1851,8 @@ void Game_saveConfig(Game_t* game, int num)
 	File_writeByte(rw, (byte)(g_attackBuffer ? 1 : 0));
 	File_writeByte(rw, (byte)g_typewriterSpeed);
 	File_writeByte(rw, (byte)(g_touchMenuButton ? 1 : 0));
+	File_writeByte(rw, (byte)game->doomRpg->sound->musicVolume);
+	File_writeByte(rw, (byte)game->doomRpg->sound->sfxVolume);
 #endif
 
 	SDL_RWclose(rw);

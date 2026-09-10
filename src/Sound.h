@@ -53,6 +53,8 @@ typedef struct Sound_s
 	int nextplay;
 	struct SoundChannel_s soundChannel[MAX_SOUNDCHANNELS+1];
 	int volume;
+	int musicVolume;
+	int sfxVolume;
 	struct DoomRPG_s* doomRpg;
 	AudioFile_t* audioFiles; // New
 } Sound_t;
@@ -73,6 +75,8 @@ typedef struct Sound_s
     int nextplay;
     struct SoundChannel_s soundChannel[MAX_SOUNDCHANNELS + 1];
     int volume;
+    int musicVolume;
+    int sfxVolume;
     struct DoomRPG_s* doomRpg;
     AudioFile_t* audioFiles;
 } Sound_t;
