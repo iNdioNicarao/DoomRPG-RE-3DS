@@ -1153,11 +1153,9 @@ byte *DoomRPG_fileOpenRead(DoomRPG_t* doomrpg, const char* resourceName)
 	for (int attempt = 0; attempt < 20; ++attempt) {
 		fdata = readZipFileEntry(fileName, &zipFile, &fSize);
 		if (fdata != NULL) return fdata;
-		if (attempt == 0) {
-			DoomRPG_Error("Failed to read file %s (sdmc:/3ds/doomrpg/).", fileName);
-		}
 		svcSleepThread(100 * 1000 * 1000ULL); /* 100ms */
 	}
+	DoomRPG_Error("Failed to read file %s (sdmc:/3ds/doomrpg/) after 20 attempts.", fileName);
 	return NULL;
 }
 
