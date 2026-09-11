@@ -258,7 +258,11 @@ void DoomCanvas_automapState(DoomCanvas_t* doomCanvas)
 	if (waitTime && (doomCanvas->time >= waitTime)) {
 		doomCanvas->game->waitTime = 0;
 		game = doomCanvas->game;
-		Game_runEvent(game, game->tileEvent, game->tileEventIndex + 1, game->tileEventFlags);
+		int te = game->tileEvent;
+		int teIdx = game->tileEventIndex + 1;
+		int teFlags = game->tileEventFlags;
+		game->tileEvent = 0;
+		Game_runEvent(game, te, teIdx, teFlags);
 	}
 }
 
@@ -3530,7 +3534,11 @@ void DoomCanvas_handleDialogEvents(DoomCanvas_t* doomCanvas, int i)
 
 		DoomCanvas_closeDialog(doomCanvas);
 		if (doomCanvas->game->tileEvent != 0) {
-			Game_runEvent(doomCanvas->game, doomCanvas->game->tileEvent, doomCanvas->game->tileEventIndex + 1, doomCanvas->game->tileEventFlags);
+			int te = doomCanvas->game->tileEvent;
+			int teIdx = doomCanvas->game->tileEventIndex + 1;
+			int teFlags = doomCanvas->game->tileEventFlags;
+			doomCanvas->game->tileEvent = 0;
+			Game_runEvent(doomCanvas->game, te, teIdx, teFlags);
 		}
 	}
 	else if (key == MOVEFORWARD) {
@@ -3553,6 +3561,7 @@ void DoomCanvas_handleDialogEvents(DoomCanvas_t* doomCanvas, int i)
 	}
 	else if (doomCanvas->dialogBackSoftKey && (key == TURNLEFT || key == TURNRIGHT || key == MENUOPEN || key == MENU_OPEN || key == 15)) {
 		DoomCanvas_closeDialog(doomCanvas);
+		doomCanvas->game->tileEvent = 0;
 	}
 }
 
@@ -4489,7 +4498,11 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 	else {
 		if (game->waitTime != 0 && doomCanvas->time >= game->waitTime) {
 			game->waitTime = 0;
-			Game_runEvent(game, game->tileEvent, game->tileEventIndex + 1, game->tileEventFlags);
+			int te = game->tileEvent;
+			int teIdx = game->tileEventIndex + 1;
+			int teFlags = game->tileEventFlags;
+			game->tileEvent = 0;
+			Game_runEvent(game, te, teIdx, teFlags);
 		}
 
 		boolean applyBerserk = false;
@@ -5070,10 +5083,15 @@ void DoomCanvas_run(DoomCanvas_t* doomCanvas)
 				DoomCanvas_closeDialog(doomCanvas);
 				if (SDL_strcmp(doomCanvas->passCode, doomCanvas->game->passCode) == 0) {
 					Hud_addMessageForce(doomCanvas, "Correct code!", true);
-					Game_runEvent(doomCanvas->game, doomCanvas->game->tileEvent, doomCanvas->game->tileEventIndex + 1, doomCanvas->game->tileEventFlags);
+					int te = doomCanvas->game->tileEvent;
+					int teIdx = doomCanvas->game->tileEventIndex + 1;
+					int teFlags = doomCanvas->game->tileEventFlags;
+					doomCanvas->game->tileEvent = 0;
+					Game_runEvent(doomCanvas->game, te, teIdx, teFlags);
 				}
 				else if (doomCanvas->passCode[0] != '\0') {
 					Hud_addMessageForce(doomCanvas, "Invalid code!", true);
+					doomCanvas->game->tileEvent = 0;
 				}
 			}
 
