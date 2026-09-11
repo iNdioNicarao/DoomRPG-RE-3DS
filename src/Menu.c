@@ -44,7 +44,7 @@ int vendingMenuTable[MAXSTORELINES * MAXSTORES] = {
 	-1, -1, 4, 15, 30, 40, -1,  2,  2,  4,  5,  8, -1,  8,  8, 10, 10  // Price tags
 };
 
-static const char* s_help3DS[] = {
+static const char* s_help3DS_New[] = {
 	"~~ HELP/ABOUT ~~",
 	"Doom RPG RE 3DS",
 	"Port by Dennis",
@@ -70,7 +70,8 @@ static const char* s_help3DS[] = {
 	"~~~ CONTROLS ~~~",
 	"CPad/D-Pad: Move",
 	"L / R: Strafe",
-	"ZL / ZR: Weapon",
+	"ZL/ZR, X/Y: Wpn",
+	"Nub/Touch: Scroll",
 	"A: Atk/Talk/Use",
 	"B: Pass Turn",
 	"START: Game Menu",
@@ -78,6 +79,58 @@ static const char* s_help3DS[] = {
 	"",
 	"~~~ TOUCH HUD ~~~",
 	"Hotbar: Use Item",
+	"Left Bar: Weapon",
+	"Map: Drag to pan",
+	"Touch [+] / [-]",
+	"to zoom automap.",
+	"Touch [CTR] to",
+	"recenter map.",
+	"[TURBO]: Fast-fwd",
+	"Pad: Door codes",
+	"",
+	" ~~~ LEGALS ~~~",
+	"(c) 2005 Id",
+	"Software, Inc.",
+	"All rights",
+	"reserved."
+};
+
+static const char* s_help3DS_Old[] = {
+	"~~ HELP/ABOUT ~~",
+	"Doom RPG RE 3DS",
+	"Port by Dennis",
+	"",
+	"In DOOM RPG you",
+	"will fight mon-",
+	"sters, solve puz-",
+	"zles and interact",
+	"with characters",
+	"in response to a",
+	"crisis on Mars.",
+	"",
+	" ~~~ GENERAL ~~~",
+	"Use Circle Pad",
+	"or D-Pad to move",
+	"around base and",
+	"navigate menus.",
+	"Press A to talk,",
+	"attack, and use.",
+	"Press B to pass",
+	"turn or dismiss.",
+	"",
+	"~~~ CONTROLS ~~~",
+	"CPad/D-Pad: Move",
+	"L / R: Strafe",
+	"X / Y: Weapon",
+	"Touch/XY: Scroll",
+	"A: Atk/Talk/Use",
+	"B: Pass Turn",
+	"START: Game Menu",
+	"SELECT: Recenter",
+	"",
+	"~~~ TOUCH HUD ~~~",
+	"Hotbar: Use Item",
+	"Left Bar: Weapon",
 	"Map: Drag to pan",
 	"Touch [+] / [-]",
 	"to zoom automap.",
@@ -97,9 +150,12 @@ void Menu_LoadHelpResource(Menu_t* menu)
 {
 #ifdef __3DS__
 	MenuSystem_t* menuSystem = menu->doomRpg->menuSystem;
-	for (size_t i = 0; i < sizeof(s_help3DS) / sizeof(s_help3DS[0]); i++) {
+	const char** helpArray = g_isNew3DS ? s_help3DS_New : s_help3DS_Old;
+	size_t helpCount = g_isNew3DS ? (sizeof(s_help3DS_New) / sizeof(s_help3DS_New[0]))
+	                              : (sizeof(s_help3DS_Old) / sizeof(s_help3DS_Old[0]));
+	for (size_t i = 0; i < helpCount; i++) {
 		char textLine[32];
-		const char* src = s_help3DS[i];
+		const char* src = helpArray[i];
 		int j = 0;
 		while (src[j] && j < 17) {
 			if (src[j] == '~') textLine[j] = (char)0x80;

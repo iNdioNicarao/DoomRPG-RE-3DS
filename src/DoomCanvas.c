@@ -4604,14 +4604,30 @@ static void str_replace(char* buf, size_t bufSize, const char* target, const cha
 
 static void DoomCanvas_adapt3DSDialog(char* buf, size_t bufSize)
 {
-	/* Weapons: 7 and * */
-	str_replace(buf, bufSize, "pressing the *|and 7 keys", "pressing the ZL|and ZR buttons");
-	str_replace(buf, bufSize, "press-|ing the * and 7|buttons", "press-|ing the ZL and ZR|buttons");
-	str_replace(buf, bufSize, "pressing the * and 7 keys", "pressing ZL and ZR");
-	str_replace(buf, bufSize, "pressing the * and 7 buttons", "pressing ZL and ZR");
-	str_replace(buf, bufSize, "the * and 7 keys", "the ZL and ZR buttons");
-	str_replace(buf, bufSize, "the * and 7 buttons", "the ZL and ZR buttons");
-	str_replace(buf, bufSize, "the * and 7", "ZL and ZR");
+	/* Weapons and Message Scrolling (Device-Specific for New 3DS vs Old 3DS / 2DS) */
+	if (g_isNew3DS) {
+		str_replace(buf, bufSize,
+			"You can also|switch between|weapons by press-|ing the * and 7|buttons.",
+			"Switch weapons|with ZL & ZR, X &|Y, or the touch|bar! While read-|ing messages, you|can scroll with|the Right Nub, X|& Y, or touch!");
+		str_replace(buf, bufSize, "pressing the *|and 7 keys", "pressing ZL/ZR|or X/Y buttons");
+		str_replace(buf, bufSize, "press-|ing the * and 7|buttons", "pressing ZL/ZR|or X/Y buttons");
+		str_replace(buf, bufSize, "pressing the * and 7 keys", "pressing ZL/ZR or X/Y");
+		str_replace(buf, bufSize, "pressing the * and 7 buttons", "pressing ZL/ZR or X/Y");
+		str_replace(buf, bufSize, "the * and 7 keys", "ZL/ZR or X/Y");
+		str_replace(buf, bufSize, "the * and 7 buttons", "ZL/ZR or X/Y");
+		str_replace(buf, bufSize, "the * and 7", "ZL/ZR or X/Y");
+	} else {
+		str_replace(buf, bufSize,
+			"You can also|switch between|weapons by press-|ing the * and 7|buttons.",
+			"Switch weapons|with X & Y, or the|touch weapon bar!|While reading a|message, you can|scroll the text|using X & Y or|the touch screen!");
+		str_replace(buf, bufSize, "pressing the *|and 7 keys", "pressing the X|and Y buttons");
+		str_replace(buf, bufSize, "press-|ing the * and 7|buttons", "pressing the X|and Y buttons");
+		str_replace(buf, bufSize, "pressing the * and 7 keys", "pressing X and Y");
+		str_replace(buf, bufSize, "pressing the * and 7 buttons", "pressing X and Y");
+		str_replace(buf, bufSize, "the * and 7 keys", "the X and Y buttons");
+		str_replace(buf, bufSize, "the * and 7 buttons", "the X and Y buttons");
+		str_replace(buf, bufSize, "the * and 7", "X and Y");
+	}
 
 	/* Action / Confirmation */
 	str_replace(buf, bufSize, "press the OK|button", "press the A|button");
