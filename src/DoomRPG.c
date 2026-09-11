@@ -23,6 +23,7 @@
 #include "Player.h"
 #include "ParticleSystem.h"
 #include "Combat.h"
+#include "Hardware3DS.h"
 #include "SDL_Video.h"
 #include "Z_Zip.h"
 
@@ -1352,6 +1353,7 @@ void DoomRPG_setFontColor(DoomRPG_t* doomrpg, int color)
 void DoomRPG_loopGame(DoomRPG_t* doomrpg)
 {
 	DoomCanvas_run(doomrpg->doomCanvas);
+	Hardware_updateLed(doomrpg);
 
 	doomrpg->upTimeMs = DoomRPG_GetUpTimeMS();
 	//printf("doomrpg->upTimeMs %d\n", doomrpg->upTimeMs);

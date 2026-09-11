@@ -19,6 +19,7 @@
 #include "MenuSystem.h"
 #include "SDL_Video.h"
 #include "Z_Zip.h"
+#include "Hardware3DS.h"
 
 extern DoomRPG_t* doomRpg;
 
@@ -48,6 +49,7 @@ int main(int argc, char* args[])
     SDL_InitVideo();
     SDL_InitAudio();
     SDL_ShowCursor(SDL_DISABLE);
+    Hardware_init();
 
     if (DoomRPG_Init() == 0) {
         DoomRPG_Error("Failed to initialize Doom Rpg\n");
@@ -242,8 +244,10 @@ int main(int argc, char* args[])
     // closeZipFile(&zipFile);
     //DoomRPG_FreeAppData(doomRpg);
 #ifdef __3DS__
+    Hardware_exit();
     SDL_Close();
 #else
+    Hardware_exit();
     SDL_Quit();
 #endif
 

@@ -27,6 +27,7 @@
 #include "Combat.h"
 #include "SDL_Video.h"
 #include "Z_Zone.h"
+#include "Hardware3DS.h"
 
 static char processing[] = "Processing...";
 static char justAMoment[] = "(Just a moment!)";
@@ -4248,6 +4249,7 @@ boolean DoomCanvas_loadMedia(DoomCanvas_t* doomCanvas)
 #ifdef __3DS__
 			DoomCanvas_resetStereoRight();
 #endif
+			Hardware_resetSecretCounter(doomCanvas->doomRpg);
 			DoomCanvas_setState(doomCanvas, ST_PLAYING);
 			doomCanvas->idleTime = doomCanvas->time + 8000;
 			return true;
