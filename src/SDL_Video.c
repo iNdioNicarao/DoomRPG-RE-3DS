@@ -552,12 +552,10 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
         s_botFrameCounter = 0;
     }
 
-    /* Clear bottom-screen rows 240..479 to opaque black for NEXT frame so stale pixels never linger */
-    {
+    /* Clear bottom-screen rows 240..479 to black for NEXT frame so stale pixels never linger */
+    if (sdlVideo.screenSurface && sdlVideo.screenSurface->pixels) {
         Uint32* sp = (Uint32*)sdlVideo.screenSurface->pixels;
-        for (int sy = 240; sy < 480; sy++)
-            for (int sx = 0; sx < 400; sx++)
-                sp[sy * 400 + sx] = 0xFF000000u;  /* A=255, RGB=0 */
+        SDL_memset(sp + 240 * 400, 0, 240 * 400 * sizeof(Uint32));
     }
 
     /* TOP screen: hand to citro2d. Copy the top region (screenSurface rows 0..239, 400x240 or 200x240)
