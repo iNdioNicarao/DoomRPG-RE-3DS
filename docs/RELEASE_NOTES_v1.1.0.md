@@ -80,6 +80,14 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
    - Upgraded in-game music tracks (`5039.mp3`, `5040.mp3`, `5043.mp3`) with authentic Roland Sound Canvas SC-55 recordings from [sc55.duke4.net](https://sc55.duke4.net/games.php) (`d_dead.mp3`, `d_e1m1.mp3`, `d_inter.mp3`).
    - Sincere thanks to GBAtemp user **bakuDD** for identifying that the downmixed mobile BREW MIDI tracks correspond directly to original Doom and Doom II compositions and recommending these definitive Roland SC-55 recordings.
 
+9. **Complete Modernization & QOL Suite**:
+   - **Independent Music & SFX Volume Sliders**: Restored independent audio level controls (0% to 100%) in the Options menu (`Sound_t.musicVolume`, `Sound_t.sfxVolume`), dynamically adjusting `MusicStream_setVolume` and `Mix_Volume(-1)` and persisting across config saves.
+   - **Color-Coded Locked Keycard Doors on Automap**: Scans bytecode and tile event triggers for `EV_CHECK_KEY` to render locked doors in vivid Red (`0xFF2222`), Blue (`0x00D0FF`), Yellow (`0xFFEE00`), and Green (`0x20FF50`), with open doors in muted slate (`0x6688AA`) and normal closed doors in amber (`0xEEAA33`).
+   - **Sector Transition Checkpoint Autosaves**: Transitioning through doors to a new sector automatically creates a checkpoint state save, providing seamless recovery without lost progress.
+   - **Touchscreen Quick-Select Weapon Bar**: A vertical 9-slot rack on the left edge of the bottom screen ($X = 1..37, Y = 262..450$) displaying authentic HUD ammo icons and distinct weapon badges (`AX`, `EX`, `PI`, `SG`, `CG`, `SS`, `PL`, `RL`, `BF`). Tapping any owned weapon instantly equips it with authentic SFX. Active weapon glows with a high-visibility neon border.
+   - **Interactive 3DS Notification LED Feedback**: Directly interfaces with libctru's `mcuHwc` service to provide physical LED telemetry: smooth rhythmic crimson heartbeat pulse during low health (< 25% max HP), rapid fiery amber/orange throb when Berserk is active, and a celebratory emerald green double-flash when a secret sector is discovered.
+   - **Real-Time Automap Exploration % & Secret Counter**: Computes walkable vs visited map tiles and queries level secret discovery in real time, displaying a sleek tactical badge (`MAP: xx% | SEC: x/x`) at the bottom-left of the automap frame with a glowing gold border when 100% of secrets are uncovered.
+
 ---
 
 ## Detailed Changelog
@@ -106,20 +114,26 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 - `feat(menu): add dedicated Video and Input options for profiles, scaling, turbo, and defaults`
 - `fix(video): prevent stereoscopic eye desynchronization during sector loading and transition screens`
 - `feat(audio): replace downmixed MIDI tracks with authentic Roland SC-55 recordings (credit bakuDD)`
+- `feat(audio): add independent music and sound fx volume controls in options menu`
+- `feat(map): color-code locked keycard doors (red, blue, yellow) on automap`
+- `feat(save): add automatic checkpoint save on sector transitions`
+- `feat(ui): add touchscreen quick-select weapon bar on left side of bottom screen`
+- `feat(hardware): add interactive 3DS notification LED feedback for health, berserk, and secrets`
+- `feat(ui): display real-time map exploration percentage and secret counter on automap`
 
 ---
 
 ## Verification & File Hashes
 
 - `DoomRPG-1.1.0.cia`
-  - **MD5**: `c611048de3a755ffba01faa3d57dc286`
-  - **SHA256**: `cf1c2c35b05113709b8244cf66a23f3b2faf5475788db2fa753ba65b7ec2da08`
+  - **MD5**: `5f8aaaf4a685f81e1a096d0f0f612e22`
+  - **SHA256**: `4c7b5760d7ab84a6afec72ff098d224c5719550856d48c56d7287a53749a5ec4`
 - `DoomRPG.3dsx`
-  - **MD5**: `2ce686f7e2b1c7e46776164f1bfb06d7`
-  - **SHA256**: `41f45b9131cb3a31d43cb574884b2bf7c6468e112a020c1fabf7364eaa70e259`
+  - **MD5**: `5d29716c60ebb637239ae63be26ac572`
+  - **SHA256**: `2abdb310a7281b88bc5c41ef67613ef28cc9106757accdceb96701dc5e5f5915`
 - `DoomRPG.elf`
-  - **MD5**: `05cea894c2242347491d6bb2140a736b`
-  - **SHA256**: `cc77b570978fe5bd18dc8f472e0cbc8e516849f0b8073a9905372b3b844cae7a`
+  - **MD5**: `fb2a352141a6dfca8de998389b34c000`
+  - **SHA256**: `f4fd7d96b3c012b3e5a978fa6a0b6e23ee9bc33348bfab464b8a4dfa2279fa16`
 
 ---
 

@@ -29,8 +29,13 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
 - **Direct Analog Circle Pad Polling**: Polled directly via `hidCircleRead` with deadzones, guaranteeing Circle Pad thumbstick movement regardless of save file state.
 - **Right Nub (C-Stick) & X/Y Face Button Scrolling**: Smooth scrolling using the C-Stick (New 3DS) or dedicated **X (Scroll Down)** and **Y (Scroll Up)** face buttons during dialogs and computer terminals, giving Old 3DS and 2DS players without a right nub identical hardware scrolling capabilities.
 - **Terminal Password Auto-Scroll & Passcode Pinning**: In `ST_DIALOGPASSWORD`, the text automatically scrolls to reveal the prompt line, and the code input box remains pinned and visible at all times.
-- **Touchscreen Menu Debounce & Phantom Rejection**: Implemented touch-up release verification, 100ms hold debounce, bezel corner inset ($X = 345..394, Y = 244..260$), and an optional menu toggle to eliminate accidental pause menu popups from hand grip or bezel flex.
-- **New In-Game Video & Input Options**: Dedicated menu toggles for System Profiles (`Auto`, `High`, `Perf`), Render Scaling (`Crisp 400`, `Retro 200`), Floor/Ceiling textures, 3D Depth, Touch Menu, Hold Fire, Turbo Scope (`Combat`, `Explore`, `All`), Typewriter speed, and Reset Defaults.
+- **Touchscreen Quick-Select Weapon Bar**: A vertical 9-slot rack on the left edge of the bottom screen ($X = 1..37, Y = 262..450$) displaying authentic HUD ammo icons and distinct weapon badges (`AX`, `EX`, `PI`, `SG`, `CG`, `SS`, `PL`, `RL`, `BF`). Tapping any owned weapon immediately equips it with authentic SFX. Active weapon slot glows with a high-visibility neon border.
+- **Color-Coded Locked Keycard Doors on Automap**: Scans bytecode and tile event triggers for `EV_CHECK_KEY` to render locked doors in vibrant Red (`0xFF2222`), Blue (`0x00D0FF`), Yellow (`0xFFEE00`), and Green (`0x20FF50`), with open doors in muted slate (`0x6688AA`) and normal closed doors in amber (`0xEEAA33`).
+- **Interactive 3DS Notification LED Telemetry**: Directly interfaces with libctru's `mcuHwc` service: smooth rhythmic crimson heartbeat pulse during low health (< 25% max HP), rapid fiery amber/orange throb when Berserk is active, and a celebratory emerald green double-flash when discovering a secret sector.
+- **Real-Time Automap Exploration % & Secret Counter**: Computes walkable vs visited map tiles and queries level secret discovery in real time, displaying a sleek tactical badge (`MAP: xx% | SEC: x/x`) at the bottom-left of the automap frame with a glowing gold border when 100% of secrets are uncovered.
+- **Sector Transition Checkpoint Autosaves**: Transitioning through doors to a new sector automatically creates a checkpoint state save, providing seamless recovery without lost progress.
+- **Independent Audio Controls**: Restored independent Music and SFX volume sliders (0% to 100%) in the Options menu that persist across saves.
+- **New In-Game Video, Audio & Input Options**: Dedicated menu toggles for System Profiles (`Auto`, `High`, `Perf`), Render Scaling (`Crisp 400`, `Retro 200`), Floor/Ceiling textures, 3D Depth, Independent Music/SFX Volume, Touch Menu, Hold Fire, Turbo Scope (`Combat`, `Explore`, `All`), Typewriter speed, and Reset Defaults.
 
 ## How to install
 
@@ -70,7 +75,8 @@ The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files p
 | Turn Left / Right | D-pad Left / Right or Circle Pad (Left Stick) | — |
 | Attack / Talk / Use / Confirm | A (Hold for Attack Buffering) | On-screen dialog tap |
 | Back / Dismiss Dialog / Pass Turn | B | Tap `[ PASS ]` on top bar |
-| Next / Prev Weapon | ZR / ZL or X / Y (during gameplay) | — |
+| Next / Prev Weapon | ZR / ZL or X / Y (during gameplay) | Tap weapon slot in left rack (`AX`–`BF`) |
+| Quick Select Weapon | — | Tap weapon in left quick-select rack |
 | Scroll Dialogs, Terminals & Menus | C-Stick (Right Nub) or X / Y (during dialogs: X = Down, Y = Up) | Touch & drag dialog text or scrollbar |
 | Quick Use Items | Hotbar touch | Tap `S.MED`, `L.MED`, `SOUL`, `BRSK`, `DOG` |
 | Combat Turbo Toggle | — | Tap `[ TURBO ]` next to map controls |
