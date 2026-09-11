@@ -152,11 +152,7 @@ void SDL_InitVideo(void) {
 	g_is2DS = (model == 3 || model == 5);
 
 	/* Default hardware performance profiles */
-	if (g_isOldHardware) {
-		g_renderScaling = 1; // Default to Retro 2x (200px GPU-scaled) on 268 MHz
-	} else {
-		g_renderScaling = 0; // Default to Crisp (Native 400px) on New 3DS
-	}
+	g_renderScaling = 0; // Default to Crisp (Native 400px) on all 3DS hardware
 
 	/* NO SDL_INIT_VIDEO. We OWN gfx raw via gfxInit() below. SDL_Init with VIDEO
 	   calls gfxInitDefault() internally and claims the screens (SDL_DUALSCR
@@ -591,16 +587,27 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
                 u16* tileDst = dst + (ty * (512 / 8) + tx) * 64;
                 for (int py = 0; py < 8; py++) {
                     int sy = by + py;
-                    const Uint32* rowSrc = src + sy * 400 + bx;
+                    const Uint32* rowSrc = (g_renderScaling == 1) ? (src + sy * 400 + bx * 2) : (src + sy * 400 + bx);
                     const u8* mRow = &s_morton8x8[py * 8];
-                    tileDst[mRow[0]] = rgba32_to_rgb565(rowSrc[0]);
-                    tileDst[mRow[1]] = rgba32_to_rgb565(rowSrc[1]);
-                    tileDst[mRow[2]] = rgba32_to_rgb565(rowSrc[2]);
-                    tileDst[mRow[3]] = rgba32_to_rgb565(rowSrc[3]);
-                    tileDst[mRow[4]] = rgba32_to_rgb565(rowSrc[4]);
-                    tileDst[mRow[5]] = rgba32_to_rgb565(rowSrc[5]);
-                    tileDst[mRow[6]] = rgba32_to_rgb565(rowSrc[6]);
-                    tileDst[mRow[7]] = rgba32_to_rgb565(rowSrc[7]);
+                    if (g_renderScaling == 1) {
+                        tileDst[mRow[0]] = rgba32_to_rgb565(rowSrc[0]);
+                        tileDst[mRow[1]] = rgba32_to_rgb565(rowSrc[2]);
+                        tileDst[mRow[2]] = rgba32_to_rgb565(rowSrc[4]);
+                        tileDst[mRow[3]] = rgba32_to_rgb565(rowSrc[6]);
+                        tileDst[mRow[4]] = rgba32_to_rgb565(rowSrc[8]);
+                        tileDst[mRow[5]] = rgba32_to_rgb565(rowSrc[10]);
+                        tileDst[mRow[6]] = rgba32_to_rgb565(rowSrc[12]);
+                        tileDst[mRow[7]] = rgba32_to_rgb565(rowSrc[14]);
+                    } else {
+                        tileDst[mRow[0]] = rgba32_to_rgb565(rowSrc[0]);
+                        tileDst[mRow[1]] = rgba32_to_rgb565(rowSrc[1]);
+                        tileDst[mRow[2]] = rgba32_to_rgb565(rowSrc[2]);
+                        tileDst[mRow[3]] = rgba32_to_rgb565(rowSrc[3]);
+                        tileDst[mRow[4]] = rgba32_to_rgb565(rowSrc[4]);
+                        tileDst[mRow[5]] = rgba32_to_rgb565(rowSrc[5]);
+                        tileDst[mRow[6]] = rgba32_to_rgb565(rowSrc[6]);
+                        tileDst[mRow[7]] = rgba32_to_rgb565(rowSrc[7]);
+                    }
                 }
             }
         }
@@ -636,16 +643,27 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
                     for (int py = 0; py < 8; py++) {
                         int sy = by + py;
                         if (!g_stereoFullFrame && (sy < 20 || sy >= 212)) continue;
-                        const u16* rRow = rSrc + sy * 400 + bx;
+                        const u16* rRow = (g_renderScaling == 1) ? (rSrc + sy * 400 + bx * 2) : (rSrc + sy * 400 + bx);
                         const u8* mRow = &s_morton8x8[py * 8];
-                        tileDst[mRow[0]] = rRow[0];
-                        tileDst[mRow[1]] = rRow[1];
-                        tileDst[mRow[2]] = rRow[2];
-                        tileDst[mRow[3]] = rRow[3];
-                        tileDst[mRow[4]] = rRow[4];
-                        tileDst[mRow[5]] = rRow[5];
-                        tileDst[mRow[6]] = rRow[6];
-                        tileDst[mRow[7]] = rRow[7];
+                        if (g_renderScaling == 1) {
+                            tileDst[mRow[0]] = rRow[0];
+                            tileDst[mRow[1]] = rRow[2];
+                            tileDst[mRow[2]] = rRow[4];
+                            tileDst[mRow[3]] = rRow[6];
+                            tileDst[mRow[4]] = rRow[8];
+                            tileDst[mRow[5]] = rRow[10];
+                            tileDst[mRow[6]] = rRow[12];
+                            tileDst[mRow[7]] = rRow[14];
+                        } else {
+                            tileDst[mRow[0]] = rRow[0];
+                            tileDst[mRow[1]] = rRow[1];
+                            tileDst[mRow[2]] = rRow[2];
+                            tileDst[mRow[3]] = rRow[3];
+                            tileDst[mRow[4]] = rRow[4];
+                            tileDst[mRow[5]] = rRow[5];
+                            tileDst[mRow[6]] = rRow[6];
+                            tileDst[mRow[7]] = rRow[7];
+                        }
                     }
                 }
             }
