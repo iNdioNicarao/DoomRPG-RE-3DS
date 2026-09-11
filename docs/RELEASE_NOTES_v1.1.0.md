@@ -126,14 +126,14 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 ## Verification & File Hashes
 
 - `DoomRPG-1.1.0.cia`
-  - **MD5**: `5f8aaaf4a685f81e1a096d0f0f612e22`
-  - **SHA256**: `4c7b5760d7ab84a6afec72ff098d224c5719550856d48c56d7287a53749a5ec4`
+  - **MD5**: `16853f6306edc7f58b01fd6700558450`
+  - **SHA256**: `5fb4fad8a5320ec49523c880ee9c2160dd1e9065b788455bdfe41e2f4e00d8dc`
 - `DoomRPG.3dsx`
-  - **MD5**: `5d29716c60ebb637239ae63be26ac572`
-  - **SHA256**: `2abdb310a7281b88bc5c41ef67613ef28cc9106757accdceb96701dc5e5f5915`
+  - **MD5**: `8f3ec189c64377df7273f3036568c533`
+  - **SHA256**: `2d48f91bba70d622000cedf7556c7eac15f4f1c94cad1be4ab1aa895a8d814a9`
 - `DoomRPG.elf`
-  - **MD5**: `fb2a352141a6dfca8de998389b34c000`
-  - **SHA256**: `f4fd7d96b3c012b3e5a978fa6a0b6e23ee9bc33348bfab464b8a4dfa2279fa16`
+  - **MD5**: `980d15d6b2862a9ba1c73a430d4b382f`
+  - **SHA256**: `86487582cf7e68c82fae84c7f7773747aa2630874f6b02e4308632dba4b4516f`
 
 ---
 
