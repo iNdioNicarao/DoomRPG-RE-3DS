@@ -129,7 +129,6 @@ AccessControlInfo:
    - $hostio1
    - ac:u
    - boss:U
-   - cam:u
    - cecd:u
    - cfg:u
    - dlp:FKCL
@@ -140,7 +139,6 @@ AccessControlInfo:
    - gsp::Gpu
    - hid:USER
    - http:C
-   - mic:u
    - ndm:u
    - news:u
    - nwm::UDS
