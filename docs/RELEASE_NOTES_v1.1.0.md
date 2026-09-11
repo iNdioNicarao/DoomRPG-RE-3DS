@@ -120,20 +120,21 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 - `feat(ui): add touchscreen quick-select weapon bar on left side of bottom screen`
 - `feat(hardware): add interactive 3DS notification LED feedback for health, berserk, and secrets`
 - `feat(ui): display real-time map exploration percentage and secret counter on automap`
+- `refactor(audio): remove sound priority menu option and enable simultaneous multi-sample playback permanently`
 
 ---
 
 ## Verification & File Hashes
 
 - `DoomRPG-1.1.0.cia`
-  - **MD5**: `16853f6306edc7f58b01fd6700558450`
-  - **SHA256**: `5fb4fad8a5320ec49523c880ee9c2160dd1e9065b788455bdfe41e2f4e00d8dc`
+  - **MD5**: `e0cc0033bb201f0c9f45a55b562f7b90`
+  - **SHA256**: `a7477f0161addf1579a798ef732cf518f8f9f2eb618cde09be5ce625b006dc6e`
 - `DoomRPG.3dsx`
-  - **MD5**: `8f3ec189c64377df7273f3036568c533`
-  - **SHA256**: `2d48f91bba70d622000cedf7556c7eac15f4f1c94cad1be4ab1aa895a8d814a9`
+  - **MD5**: `fb4332b70151121ffaaefd05dec3045c`
+  - **SHA256**: `0c33bce648bae5a7ebd501dc0292cbe47ca5034d56600abe12f8a9a8e30cfcc7`
 - `DoomRPG.elf`
-  - **MD5**: `980d15d6b2862a9ba1c73a430d4b382f`
-  - **SHA256**: `86487582cf7e68c82fae84c7f7773747aa2630874f6b02e4308632dba4b4516f`
+  - **MD5**: `12655b99cffacf1427f0f1709cdb9ca3`
+  - **SHA256**: `adb1a2ea7223895f7365a4c64e1391bd320f5623b2d9b1d5db7ecb65167371ea`
 
 ---
 
