@@ -742,7 +742,7 @@ void SDL_RenderDrawRect(SDL_Surface *surface, const SDL_Rect *rect)
 void SDL_RenderFillRect(SDL_Surface *surface, const SDL_Rect *rect)
 {
     Uint32 color = (Uint32)(uintptr_t)curColor;
-    SDL_FillRect(surface, rect, color);
+    SDL_FillRect(surface, (SDL_Rect*)rect, color);
 }
 static void put_pixel_unlocked(SDL_Surface* surface, int x, int y, Uint32 color)
 {

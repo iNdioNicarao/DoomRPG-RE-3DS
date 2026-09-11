@@ -2296,15 +2296,15 @@ void Render_renderSpriteObject(Render_t* render, Sprite_t* sprite)
 
 	if (!(sprite->info & 0x80000000)) {
 		if (sprite->ent == NULL) {
-			anim = ((render->animFrameTime + (8 * (byte)sprite->ent)) / 250) % 4;
+			anim = (render->animFrameTime / 250) % 4;
 		}
 		else if (sprite->ent->monster == NULL)
 		{
 			if (sprite->ent->def->eType != 2) {
-				anim = ((render->animFrameTime + (8 * (byte)sprite->ent)) / 250) % 4;
+				anim = ((render->animFrameTime + (8 * (byte)(uintptr_t)sprite->ent)) / 250) % 4;
 			}
 			else {
-				anim = ((render->doomRpg->doomCanvas->time + (256 * (byte)sprite->ent)) / 6000) % 2;
+				anim = ((render->doomRpg->doomCanvas->time + (256 * (byte)(uintptr_t)sprite->ent)) / 6000) % 2;
 			}
 		}
 		else if (anim == 6)
@@ -2333,10 +2333,10 @@ void Render_renderSpriteObject(Render_t* render, Sprite_t* sprite)
 				}
 				sprite->info = sprite->info & 0xffffe1ff | anim << 9;
 				if (sprite->ent->monster->ce.mType == 4) { // Phantom / Lost Soul / Nightmare
-					sprite->ent->monster->animFrameTime = render->doomRpg->doomCanvas->time + ((byte)sprite->ent) + 250;
+					sprite->ent->monster->animFrameTime = render->doomRpg->doomCanvas->time + ((byte)(uintptr_t)sprite->ent) + 250;
 				}
 				else {
-					sprite->ent->monster->animFrameTime = render->doomRpg->doomCanvas->time + (8 * (byte)sprite->ent) + 4000;
+					sprite->ent->monster->animFrameTime = render->doomRpg->doomCanvas->time + (8 * (byte)(uintptr_t)sprite->ent) + 4000;
 				}
 			}
 		}

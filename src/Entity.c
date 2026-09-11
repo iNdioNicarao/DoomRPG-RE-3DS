@@ -566,10 +566,10 @@ int Entity_aiMoveToGoal(Entity_t* entity)
 
     int time = entity->doomRpg->doomCanvas->time;
     if (entity->def->eSubType == 4){
-        time += (byte)sprite->ent + 250;
+        time += (byte)(uintptr_t)sprite->ent + 250;
     }
     else {
-        time += (8 * (byte)sprite->ent) + 4000;
+        time += (8 * (byte)(uintptr_t)sprite->ent) + 4000;
     }
     sprite->ent->monster->animFrameTime = time;
 
