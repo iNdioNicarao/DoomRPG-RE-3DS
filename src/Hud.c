@@ -665,17 +665,36 @@ void Hud_drawEffects(DoomCanvas_t* doomCanvas)
     int x, y, srcY;
     Hud_t* hud = doomCanvas->hud;
     if (doomCanvas->time < hud->damageTime) {
+        int topY = hud->statusTopBarHeight;
+        int viewH = 192;
+        int viewW = 400;
+
         if (hud->damageCount > 0) {
-            DoomRPG_setColor(doomRpg, 0xBB0000);
+            DoomRPG_setColor(doomRpg, 0x330000);
+            DoomRPG_fillRect(doomRpg, 0, topY, viewW, 6);
+            DoomRPG_fillRect(doomRpg, 0, topY + viewH - 6, viewW, 6);
+            DoomRPG_fillRect(doomRpg, 0, topY, 6, viewH);
+            DoomRPG_fillRect(doomRpg, viewW - 6, topY, 6, viewH);
+
+            DoomRPG_setColor(doomRpg, 0x770000);
+            DoomRPG_fillRect(doomRpg, 0, topY, viewW, 4);
+            DoomRPG_fillRect(doomRpg, 0, topY + viewH - 4, viewW, 4);
+            DoomRPG_fillRect(doomRpg, 0, topY, 4, viewH);
+            DoomRPG_fillRect(doomRpg, viewW - 4, topY, 4, viewH);
+
+            DoomRPG_setColor(doomRpg, 0xCC0000);
+            DoomRPG_fillRect(doomRpg, 0, topY, viewW, 2);
+            DoomRPG_fillRect(doomRpg, 0, topY + viewH - 2, viewW, 2);
+            DoomRPG_fillRect(doomRpg, 0, topY, 2, viewH);
+            DoomRPG_fillRect(doomRpg, viewW - 2, topY, 2, viewH);
         }
         else {
             DoomRPG_setColor(doomRpg, 0xFFFFFF);
+            DoomRPG_fillRect(doomRpg, 0, topY, viewW, 2);
+            DoomRPG_fillRect(doomRpg, 0, topY + viewH - 2, viewW, 2);
+            DoomRPG_fillRect(doomRpg, 0, topY, 2, viewH);
+            DoomRPG_fillRect(doomRpg, viewW - 2, topY, 2, viewH);
         }
-
-        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight, 2, 192 + -1);
-        DoomRPG_fillRect(doomRpg, 400 + -2, hud->statusTopBarHeight, 2, 192 + -1);
-        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight, 400 - 1, 2);
-        DoomRPG_fillRect(doomRpg, 0, hud->statusTopBarHeight + 192 + -2, 400 - 1, 2);
 
         if (hud->damageDir && (hud->damageCount > 0)) {
             srcY = 0;
