@@ -1251,7 +1251,7 @@ void DoomRPG_setClipTrueSur(DoomRPG_t* doomrpg, int x, int y, int w, int h, SDL_
 
 void DoomRPG_setColor(DoomRPG_t* doomrpg, int color)
 {
-    byte a = (color & 0xFF000000) >> 24;
+    byte a = (color & 0xFF000000) ? ((color >> 24) & 0xFF) : 0xFF;
     byte r = (color & 0x00FF0000) >> 16;
     byte g = (color & 0x0000FF00) >> 8;
     byte b = (color & 0x000000FF);
