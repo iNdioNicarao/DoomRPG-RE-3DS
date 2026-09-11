@@ -166,6 +166,9 @@ void ParticleSystem_render(ParticleSystem_t* particleSystem, int z)
 		x = particleSystem->dispX;
 		DoomRPG_setClipTrue(particleSystem->doomRpg, x, y, particleSystem->dispWidth - x, particleSystem->dispHeight - y);
 
+		int baseFrame = ((int)(doomCanvas->time / 175)) & 3;
+		int baseHeight = particleSystem->gibSizeWH;
+
 		particleNode = particleSystem->nodeListA.next;
 
 		while (particleNode != &particleSystem->nodeListA) {
@@ -215,34 +218,8 @@ void ParticleSystem_render(ParticleSystem_t* particleSystem, int z)
 					//DoomRPG_fillCircle(particleSystem->doomRpg, i6, i7, particleNode->particleSize >> 1);
 				}
 				else {
-					/*int i12 = 16 * ((-nVar.particleSize) - 1);
-					int i13 = ((int)(doomCanvas->time / 175)) & 3;
-					if (nVar.particleVelX > 0) {
-						i13 = 3 - i13;
-					}
-					switch (i13) {
-					case 1:
-						i = 5;
-						break;
-					case 2:
-						i = 3;
-						break;
-					case 3:
-						i = 6;
-						break;
-					default:
-						i = 0;
-						break;
-					}*/
-
-					//DoomCanvas.drawImage(imgGibs, 0, i12, 16, 16, i, i6, i7, 3);
-
-					int height = particleSystem->gibSizeWH;
-					int i13 = ((int)(doomCanvas->time / 175)) & 3;
-
-					if (particleNode->particleVelX > 0) {
-						i13 = 3 - i13;
-					}
+					int height = baseHeight;
+					int i13 = (particleNode->particleVelX > 0) ? (3 - baseFrame) : baseFrame;
 
 					int xSrc = i13 * height;
 					int ySrc = height * -(particleNode->particleSize + 1);
