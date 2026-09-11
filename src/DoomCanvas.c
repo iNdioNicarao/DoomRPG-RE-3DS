@@ -2799,7 +2799,7 @@ void DoomCanvas_drawScrollBar(DoomCanvas_t* doomCanvas, int y, int totalHeight, 
 		int barOffset_y = offSetY + 7;
 
 #ifdef __3DS__
-		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1) ? ((doomCanvas->SCR_CX + 140) - 2) :
+		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1 || doomCanvas->doomRpg->menuSystem->type == 7) ? ((doomCanvas->SCR_CX + 160) - 2) :
 		              (doomCanvas->doomRpg->menuSystem->type == 5) ? ((doomCanvas->SCR_CX + 180) - 2) :
 		              (doomCanvas->SCR_CX + 64);
 #else
@@ -2832,7 +2832,7 @@ void DoomCanvas_drawScrollBarSur(DoomCanvas_t* doomCanvas, int y, int totalHeigh
 		int barOffset_y = offSetY + 7;
 
 #ifdef __3DS__
-		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1) ? ((doomCanvas->SCR_CX + 140) - 2) :
+		int scrollX = (doomCanvas->doomRpg->menuSystem->type == 1 || doomCanvas->doomRpg->menuSystem->type == 7) ? ((doomCanvas->SCR_CX + 160) - 2) :
 		              (doomCanvas->doomRpg->menuSystem->type == 5) ? ((doomCanvas->SCR_CX + 180) - 2) :
 		              (doomCanvas->SCR_CX + 64);
 #else

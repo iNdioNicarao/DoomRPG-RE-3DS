@@ -92,8 +92,8 @@ char* MenuSystem_buildDivider(MenuSystem_t* menuSystem, char* str)
 	len = (int)SDL_strlen(str);
 
 #ifdef __3DS__
-	// 280px container at ~7px per character is ~38 characters. Symmetrical divider:
-	cnt = (34 - (len + 2)) / 2;
+	// 320px container at ~7px per character is ~44 characters. Symmetrical divider:
+	cnt = (40 - (len + 2)) / 2;
 	if (cnt < 2) cnt = 2;
 #else
 	cnt = (15 - (len + 2)) / 2;
@@ -448,13 +448,29 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 			menuSystem->maxItems = (doomCanvas->displayRect.h - i2) / 12;
 		}
 
+		int local_34 = 9;
+		int local_38 = 7;
+		int local_28 = 12;
+		boolean isLargerFont = false;
+
+		if ((menuSystem->menu > MENU_NONE) && (menuSystem->menu < MENU_MAIN_OPTIONS)) {
+			if ((menuSystem->menu != MENU_MAIN_HELP_ABOUT) && menuSystem->doomRpg->doomCanvas->largeStatus) {
+				local_34 = 13;
+				local_38 = 10;
+				local_28 = 17;
+				isLargerFont = true;
+			}
+		}
+
+		int local_2c = local_28 >> 1;
+
 #ifdef __3DS__
-		int menuHalfW = (menuSystem->type == 1) ? 140 :
+		int menuHalfW = (menuSystem->type == 1 || menuSystem->type == 7) ? 160 :
 		                (menuSystem->type == 5) ? 180 : 64;
 		int i101;
-		if (menuSystem->type == 1) {
-			// Wide 280px container for lists/store (centered on 400px screen)
-			i101 = doomCanvas->SCR_CX - menuHalfW + 16; // 76
+		if (menuSystem->type == 1 || menuSystem->type == 7) {
+			// Wide 320px container for lists/store/options/submenus (centered on 400px screen)
+			i101 = doomCanvas->SCR_CX - menuHalfW + 16; // 200 - 160 + 16 = 56
 		}
 		else if (menuSystem->type == 5) {
 			// Wide 360px container for Notebook / Help / Mission Logs
@@ -462,11 +478,14 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 		}
 		else if (menuSystem->type == 4) {
 			// Startup menu ("Start Game", "Help/About", "Exit") centered under DOOM RPG logo
-			i101 = doomCanvas->SCR_CX + 40 - 64; // 176
-		}
-		else if (menuSystem->type == 7) {
-			// In-game pause menu ("Resume Game", "Inventory", etc.) centered on screen
-			i101 = doomCanvas->SCR_CX - 40; // 160
+			int maxLen = 0;
+			for (int k = 0; k < menuSystem->numItems; k++) {
+				int l = (int)SDL_strlen(menuSystem->items[k].textField);
+				while (l > 0 && menuSystem->items[k].textField[l - 1] == ' ') l--;
+				if (l > maxLen) maxLen = l;
+			}
+			int menuW = maxLen * local_38;
+			i101 = doomCanvas->SCR_CX - (menuW / 2);
 		}
 		else if (menuSystem->type == 6) {
 			// Centered confirmation prompts (Yes / No dialogs)
@@ -493,22 +512,6 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 			}
 #endif
 		}
-
-		int local_34 = 9;
-		int local_38 = 7;
-		int local_28 = 12;
-		boolean isLargerFont = false;
-
-		if ((menuSystem->menu > MENU_NONE) && (menuSystem->menu < MENU_MAIN_OPTIONS)) {
-			if ((menuSystem->menu != MENU_MAIN_HELP_ABOUT) && menuSystem->doomRpg->doomCanvas->largeStatus) {
-				local_34 = 13;
-				local_38 = 10;
-				local_28 = 17;
-				isLargerFont = true;
-			}
-		}
-
-		int local_2c = local_28 >> 1;
 
 		for (int i11 = menuSystem->scrollIndex; i11 < menuSystem->numItems; i11++) {
 			int i10 = i101;
