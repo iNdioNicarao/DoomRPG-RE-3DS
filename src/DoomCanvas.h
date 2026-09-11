@@ -79,6 +79,8 @@ typedef struct DoomCanvas_s
 	char passInput;
 	char passCode[8];
 	char strPassCode[8];
+	int dialogDismissedTime;
+	boolean waitForSelectRelease;
 	int beforeRender;
 	int afterRender;
 	int loopStart;

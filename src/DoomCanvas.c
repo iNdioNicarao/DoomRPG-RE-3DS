@@ -164,6 +164,8 @@ DoomCanvas_t* DoomCanvas_init(DoomCanvas_t* doomCanvas, DoomRPG_t* doomRpg) // 0
 	doomCanvas->renderFloorCeilingTextures = true; // default on: render authentic textured floors, ceilings, and ceiling lights
 	doomCanvas->hotbarDeniedFlash = 0;
 	doomCanvas->hotbarDeniedTimer = 0;
+	doomCanvas->dialogDismissedTime = 0;
+	doomCanvas->waitForSelectRelease = false;
 
 	return doomCanvas;
 }
@@ -369,6 +371,8 @@ void DoomCanvas_closeDialog(DoomCanvas_t* doomCanvas)
 {
 	Sound_stopSounds(doomCanvas->doomRpg->sound);
 	doomCanvas->dialogBuffer[0] = '\0';
+	doomCanvas->dialogDismissedTime = doomCanvas->time;
+	doomCanvas->waitForSelectRelease = true;
 #ifdef __3DS__
 	/* Clear bottom screen so dialog remnants don't linger before automap redraws */
 	DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
@@ -3931,6 +3935,9 @@ void DoomCanvas_handlePlayingEvents(DoomCanvas_t* doomCanvas, int i)
 	}
 
 	case SELECT: {
+		if (doomCanvas->waitForSelectRelease || (doomCanvas->dialogDismissedTime != 0 && doomCanvas->time < doomCanvas->dialogDismissedTime + 250)) {
+			break;
+		}
 		//printf("ACTION\n");
 		doomCanvas->f438d = true;
 

@@ -87,8 +87,8 @@ int main(int argc, char* args[])
             DoomCanvas_handleTouchUp(doomRpg->doomCanvas);
         }
 
-        /* Instant text reveal on dialogs when tapping A or Touch */
-        if ((kDown & (KEY_A | KEY_TOUCH)) &&
+        /* Instant text reveal on dialogs when tapping Touch */
+        if ((kDown & KEY_TOUCH) &&
             (doomRpg->doomCanvas->state == ST_DIALOG || doomRpg->doomCanvas->state == ST_DIALOGPASSWORD)) {
             if (doomRpg->doomCanvas->dialogTypeLineIdx < doomRpg->doomCanvas->numDialogLines) {
                 doomRpg->doomCanvas->dialogTypeLineIdx = doomRpg->doomCanvas->numDialogLines;
@@ -218,8 +218,15 @@ int main(int argc, char* args[])
             DoomRPG_setBind(doomRpg, mouse_Button, state);
         }
 #ifdef __3DS__
+        /* Handle release of A button after dialog dismissal */
+        if (doomRpg->doomCanvas->waitForSelectRelease) {
+            if (!(kHeld & KEY_A)) {
+                doomRpg->doomCanvas->waitForSelectRelease = false;
+            }
+        }
+
         /* Attack Buffering / Hold-to-Fire: holding A continuously executes weapon strike */
-        if (g_attackBuffer || g_turboCombat) {
+        if ((g_attackBuffer || g_turboCombat) && !doomRpg->doomCanvas->waitForSelectRelease) {
             static int s_lastHoldAttackTime = 0;
             if ((kHeld & KEY_A) && !doomRpg->menuSystem->setBind) {
                 if (doomRpg->doomCanvas->state == ST_PLAYING &&

@@ -1802,6 +1802,9 @@ boolean Game_runEvent(Game_t* game, int event, int index, int flags)
 			}
 		}
 	}
+	if (!game->saveTileEvent) {
+		game->tileEvent = 0;
+	}
 	return b;
 }
 
