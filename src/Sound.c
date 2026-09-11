@@ -762,7 +762,7 @@ void Sound_readySound(Sound_t* sound, int chan)
 void Sound_playSound(Sound_t* sound, int resourceID, byte flags, int priority)
 {
 	if (sound->soundEnabled) {
-		boolean sndPriority = 1; //dummy
+		boolean sndPriority = (sound && sound->doomRpg && sound->doomRpg->doomCanvas) ? sound->doomRpg->doomCanvas->sndPriority : false;
 
 		if (sound->soundEnabled == 0) return;
 
