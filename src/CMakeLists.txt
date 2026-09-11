@@ -23,6 +23,17 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 		${ZLIB_INCLUDE_DIRS}
 )
 
+target_compile_options(${PROJECT_NAME} PRIVATE
+		-O3
+		-ffast-math
+		-fomit-frame-pointer
+		-flto
+)
+
+target_link_options(${PROJECT_NAME} PRIVATE
+		-flto
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
 		${SDL_MAIN_LIBRARY}
 		${SDL_MIXER_LIBRARIES}
