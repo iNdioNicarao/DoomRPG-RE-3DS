@@ -125,20 +125,25 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 - `feat(menu): center initial startup menu under logo and expand submenus to 320px width`
 - `feat(dialog): make tutorial NPC text and help controls device-specific for New 3DS vs Old 3DS`
 - `fix(script): ensure tile events resume post-dialog and advance NPC and trigger states`
+- `fix(config): synchronize audio settings and default volumes to 100%`
+- `fix(sound): prevent Sound_updateVolume from overwriting music volume display`
+- `fix(menu): restore stable centering under logo and balance submenu layouts`
+- `fix(video): fix 200px retro scaling by sampling full screen width without cropping`
+- `fix(input): prevent weapon fire when opening doors and add hold-to-fire initial delay`
 
 ---
 
 ## Verification & File Hashes
 
 - `DoomRPG-1.1.0.cia`
-  - **MD5**: `7746ee80a18541fe349ebdb6c411961f`
-  - **SHA256**: `7bd1e31301ac2d6aa0395aa3c613e8442ba101541d3518fe86e289d2547688ba`
+  - **MD5**: `3c5bf7de5770043744f8022e899a6026`
+  - **SHA256**: `95f03f0e8a4474f2b49726838caf6f811fa8a7af04331174148be7dbccbff393`
 - `DoomRPG.3dsx`
-  - **MD5**: `f66ca234115a6c09400ed6815bda35c4`
-  - **SHA256**: `cf94204d205128f227f1db13b5b9f3ccd3565daadd58154cc57306f5f3de8d33`
+  - **MD5**: `d3af850c4db9b27ce613c18f84ff7104`
+  - **SHA256**: `36ed8f5cec9b30f8d72266e103cce32e93866ef70613680ba0a460afaa153b17`
 - `DoomRPG.elf`
-  - **MD5**: `a92d65046d27df0c1dd968f310c4dfbe`
-  - **SHA256**: `dbebd9119ca2a7a92d097b536cb051050bff82497b111f62d9431b008bed324e`
+  - **MD5**: `e4aba72fae4a1ebb8384c82ad2a4fce3`
+  - **SHA256**: `3ccabc4f968deda5d57e45453a9e0dc7ed01107edbca920338dfcadb94342c35`
 
 ---
 
