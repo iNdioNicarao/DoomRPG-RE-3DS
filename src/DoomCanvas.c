@@ -1187,7 +1187,35 @@ void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY
         }
     }
 
-    // 5. Automap area (Y in 261..451, during ST_PLAYING, ST_COMBAT, or in-game menu)
+    // 5. Weapon Quick-Select Rack (X in 0..39, Y in 261..451, during ST_PLAYING or ST_COMBAT)
+    if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
+        if (touchX >= 0 && touchX <= 39 && touchY >= 261 && touchY <= 451) {
+            s_isDragging = false;
+            if (isDown && player) {
+                int w = (touchY - 262) / 21;
+                if (w < 0) w = 0;
+                if (w > 8) w = 8;
+                if (player->weapons & (1 << w)) {
+                    if (player->weapon != w) {
+                        Player_selectWeapon(player, w);
+                        doomCanvas->f438d = true;
+                        doomCanvas->isUpdateView = true;
+                        g_botScreenDirty = true;
+                        Weapon_t* wpn = &doomCanvas->doomRpg->combat->weaponInfo[w];
+                        Sound_playSound(doomCanvas->doomRpg->sound, (wpn && wpn->resourceID) ? wpn->resourceID : 5046, 0, 3);
+                    }
+                } else {
+                    Hud_addMessage(doomCanvas, "Weapon not owned!");
+                    Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                    doomCanvas->isUpdateView = true;
+                    g_botScreenDirty = true;
+                }
+            }
+            return;
+        }
+    }
+
+    // 6. Automap area (Y in 261..451, during ST_PLAYING, ST_COMBAT, or in-game menu)
     if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT || inGameMenu) {
         // Check on-screen buttons at top of automap (Y in 264..284)
         if (touchY >= 264 && touchY <= 284) {
@@ -1233,7 +1261,7 @@ void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY
 
         // Dragging inside automap viewport
         if (isDown) {
-            if (touchY >= 261 && touchY <= 451 && touchX >= 2 && touchX <= 397) {
+            if (touchY >= 261 && touchY <= 451 && touchX >= 40 && touchX <= 397) {
                 s_isDragging = true;
                 s_lastTouchX = touchX;
                 s_lastTouchY = touchY;
@@ -1295,10 +1323,10 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
     Sprite_t* sprite;
     Line_t* line;
 
-    // Viewport bounds
-    const int mapFrameX = 2;
+    // Viewport bounds (X=40..397 accommodates left-side weapon rack at X=1..37)
+    const int mapFrameX = 40;
     const int mapFrameY = 261;
-    const int mapFrameW = 396;
+    const int mapFrameW = 358;
     const int mapFrameH = 191;
 
     // 1. Clear automap interior to deep tactical slate
@@ -1313,7 +1341,7 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
     }
 
     // Centered on player
-    int mapCenterX = 200;
+    int mapCenterX = 219;
     int mapCenterY = 356;
     int originX = mapCenterX + s_automapPanX - (int)(((float)doomCanvas->viewX * (float)ts) / 64.0f);
     int originY = mapCenterY + s_automapPanY - (int)(((float)doomCanvas->viewY * (float)ts) / 64.0f);
@@ -1502,7 +1530,7 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
         case 2:  zoomLabel = "MAP 3x"; break;
         default: zoomLabel = "MAP 2x"; break;
     }
-    DoomCanvas_drawString1(doomCanvas, (char*)zoomLabel, 10, 267, 0);
+    DoomCanvas_drawString1(doomCanvas, (char*)zoomLabel, 46, 267, 0);
 
     // [ TURBO ] Fast-forward combat button (bold & green)
     Uint32 turboBorder = g_turboCombat ? 0xFF00FF44 : 0xFF2A5030;
@@ -1530,6 +1558,76 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
     Uint32 plusBorder = (s_automapZoom < 2) ? 0xFF4A5568 : 0xFF2A2E36;
     draw_box(sdlVideo.screenSurface, 358, 264, 33, 19, 0xFF10151E, plusBorder);
     DoomCanvas_drawString1(doomCanvas, "+", 374, 267, 16);
+
+    // Draw left-side weapon quick-select rack
+    DoomCanvas_drawWeaponRack(doomCanvas);
+}
+
+// Left-side Touchscreen Weapon Quick-Select Rack (X=1..37, Y=262..450)
+void DoomCanvas_drawWeaponRack(DoomCanvas_t* doomCanvas)
+{
+    if (!doomCanvas || !doomCanvas->player || !sdlVideo.screenSurface) return;
+    Player_t* player = doomCanvas->player;
+    SDL_Surface* iconSurf = doomCanvas->hud ? doomCanvas->hud->imgIconSheet.imgBitmap : NULL;
+    int iconW = doomCanvas->hud ? doomCanvas->hud->iconSheetWidth : 14;
+    int iconH = doomCanvas->hud ? doomCanvas->hud->iconSheetHeight : 14;
+
+    // HUD icon sheet row indices for each weapon:
+    // 0: Axe (row 2), 1: Extinguisher (row 3), 2: Pistol (row 4, bullets),
+    // 3: Shotgun (row 5, shells), 4: Chaingun (row 4, bullets),
+    // 5: Super Shotgun (row 5, shells), 6: Plasma Gun (row 7, cells),
+    // 7: Rocket Launcher (row 6, rockets), 8: BFG (row 7, cells)
+    static const int iconRows[9] = { 2, 3, 4, 5, 4, 5, 7, 6, 7 };
+    static const char* weaponLabels[9] = { "AX", "EX", "PI", "SG", "CG", "SS", "PL", "RL", "BF" };
+
+    const int sx = 1;
+    const int sw = 37;
+    const int sh = 20;
+
+    for (int w = 0; w < 9; w++) {
+        int sy = 262 + w * 21;
+        boolean owned = (player->weapons & (1 << w)) != 0;
+        boolean active = (player->weapon == w);
+
+        Uint32 fillCol, borderCol;
+        if (active) {
+            fillCol = 0xFF183D1B;
+            borderCol = 0xFF00FF44;
+        } else if (owned) {
+            fillCol = 0xFF10151E;
+            borderCol = 0xFF354456;
+        } else {
+            fillCol = 0xFF080C12;
+            borderCol = 0xFF141C24;
+        }
+
+        draw_box(sdlVideo.screenSurface, sx, sy, sw, sh, fillCol, borderCol);
+
+        if (active) {
+            // High-visibility glowing inner border
+            draw_box(sdlVideo.screenSurface, sx + 1, sy + 1, sw - 2, sh - 2, 0x00000000, 0xFF33CC55);
+        }
+
+        if (owned) {
+            // Draw ammo icon from HUD icon sheet
+            if (iconSurf && iconW > 0 && iconH > 0) {
+                int bh = (iconH > sh - 2) ? (sh - 2) : iconH;
+                SDL_Rect src = { 0, iconH * iconRows[w], iconW, bh };
+                int ix = sx + 2;
+                int iy = sy + (sh - bh) / 2;
+                SDL_Rect dst = { ix, iy, iconW, bh };
+                SDL_BlitSurface(iconSurf, &src, sdlVideo.screenSurface, &dst);
+            }
+            // Draw 2-char weapon differentiator/badge
+            DoomCanvas_drawString1(doomCanvas, (char*)weaponLabels[w], sx + 18, sy + 4, 0);
+        } else {
+            // Empty / unacquired weapon slot
+            DoomCanvas_drawString1(doomCanvas, "--", sx + 19, sy + 4, 16);
+        }
+    }
+
+    // Vertical beveled metallic divider between weapon rack and automap
+    draw_v_divider(sdlVideo.screenSurface, 39, 261, 451);
 }
 
 #else
@@ -1734,6 +1832,7 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
 	if (tmpSurface)
 		SDL_FreeSurface(tmpSurface);
 }
+void DoomCanvas_drawWeaponRack(DoomCanvas_t* doomCanvas) { (void)doomCanvas; }
 #endif
 
 static SDL_Surface* DoomCanvas_getCutsceneSurface(void)
