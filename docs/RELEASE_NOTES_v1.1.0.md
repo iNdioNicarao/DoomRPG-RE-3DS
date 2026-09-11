@@ -84,7 +84,7 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
    - **Independent Music & SFX Volume Sliders**: Restored independent audio level controls (0% to 100%) in the Options menu (`Sound_t.musicVolume`, `Sound_t.sfxVolume`), dynamically adjusting `MusicStream_setVolume` and `Mix_Volume(-1)` and persisting across config saves.
    - **Color-Coded Locked Keycard Doors on Automap**: Scans bytecode and tile event triggers for `EV_CHECK_KEY` to render locked doors in vivid Red (`0xFF2222`), Blue (`0x00D0FF`), Yellow (`0xFFEE00`), and Green (`0x20FF50`), with open doors in muted slate (`0x6688AA`) and normal closed doors in amber (`0xEEAA33`).
    - **Sector Transition Checkpoint Autosaves**: Transitioning through doors to a new sector automatically creates a checkpoint state save, providing seamless recovery without lost progress.
-   - **Touchscreen Quick-Select Weapon Bar**: A vertical 9-slot rack on the left edge of the bottom screen ($X = 1..37, Y = 262..450$) displaying authentic HUD ammo icons and distinct weapon badges (`AX`, `EX`, `PI`, `SG`, `CG`, `SS`, `PL`, `RL`, `BF`). Tapping any owned weapon instantly equips it with authentic SFX. Active weapon glows with a high-visibility neon border.
+   - **Touchscreen Quick-Select Weapon Bar**: A vertical 10-slot rack on the left edge of the bottom screen ($X = 1..37, Y = 241..450$) displaying authentic HUD ammo icons and distinct weapon badges (`AX`, `EX`, `PI`, `SG`, `CG`, `SS`, `PL`, `RL`, `BF`, `RG`/`DG`). Accommodated by shifting the top metallic status bar to $X = 40..399$ with a continuous vertical divider. Slot 9 features two-step companion progression: renders as a custom studded metallic Ring icon (`RG`) when Dog Collars are in inventory (tapping attempts capture on facing dogs), dynamically transforming into the authentic Dog companion icon (`DG`) once captured to equip the dog with authentic hound bark SFX.
    - **Interactive 3DS Notification LED Feedback**: Directly interfaces with libctru's `mcuHwc` service to provide physical LED telemetry: smooth rhythmic crimson heartbeat pulse during low health (< 25% max HP), rapid fiery amber/orange throb when Berserk is active, and a celebratory emerald green double-flash when a secret sector is discovered.
    - **Real-Time Automap Exploration % & Secret Counter**: Computes walkable vs visited map tiles and queries level secret discovery in real time, displaying a sleek tactical badge (`MAP: xx% | SEC: x/x`) at the bottom-left of the automap frame with a glowing gold border when 100% of secrets are uncovered.
 
@@ -130,20 +130,21 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 - `fix(menu): restore stable centering under logo and balance submenu layouts`
 - `fix(video): fix 200px retro scaling by sampling full screen width without cropping`
 - `fix(input): prevent weapon fire when opening doors and add hold-to-fire initial delay`
+- `feat(ui): expand touchscreen weapon rack to 10 slots with dynamic collar and dog companion support`
 
 ---
 
 ## Verification & File Hashes
 
 - `DoomRPG-1.1.0.cia`
-  - **MD5**: `3c5bf7de5770043744f8022e899a6026`
-  - **SHA256**: `95f03f0e8a4474f2b49726838caf6f811fa8a7af04331174148be7dbccbff393`
+  - **MD5**: `2be0365613d21c09a58253aba3a7359a`
+  - **SHA256**: `11fab203db50e71e8051486d4ab5654b63457ca456becdf3e240e1da80cfc888`
 - `DoomRPG.3dsx`
-  - **MD5**: `d3af850c4db9b27ce613c18f84ff7104`
-  - **SHA256**: `36ed8f5cec9b30f8d72266e103cce32e93866ef70613680ba0a460afaa153b17`
+  - **MD5**: `fbb5587d10820c99b112b865c0d7e1a0`
+  - **SHA256**: `aaa7aeb002a0efe410a5d58982ce9d566f1381f9176252d81f0746eba2e10f0b`
 - `DoomRPG.elf`
-  - **MD5**: `e4aba72fae4a1ebb8384c82ad2a4fce3`
-  - **SHA256**: `3ccabc4f968deda5d57e45453a9e0dc7ed01107edbca920338dfcadb94342c35`
+  - **MD5**: `5a89476bb4d98d315634021f3bd1822d`
+  - **SHA256**: `cd7552efc056cdb10346d3bceba01e3e7573d8bbf6ced42aadfb8b695af1026b`
 
 ---
 
