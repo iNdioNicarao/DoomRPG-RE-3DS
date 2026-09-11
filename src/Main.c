@@ -193,18 +193,6 @@ int main(int argc, char* args[])
                 } break;
 #endif
             }
-
-            key = DoomRPG_getEventKey(mouse_Button, state);
-            if (key != oldKey) {
-                oldKey = key;
-                if (!doomRpg->menuSystem->setBind) {
-                    DoomCanvas_keyPressed(doomRpg->doomCanvas, key);
-                } else {
-                    DoomRPG_setBind(doomRpg, mouse_Button, state);
-                }
-            } else if (key == 0 && doomRpg->menuSystem->setBind) {
-                DoomRPG_setBind(doomRpg, mouse_Button, state);
-            }
         }
         key = DoomRPG_getEventKey(mouse_Button, state);
         if (key != oldKey) {
