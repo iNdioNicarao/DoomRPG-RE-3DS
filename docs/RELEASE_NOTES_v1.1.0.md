@@ -124,20 +124,21 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 - `fix(dialog): dismiss message box on final message and prevent conversation auto-cycling`
 - `feat(menu): center initial startup menu under logo and expand submenus to 320px width`
 - `feat(dialog): make tutorial NPC text and help controls device-specific for New 3DS vs Old 3DS`
+- `fix(script): ensure tile events resume post-dialog and advance NPC and trigger states`
 
 ---
 
 ## Verification & File Hashes
 
 - `DoomRPG-1.1.0.cia`
-  - **MD5**: `6832c7f465b3774f69a4b4ca4ebcf228`
-  - **SHA256**: `ef0a36a8c6074a4533b062d65e8950fda380499a8dccc506e6bd5c961478547e`
+  - **MD5**: `7746ee80a18541fe349ebdb6c411961f`
+  - **SHA256**: `7bd1e31301ac2d6aa0395aa3c613e8442ba101541d3518fe86e289d2547688ba`
 - `DoomRPG.3dsx`
-  - **MD5**: `8e892315c51647cead77b5d73e004d6b`
-  - **SHA256**: `b6a1545dfe812c43d3c74ea9f268bde26a67f24e3fd08bede50481e12f000cf6`
+  - **MD5**: `f66ca234115a6c09400ed6815bda35c4`
+  - **SHA256**: `cf94204d205128f227f1db13b5b9f3ccd3565daadd58154cc57306f5f3de8d33`
 - `DoomRPG.elf`
-  - **MD5**: `1b7c1ccab58fa334a119521bf7bc8cdb`
-  - **SHA256**: `6f81f8e3e63a4d9a7509f90c9adeb4421a2d0ddf7b88bb5df33a955de2c3b15a`
+  - **MD5**: `a92d65046d27df0c1dd968f310c4dfbe`
+  - **SHA256**: `dbebd9119ca2a7a92d097b536cb051050bff82497b111f62d9431b008bed324e`
 
 ---
 
