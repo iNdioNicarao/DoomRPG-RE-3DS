@@ -139,7 +139,7 @@ static void ms_callback(void* udata, unsigned char* stream, int len)
         short* samples = (short*)stream;
         int numSamples = len / 2;
         for (int s = 0; s < numSamples; s++) {
-            samples[s] = (short)((samples[s] * ms_volume) / 128);
+            samples[s] = (short)((samples[s] * ms_volume) >> 7);
         }
     }
 }
