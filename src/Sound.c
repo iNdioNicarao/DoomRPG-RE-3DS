@@ -84,7 +84,7 @@ Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
 	}
 	SDL_memset(sound, 0, sizeof(Sound_t));
 
-	sound->soundEnabled = 0;
+	sound->soundEnabled = 1;
 	sound->priority = 3;
 	sound->channel = 0;
 	sound->volume = 100;
@@ -513,7 +513,7 @@ int Sound_addVolume(Sound_t* sound, int volume)
 	}
 	SDL_memset(sound, 0, sizeof(Sound_t));
 
-	sound->soundEnabled = 0;
+	sound->soundEnabled = 1;
 	sound->priority = 3;
 	sound->channel = 0;
 	sound->volume = 100;

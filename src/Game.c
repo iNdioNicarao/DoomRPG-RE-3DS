@@ -845,16 +845,26 @@ void Game_loadConfig(Game_t* game)
 				}
 
 				/* Read v1.1.0 settings if available in file */
-				if (SDL_RWseek(rw, 0, SEEK_CUR) < SDL_RWseek(rw, 0, SEEK_END)) {
-					// rewind back to after keyMapping
-					SDL_RWseek(rw, 4 + 1 + 4 + 4 + 4 + 1 + 1 + 1 + 1 + 4 + 4 + 1 + 4 + 4 + 1 + 1 + (12 * KEYBINDS_MAX * 4), SEEK_SET);
+				int curPos = (int)SDL_RWtell(rw);
+				int fileSize = (int)SDL_RWseek(rw, 0, SEEK_END);
+				SDL_RWseek(rw, curPos, SEEK_SET);
+
+				if (fileSize - curPos >= 6) {
 					g_systemProfile = File_readByte(rw);
 					g_renderScaling = File_readByte(rw);
 					g_turboScope = File_readByte(rw);
 					g_attackBuffer = File_readByte(rw) != 0;
 					g_typewriterSpeed = File_readByte(rw);
 					g_touchMenuButton = File_readByte(rw) != 0;
-					if (SDL_RWseek(rw, 0, SEEK_CUR) < SDL_RWseek(rw, 0, SEEK_END)) {
+
+					curPos = (int)SDL_RWtell(rw);
+					if (fileSize - curPos >= 3) {
+						game->doomRpg->sound->soundEnabled = File_readByte(rw) != 0;
+						int mus = File_readByte(rw);
+						int sfx = File_readByte(rw);
+						if (mus >= 0 && mus <= 100) game->doomRpg->sound->musicVolume = mus;
+						if (sfx >= 0 && sfx <= 100) game->doomRpg->sound->sfxVolume = sfx;
+					} else if (fileSize - curPos >= 2) {
 						int mus = File_readByte(rw);
 						int sfx = File_readByte(rw);
 						if (mus >= 0 && mus <= 100) game->doomRpg->sound->musicVolume = mus;
@@ -1851,6 +1861,7 @@ void Game_saveConfig(Game_t* game, int num)
 	File_writeByte(rw, (byte)(g_attackBuffer ? 1 : 0));
 	File_writeByte(rw, (byte)g_typewriterSpeed);
 	File_writeByte(rw, (byte)(g_touchMenuButton ? 1 : 0));
+	File_writeByte(rw, (byte)(game->doomRpg->sound->soundEnabled ? 1 : 0));
 	File_writeByte(rw, (byte)game->doomRpg->sound->musicVolume);
 	File_writeByte(rw, (byte)game->doomRpg->sound->sfxVolume);
 #endif
