@@ -762,8 +762,6 @@ void Sound_readySound(Sound_t* sound, int chan)
 void Sound_playSound(Sound_t* sound, int resourceID, byte flags, int priority)
 {
 	if (sound->soundEnabled) {
-		boolean sndPriority = (sound && sound->doomRpg && sound->doomRpg->doomCanvas) ? sound->doomRpg->doomCanvas->sndPriority : false;
-
 		if (sound->soundEnabled == 0) return;
 
 		int id = Sound_getFromResourceID(resourceID);
@@ -773,11 +771,6 @@ void Sound_playSound(Sound_t* sound, int resourceID, byte flags, int priority)
 
 		if (resourceID == 5039 || resourceID == 5040 || resourceID == 5043) {
 			isMusic = 1; // 1 = true
-		}
-
-		if (sndPriority && !isMusic && (priority < sound->priority) && (Sound_getState(sound, resourceID) > 0)) {
-			printf("Sound: Dynamic playback of %d prevented by priority (%d < %d)\n", resourceID, priority, sound->priority);
-			return;
 		}
 
 		if (flags & SND_FLG_STOPSOUNDS) {

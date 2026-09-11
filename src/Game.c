@@ -796,7 +796,7 @@ void Game_loadConfig(Game_t* game)
 			// New
 			boolData = File_readByte(rw);
 			if (game) {
-				game->doomRpg->doomCanvas->sndPriority = boolData != 0 ? true : false;
+				game->doomRpg->doomCanvas->sndPriority = false;
 			}
 
 			// New

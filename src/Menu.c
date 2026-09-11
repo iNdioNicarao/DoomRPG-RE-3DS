@@ -1216,12 +1216,8 @@ void Menu_initMenu(Menu_t* menu, int i)
 				SDL_snprintf(menuSystem->items[menuSystem->numItems].textField2,
 					sizeof(menuSystem->items[menuSystem->numItems].textField2), "%d%%", menu->doomRpg->sound->sfxVolume);
 				menuSystem->numItems++;
-
-				MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Priority:",
-					menu->doomRpg->doomCanvas->sndPriority ? "on" : "off", 0, 0);
 			}
 			else {
-				MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 				MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 				MenuItem_Set(&menuSystem->items[menuSystem->numItems++], NULL, 0, 0);
 			}
@@ -2335,9 +2331,6 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 					MenuItem_Set2(&menuSystem->items[itemId + 2], "SFX Vol:", "", 0, 0);
 					SDL_snprintf(menuSystem->items[itemId + 2].textField2,
 						sizeof(menuSystem->items[itemId + 2].textField2), "%d%%", doomRpg->sound->sfxVolume);
-
-					MenuItem_Set2(&menuSystem->items[itemId + 3], "Priority:", "", 0, 0);
-					strncpy(menuSystem->items[itemId + 3].textField2, doomCanvas->sndPriority ? "on" : "off", sizeof(menuSystem->items[itemId + 3].textField2));
 				}
 				else {
 					strncpy(menuSystem->items[itemId].textField2, "off", sizeof(menuSystem->items[itemId].textField2));
@@ -2345,7 +2338,6 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 					Sound_freeSounds(doomRpg->sound);
 					MenuItem_Set(&menuSystem->items[itemId + 1], NULL, 0, 0);
 					MenuItem_Set(&menuSystem->items[itemId + 2], NULL, 0, 0);
-					MenuItem_Set(&menuSystem->items[itemId + 3], NULL, 0, 0);
 				}
 			}
 			else if (itemId == 2) { // Music Vol
@@ -2368,10 +2360,6 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 					sizeof(menuSystem->items[itemId].textField2), "%d%%", doomRpg->sound->sfxVolume);
 				Sound_playSound(doomRpg->sound, 5046, 0, 3);
 				menuSystem->paintMenu = true;
-			}
-			else if (itemId == 4) { // Priority
-				doomCanvas->sndPriority ^= true;
-				strncpy(menuSystem->items[itemId].textField2, doomCanvas->sndPriority ? "on" : "off", sizeof(menuSystem->items[itemId].textField2));
 			}
 
 			return menuSystem->menu;
