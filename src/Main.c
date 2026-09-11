@@ -218,7 +218,7 @@ int main(int argc, char* args[])
             DoomRPG_setBind(doomRpg, mouse_Button, state);
         }
 #ifdef __3DS__
-        /* Handle release of A button after dialog dismissal */
+        /* Handle release of A button after dialog dismissal or tile interaction */
         if (doomRpg->doomCanvas->waitForSelectRelease) {
             if (!(kHeld & KEY_A)) {
                 doomRpg->doomCanvas->waitForSelectRelease = false;
@@ -226,14 +226,17 @@ int main(int argc, char* args[])
         }
 
         /* Attack Buffering / Hold-to-Fire: holding A continuously executes weapon strike */
-        if ((g_attackBuffer || g_turboCombat) && !doomRpg->doomCanvas->waitForSelectRelease) {
+        if (g_attackBuffer || g_turboCombat) {
             static int s_lastHoldAttackTime = 0;
-            if ((kHeld & KEY_A) && !doomRpg->menuSystem->setBind) {
+            if (kDown & KEY_A) {
+                /* Fresh press: set initial hold delay before repeating begins */
+                s_lastHoldAttackTime = currentTimeMillis + 350;
+            } else if ((kHeld & KEY_A) && !doomRpg->doomCanvas->waitForSelectRelease && !doomRpg->menuSystem->setBind) {
                 if (doomRpg->doomCanvas->state == ST_PLAYING &&
                     doomRpg->doomCanvas->animFrameCount == 0 &&
-                    currentTimeMillis > s_lastHoldAttackTime + 180) {
+                    currentTimeMillis > s_lastHoldAttackTime) {
                     DoomCanvas_keyPressed(doomRpg->doomCanvas, AVK_SELECT);
-                    s_lastHoldAttackTime = currentTimeMillis;
+                    s_lastHoldAttackTime = currentTimeMillis + 180;
                 }
             }
         }

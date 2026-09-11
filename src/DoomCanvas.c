@@ -4021,9 +4021,12 @@ void DoomCanvas_handlePlayingEvents(DoomCanvas_t* doomCanvas, int i)
 				Sound_playSound(doomCanvas->doomRpg->sound, 5065, 0, 2);
 			}
 		}
-		else if (!doomCanvas->game->skipAdvanceTurn) {
-			Game_touchTile(doomCanvas->game, doomCanvas->destX, doomCanvas->destY, false);
-			Game_advanceTurn(doomCanvas->game);
+		else {
+			doomCanvas->waitForSelectRelease = true;
+			if (!doomCanvas->game->skipAdvanceTurn) {
+				Game_touchTile(doomCanvas->game, doomCanvas->destX, doomCanvas->destY, false);
+				Game_advanceTurn(doomCanvas->game);
+			}
 		}
 		//DoomCanvas_drawAutomap(doomCanvas, true);
 		break;
