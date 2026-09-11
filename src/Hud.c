@@ -39,6 +39,8 @@ Hud_t* Hud_init(Hud_t* hud, DoomRPG_t* doomRpg)
 	return hud;
 }
 
+static SDL_Surface* s_hudTmpSurface = NULL;
+
 void Hud_free(Hud_t* hud, boolean freePtr)
 {
     DoomRPG_freeImage(hud->doomRpg, &hud->imgStatusBar);
@@ -48,6 +50,10 @@ void Hud_free(Hud_t* hud, boolean freePtr)
     DoomRPG_freeImage(hud->doomRpg, &hud->imgAttArrow);
     DoomRPG_freeImage(hud->doomRpg, &hud->imgStatusArrow);
 
+    if (s_hudTmpSurface) {
+        SDL_FreeSurface(s_hudTmpSurface);
+        s_hudTmpSurface = NULL;
+    }
     if (freePtr) {
         SDL_free(hud);
     }
@@ -460,16 +466,23 @@ void Hud_drawBottomBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
 #endif
     //if (doomCanvas->menuSystem->menu)
     //------creating surface & variables
-    SDL_Surface* tmpSurface =
-        SDL_CreateRGBSurface(SDL_SWSURFACE,
+    if (!s_hudTmpSurface || s_hudTmpSurface->w != sdlVideo.screenW || s_hudTmpSurface->h != doomCanvas->hud->statusBarHeight) {
+        if (s_hudTmpSurface) {
+            SDL_FreeSurface(s_hudTmpSurface);
+        }
+        s_hudTmpSurface = SDL_CreateRGBSurface(SDL_SWSURFACE,
             sdlVideo.screenW,
             doomCanvas->hud->statusBarHeight,
             sdlVideo.screenSurface->format->BitsPerPixel,
-    sdlVideo.screenSurface->format->Rmask,
-    sdlVideo.screenSurface->format->Gmask,
-    sdlVideo.screenSurface->format->Bmask,
-    sdlVideo.screenSurface->format->Amask
-);
+            sdlVideo.screenSurface->format->Rmask,
+            sdlVideo.screenSurface->format->Gmask,
+            sdlVideo.screenSurface->format->Bmask,
+            sdlVideo.screenSurface->format->Amask);
+    }
+    SDL_Surface* tmpSurface = s_hudTmpSurface;
+    if (!tmpSurface) {
+        return;
+    }
     Image_t* img;
     CombatEntity_t* ce;
     Combat_t* combat;
@@ -637,7 +650,6 @@ void Hud_drawBottomBarSur(DoomCanvas_t* doomCanvas, SDL_Surface* surface)
     dstRect.y = 240 - doomCanvas->hud->statusBarHeight;
 
     SDL_BlitSurface(tmpSurface, &srcRect, surface, &dstRect);
-    SDL_FreeSurface(tmpSurface);
 }
 #endif
 void Hud_drawEffects(DoomCanvas_t* doomCanvas)
