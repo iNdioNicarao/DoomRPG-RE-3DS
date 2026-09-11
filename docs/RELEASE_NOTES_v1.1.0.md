@@ -121,20 +121,22 @@ Major feature and performance release for the Nintendo 3DS family (`.cia` and `.
 - `feat(hardware): add interactive 3DS notification LED feedback for health, berserk, and secrets`
 - `feat(ui): display real-time map exploration percentage and secret counter on automap`
 - `refactor(audio): remove sound priority menu option and enable simultaneous multi-sample playback permanently`
+- `fix(dialog): dismiss message box on final message and prevent conversation auto-cycling`
+- `feat(menu): center initial startup menu under logo and expand submenus to 320px width`
 
 ---
 
 ## Verification & File Hashes
 
 - `DoomRPG-1.1.0.cia`
-  - **MD5**: `e0cc0033bb201f0c9f45a55b562f7b90`
-  - **SHA256**: `a7477f0161addf1579a798ef732cf518f8f9f2eb618cde09be5ce625b006dc6e`
+  - **MD5**: `a0ce72ebf19b64a4c01c8c716ffa89a5`
+  - **SHA256**: `6cdda40f92fbc86eada917bb448e37cfbcc1fdd162457851f7449b4f5a20f4e9`
 - `DoomRPG.3dsx`
-  - **MD5**: `fb4332b70151121ffaaefd05dec3045c`
-  - **SHA256**: `0c33bce648bae5a7ebd501dc0292cbe47ca5034d56600abe12f8a9a8e30cfcc7`
+  - **MD5**: `a976445ff6ec7576bc28f88b4155f571`
+  - **SHA256**: `e1fc07a94f808c5ae6d489d1ef4e84fbccd14c3c4ed5427a071f7a3848bfd770`
 - `DoomRPG.elf`
-  - **MD5**: `12655b99cffacf1427f0f1709cdb9ca3`
-  - **SHA256**: `adb1a2ea7223895f7365a4c64e1391bd320f5623b2d9b1d5db7ecb65167371ea`
+  - **MD5**: `c845a63e739758c73123d0d8a022b2df`
+  - **SHA256**: `097e71c6e4723caddf3568927809b54f30d4c964af5462190a06c63c2b1abfc6`
 
 ---
 
