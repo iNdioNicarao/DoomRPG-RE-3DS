@@ -21,11 +21,16 @@
 
 
 #define SOUND_CACHE_MAX 128
+#define SOUND_ID_MIN 5000
+#define SOUND_ID_MAX 5256
+
 static struct { int resourceID; Mix_Chunk* chunk; } soundChunkCache[SOUND_CACHE_MAX];
 static int soundChunkCacheCount = 0;
+static Mix_Chunk* soundIdLut[SOUND_ID_MAX - SOUND_ID_MIN];
 
 static int Sound_isCachedChunk(Sound_t* sound, Mix_Chunk* chunk) {
     (void)sound;
+    if (!chunk) return 0;
     for (int i = 0; i < soundChunkCacheCount; ++i) {
         if (soundChunkCache[i].chunk == chunk) return 1;
     }
@@ -34,6 +39,9 @@ static int Sound_isCachedChunk(Sound_t* sound, Mix_Chunk* chunk) {
 
 static Mix_Chunk* Sound_cachedChunk(Sound_t* sound, int resourceID) {
     (void)sound;
+    if (resourceID >= SOUND_ID_MIN && resourceID < SOUND_ID_MAX) {
+        return soundIdLut[resourceID - SOUND_ID_MIN];
+    }
     for (int i = 0; i < soundChunkCacheCount; ++i) {
         if (soundChunkCache[i].resourceID == resourceID) {
             return soundChunkCache[i].chunk;
@@ -45,6 +53,9 @@ static Mix_Chunk* Sound_cachedChunk(Sound_t* sound, int resourceID) {
 static void Sound_cacheChunk(Sound_t* sound, int resourceID, Mix_Chunk* chunk) {
     (void)sound;
     if (chunk == NULL) return;
+    if (resourceID >= SOUND_ID_MIN && resourceID < SOUND_ID_MAX) {
+        soundIdLut[resourceID - SOUND_ID_MIN] = chunk;
+    }
     if (soundChunkCacheCount >= SOUND_CACHE_MAX) return;
     for (int i = 0; i < soundChunkCacheCount; ++i) {
         if (soundChunkCache[i].resourceID == resourceID) return;
