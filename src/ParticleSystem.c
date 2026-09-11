@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "DoomRPG.h"
 #include "ParticleSystem.h"
@@ -248,7 +249,8 @@ void ParticleSystem_render(ParticleSystem_t* particleSystem, int z)
 				}
 				else {
 					int height = baseHeight;
-					int i13 = (particleNode->particleVelX > 0) ? (3 - baseFrame) : baseFrame;
+					int pFrame = (baseFrame + (int)(((uintptr_t)particleNode >> 4) & 3)) & 3;
+					int i13 = (particleNode->particleVelX > 0) ? (3 - pFrame) : pFrame;
 
 					int xSrc = i13 * height;
 					int ySrc = height * -(particleNode->particleSize + 1);
