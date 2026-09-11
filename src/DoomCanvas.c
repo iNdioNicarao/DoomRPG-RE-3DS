@@ -846,9 +846,9 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
         SDL_Surface* barBmp = doomCanvas->hud->imgStatusBar.imgBitmap;
         int tileW = (barBmp && barBmp->w > 0) ? barBmp->w : 20;
 
-        // --- TOP METALLIC STATUS BAR (Y = 240..259, 20px tall) ---
+        // --- TOP METALLIC STATUS BAR (Y = 240..259, 20px tall, shifted to X = 40..399) ---
         if (barBmp) {
-            for (int bx = 0; bx < 400; bx += tileW) {
+            for (int bx = 40; bx < 400; bx += tileW) {
                 int bw = (bx + tileW <= 400) ? tileW : (400 - bx);
                 SDL_Rect src = { 0, 0, bw, 20 };
                 SDL_Rect dst = { bx, 240, bw, 20 };
@@ -862,29 +862,39 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
                 char credText[32];
                 char coinsText[32];
                 SDL_snprintf(credText, sizeof(credText), "CREDITS: %d", player->credits);
-                DoomCanvas_drawString1(doomCanvas, credText, 10, 244, 0);
+                DoomCanvas_drawString1(doomCanvas, credText, 48, 244, 0);
 
                 if (pc >= 0) {
-                    draw_v_divider(sdlVideo.screenSurface, 135, 240, 259);
+                    draw_v_divider(sdlVideo.screenSurface, 160, 240, 259);
                     SDL_snprintf(coinsText, sizeof(coinsText), "COINS: %d", pc);
-                    DoomCanvas_drawString1(doomCanvas, coinsText, 145, 244, 0);
+                    DoomCanvas_drawString1(doomCanvas, coinsText, 170, 244, 0);
                 }
             } else {
                 char lvText[16];
                 char credText[32];
                 char coinsText[32];
                 SDL_snprintf(lvText, sizeof(lvText), "LV %d", player->level);
-                SDL_snprintf(credText, sizeof(credText), "CREDITS: %d", player->credits);
-
-                DoomCanvas_drawString1(doomCanvas, lvText, 8, 244, 0);
-                draw_v_divider(sdlVideo.screenSurface, 55, 240, 259);
-                DoomCanvas_drawString1(doomCanvas, credText, 62, 244, 0);
+                DoomCanvas_drawString1(doomCanvas, lvText, 44, 244, 0);
+                draw_v_divider(sdlVideo.screenSurface, 84, 240, 259);
 
                 if (pc >= 0) {
                     SDL_snprintf(coinsText, sizeof(coinsText), "COINS: %d", pc);
                     int coinsLen = (int)SDL_strlen(coinsText) * 9;
                     int coinsX = 274 - coinsLen;
+                    // If full "CREDITS: %d" fits before coinsX with comfortable margin, show it;
+                    // otherwise fall back cleanly to "CRED: %d" or "CR: %d" to guarantee no overlap
+                    SDL_snprintf(credText, sizeof(credText), "CREDITS: %d", player->credits);
+                    if (88 + (int)SDL_strlen(credText) * 9 + 6 > coinsX) {
+                        SDL_snprintf(credText, sizeof(credText), "CRED: %d", player->credits);
+                        if (88 + (int)SDL_strlen(credText) * 9 + 4 > coinsX) {
+                            SDL_snprintf(credText, sizeof(credText), "CR: %d", player->credits);
+                        }
+                    }
+                    DoomCanvas_drawString1(doomCanvas, credText, 88, 244, 0);
                     DoomCanvas_drawString1(doomCanvas, coinsText, coinsX, 244, 0);
+                } else {
+                    SDL_snprintf(credText, sizeof(credText), "CREDITS: %d", player->credits);
+                    DoomCanvas_drawString1(doomCanvas, credText, 88, 244, 0);
                 }
             }
         }
@@ -996,6 +1006,9 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
                 }
             }
         }
+
+        // Draw left-side touchscreen weapon quick-select rack (10 slots)
+        DoomCanvas_drawWeaponRack(doomCanvas);
     }
 #endif
 }
@@ -1108,7 +1121,7 @@ void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY
 
     // 3. Top status bar buttons (during ST_PLAYING or ST_COMBAT)
     if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
-        if (touchY >= 240 && touchY <= 260) {
+        if (touchX >= 40 && touchY >= 240 && touchY <= 260) {
             s_isDragging = false;
             // [ PASS ] (touchX in 275..338)
             if (touchX >= 275 && touchX <= 338) {
@@ -1196,28 +1209,63 @@ void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY
         }
     }
 
-    // 5. Weapon Quick-Select Rack (X in 0..39, Y in 261..451, during ST_PLAYING or ST_COMBAT)
+    // 5. Weapon Quick-Select Rack (X in 0..39, Y in 240..451, during ST_PLAYING or ST_COMBAT)
     if (doomCanvas->state == ST_PLAYING || doomCanvas->state == ST_COMBAT) {
-        if (touchX >= 0 && touchX <= 39 && touchY >= 261 && touchY <= 451) {
+        if (touchX >= 0 && touchX <= 39 && touchY >= 240 && touchY <= 451) {
             s_isDragging = false;
             if (isDown && player) {
-                int w = (touchY - 262) / 21;
+                int w = (touchY - 241) / 21;
                 if (w < 0) w = 0;
-                if (w > 8) w = 8;
-                if (player->weapons & (1 << w)) {
-                    if (player->weapon != w) {
-                        Player_selectWeapon(player, w);
+                if (w > 9) w = 9;
+
+                if (w < 9) {
+                    if (player->weapons & (1 << w)) {
+                        if (player->weapon != w) {
+                            Player_selectWeapon(player, w);
+                            doomCanvas->f438d = true;
+                            doomCanvas->isUpdateView = true;
+                            g_botScreenDirty = true;
+                            Weapon_t* wpn = &doomCanvas->doomRpg->combat->weaponInfo[w];
+                            Sound_playSound(doomCanvas->doomRpg->sound, (wpn && wpn->resourceID) ? wpn->resourceID : 5046, 0, 3);
+                        }
+                    } else {
+                        Hud_addMessage(doomCanvas, "Weapon not owned!");
+                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                        doomCanvas->isUpdateView = true;
+                        g_botScreenDirty = true;
+                    }
+                } else {
+                    // Slot 9: Dog Companion / Dog Collar
+                    boolean hasDog = (player->weapons & 0xE00) != 0;
+                    boolean hasCollar = (player->inventory[4] > 0);
+
+                    if (hasDog) {
+                        int dogWpn = -1;
+                        if (player->weapons & (1 << 11)) dogWpn = 11;
+                        else if (player->weapons & (1 << 10)) dogWpn = 10;
+                        else if (player->weapons & (1 << 9)) dogWpn = 9;
+
+                        if (dogWpn >= 0) {
+                            if (player->weapon != dogWpn) {
+                                Player_selectWeapon(player, dogWpn);
+                                doomCanvas->f438d = true;
+                                doomCanvas->isUpdateView = true;
+                                g_botScreenDirty = true;
+                                Sound_playSound(doomCanvas->doomRpg->sound, 5088, 0, 3); // Hound bark
+                            }
+                        }
+                    } else if (hasCollar) {
+                        // Use Dog Collar to capture facing dog
+                        Player_useItem(player, 29);
                         doomCanvas->f438d = true;
                         doomCanvas->isUpdateView = true;
                         g_botScreenDirty = true;
-                        Weapon_t* wpn = &doomCanvas->doomRpg->combat->weaponInfo[w];
-                        Sound_playSound(doomCanvas->doomRpg->sound, (wpn && wpn->resourceID) ? wpn->resourceID : 5046, 0, 3);
+                    } else {
+                        Hud_addMessage(doomCanvas, "No Dog or Collar!");
+                        Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
+                        doomCanvas->isUpdateView = true;
+                        g_botScreenDirty = true;
                     }
-                } else {
-                    Hud_addMessage(doomCanvas, "Weapon not owned!");
-                    Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
-                    doomCanvas->isUpdateView = true;
-                    g_botScreenDirty = true;
                 }
             }
             return;
@@ -1605,12 +1653,55 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
         draw_box(sdlVideo.screenSurface, 45, 431, 190, 17, 0x00000000, 0xFFFFCC33);
     }
     DoomCanvas_drawString1(doomCanvas, statsBuf, 48, 434, 0);
-
-    // Draw left-side weapon quick-select rack
-    DoomCanvas_drawWeaponRack(doomCanvas);
 }
 
-// Left-side Touchscreen Weapon Quick-Select Rack (X=1..37, Y=262..450)
+// Draw 13x13 custom studded metallic Dog Collar / Ring icon
+static void DoomCanvas_drawRingIcon(SDL_Surface* surf, int ix, int iy)
+{
+    if (!surf || !surf->pixels) return;
+    Uint32* px = (Uint32*)surf->pixels;
+    int surfW = surf->w;
+    int surfH = surf->h;
+
+    // 13x13 Dog Collar / Ring icon
+    // '.' = transparent, 'D' = dark metal outline, 'M' = steel collar band, 'H' = light steel highlight, 'G' = golden stud/tag
+    static const char* const ringPattern[13] = {
+        "...DDMMMDD...",
+        "..DMMGHGMMD..",
+        ".DMMD...DMMD.",
+        ".MMD.....DMM.",
+        "DMG.......GMD",
+        "MMH.......HMM",
+        "DMG.......GMD",
+        ".MMD.....DMM.",
+        ".DMMD...DMMD.",
+        "..DMMGHGMMD..",
+        "...DDMGMDD...",
+        "....DMDMD....",
+        ".....DDD....."
+    };
+
+    for (int y = 0; y < 13; y++) {
+        int py = iy + y;
+        if (py < 0 || py >= surfH) continue;
+        for (int x = 0; x < 13; x++) {
+            int px_x = ix + x;
+            if (px_x < 0 || px_x >= surfW) continue;
+            char c = ringPattern[y][x];
+            Uint32 col = 0;
+            switch (c) {
+                case 'D': col = 0xFF282C34; break;
+                case 'M': col = 0xFF8A94A0; break;
+                case 'H': col = 0xFFD8E2EC; break;
+                case 'G': col = 0xFFFFCC22; break;
+                default:  continue;
+            }
+            px[py * surfW + px_x] = col;
+        }
+    }
+}
+
+// Left-side Touchscreen Weapon Quick-Select Rack (X=1..37, Y=241..450, 10 slots)
 void DoomCanvas_drawWeaponRack(DoomCanvas_t* doomCanvas)
 {
     if (!doomCanvas || !doomCanvas->player || !sdlVideo.screenSurface) return;
@@ -1619,7 +1710,7 @@ void DoomCanvas_drawWeaponRack(DoomCanvas_t* doomCanvas)
     int iconW = doomCanvas->hud ? doomCanvas->hud->iconSheetWidth : 14;
     int iconH = doomCanvas->hud ? doomCanvas->hud->iconSheetHeight : 14;
 
-    // HUD icon sheet row indices for each weapon:
+    // HUD icon sheet row indices for standard weapons 0..8:
     // 0: Axe (row 2), 1: Extinguisher (row 3), 2: Pistol (row 4, bullets),
     // 3: Shotgun (row 5, shells), 4: Chaingun (row 4, bullets),
     // 5: Super Shotgun (row 5, shells), 6: Plasma Gun (row 7, cells),
@@ -1631,10 +1722,40 @@ void DoomCanvas_drawWeaponRack(DoomCanvas_t* doomCanvas)
     const int sw = 37;
     const int sh = 20;
 
-    for (int w = 0; w < 9; w++) {
-        int sy = 262 + w * 21;
-        boolean owned = (player->weapons & (1 << w)) != 0;
-        boolean active = (player->weapon == w);
+    // Clear weapon rack background strip (X=0..39, Y=240..452)
+    draw_fill_rect_clipped(sdlVideo.screenSurface, 0, 240, 40, 213, 0xFF080C12);
+
+    for (int w = 0; w < 10; w++) {
+        int sy = 241 + w * 21;
+        boolean owned = false;
+        boolean active = false;
+        boolean isCollarRing = false;
+        const char* label = "--";
+
+        if (w < 9) {
+            owned = (player->weapons & (1 << w)) != 0;
+            active = (player->weapon == w);
+            label = weaponLabels[w];
+        } else {
+            // Slot 9: Two-step Dog Companion / Dog Collar
+            boolean hasDog = (player->weapons & 0xE00) != 0;
+            boolean hasCollar = (player->inventory[4] > 0);
+
+            if (hasDog) {
+                owned = true;
+                active = (player->weapon >= 9 && player->weapon <= 11);
+                label = "DG";
+            } else if (hasCollar) {
+                owned = true;
+                active = false;
+                isCollarRing = true;
+                label = "RG";
+            } else {
+                owned = false;
+                active = false;
+                label = "--";
+            }
+        }
 
         Uint32 fillCol, borderCol;
         if (active) {
@@ -1656,25 +1777,33 @@ void DoomCanvas_drawWeaponRack(DoomCanvas_t* doomCanvas)
         }
 
         if (owned) {
-            // Draw ammo icon from HUD icon sheet
-            if (iconSurf && iconW > 0 && iconH > 0) {
-                int bh = (iconH > sh - 2) ? (sh - 2) : iconH;
-                SDL_Rect src = { 0, iconH * iconRows[w], iconW, bh };
+            if (isCollarRing) {
+                // Draw custom 13x13 studded metallic dog collar / ring icon
                 int ix = sx + 2;
-                int iy = sy + (sh - bh) / 2;
-                SDL_Rect dst = { ix, iy, iconW, bh };
-                SDL_BlitSurface(iconSurf, &src, sdlVideo.screenSurface, &dst);
+                int iy = sy + (sh - 13) / 2;
+                DoomCanvas_drawRingIcon(sdlVideo.screenSurface, ix, iy);
+            } else {
+                // Draw ammo icon from HUD icon sheet (row 8 is dog head icon)
+                int row = (w < 9) ? iconRows[w] : 8;
+                if (iconSurf && iconW > 0 && iconH > 0) {
+                    int bh = (iconH > sh - 2) ? (sh - 2) : iconH;
+                    SDL_Rect src = { 0, iconH * row, iconW, bh };
+                    int ix = sx + 2;
+                    int iy = sy + (sh - bh) / 2;
+                    SDL_Rect dst = { ix, iy, iconW, bh };
+                    SDL_BlitSurface(iconSurf, &src, sdlVideo.screenSurface, &dst);
+                }
             }
             // Draw 2-char weapon differentiator/badge
-            DoomCanvas_drawString1(doomCanvas, (char*)weaponLabels[w], sx + 18, sy + 4, 0);
+            DoomCanvas_drawString1(doomCanvas, (char*)label, sx + 18, sy + 4, 0);
         } else {
             // Empty / unacquired weapon slot
             DoomCanvas_drawString1(doomCanvas, "--", sx + 19, sy + 4, 16);
         }
     }
 
-    // Vertical beveled metallic divider between weapon rack and automap
-    draw_v_divider(sdlVideo.screenSurface, 39, 261, 451);
+    // Vertical beveled metallic divider between weapon rack and status bar / automap
+    draw_v_divider(sdlVideo.screenSurface, 39, 240, 451);
 }
 
 #else
