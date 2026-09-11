@@ -804,24 +804,67 @@ void SDL_RenderDrawLine(SDL_Surface *surface, int x1, int y1, int x2, int y2)
 }
 void SDL_RenderDrawFillCircle(RenderTarget* target, int x, int y, int r)
 {
-	int dx, dy, accum;
+	if (!target || !target->pixels) return;
+	Uint32 color = (Uint32)(uintptr_t)curColor;
+	if (r <= 0) {
+		put_pixel_safe(target, x, y, color);
+		return;
+	}
+	int clipX1 = target->clip_rect.w ? target->clip_rect.x : 0;
+	int clipY1 = target->clip_rect.h ? target->clip_rect.y : 0;
+	int clipX2 = target->clip_rect.w ? (clipX1 + target->clip_rect.w) : target->w;
+	int clipY2 = target->clip_rect.h ? (clipY1 + target->clip_rect.h) : target->h;
 
-	dx = r;
-	dy = 0;
-	accum = dx - (dy << 1) - 1;
+	int r2 = r * r;
+	for (int dy = -r; dy <= r; dy++) {
+		int cy = y + dy;
+		if (cy < clipY1 || cy >= clipY2) continue;
+		int dxLimit = 0;
+		while ((dxLimit + 1) * (dxLimit + 1) + dy * dy <= r2) {
+			dxLimit++;
+		}
+		int minX = x - dxLimit;
+		int maxX = x + dxLimit;
+		if (minX < clipX1) minX = clipX1;
+		if (maxX >= clipX2) maxX = clipX2 - 1;
+		if (minX > maxX) continue;
 
-	while (dy <= dx)
-	{
-		SDL_RenderDrawLine(target, dx + x, dy + y, -dx + x, dy + y);
-		SDL_RenderDrawLine(target, dy + x, dx + y, -dy + x, dx + y);
-		SDL_RenderDrawLine(target, -dx + x, -dy + y, dx + x, -dy + y);
-		SDL_RenderDrawLine(target, -dy + x, -dx + y, dy + x, -dx + y);
+		Uint32* row = (Uint32*)((Uint8*)target->pixels + cy * target->pitch);
+		for (int cx = minX; cx <= maxX; cx++) {
+			row[cx] = color;
+		}
+	}
+}
 
-		dy++;
-		if ((accum -= (dy << 1) - 1) < 0)
-		{
-			dx--;
-			accum += dx << 1;
+void SDL_RenderDrawCircle(RenderTarget* target, int x, int y, int r)
+{
+	if (!target || !target->pixels) return;
+	Uint32 color = (Uint32)(uintptr_t)curColor;
+	if (r <= 0) {
+		put_pixel_safe(target, x, y, color);
+		return;
+	}
+	int dx = r;
+	int dy = 0;
+	int err = 0;
+
+	while (dx >= dy) {
+		put_pixel_safe(target, x + dx, y + dy, color);
+		put_pixel_safe(target, x + dy, y + dx, color);
+		put_pixel_safe(target, x - dy, y + dx, color);
+		put_pixel_safe(target, x - dx, y + dy, color);
+		put_pixel_safe(target, x - dx, y - dy, color);
+		put_pixel_safe(target, x - dy, y - dx, color);
+		put_pixel_safe(target, x + dy, y - dx, color);
+		put_pixel_safe(target, x + dx, y - dy, color);
+
+		if (err <= 0) {
+			dy += 1;
+			err += 2 * dy + 1;
+		}
+		if (err > 0) {
+			dx -= 1;
+			err -= 2 * dx + 1;
 		}
 	}
 }

@@ -215,7 +215,36 @@ void ParticleSystem_render(ParticleSystem_t* particleSystem, int z)
 					ParticleSystem_unlinkParticle(particleSystem, particleNode);
 				}
 				else if (particleNode->particleSize > 0) {
-					//DoomRPG_fillCircle(particleSystem->doomRpg, i6, i7, particleNode->particleSize >> 1);
+					int r = particleNode->particleSize >> 1;
+					if (r < 1) r = 1;
+					DoomRPG_fillCircle(doomRpg, i6, i7, r);
+#ifdef __3DS__
+					if (g_top3D && g_stereoSep > 0.01f && g_stereoRight && g_stereoRightValid) {
+						int offset = (int)(g_stereoSep * 2.5f * ((float)particleSystem->scaleSize / 235.0f));
+						if (offset < 1) offset = 1;
+						if (offset > 4) offset = 4;
+						int rx = i6 - offset;
+						int ry = i7;
+						int r2 = r * r;
+						Uint16 col565 = (Uint16)Render_RGB888_To_RGB565(doomRpg->render, color);
+						for (int dy = -r; dy <= r; dy++) {
+							int cy = ry + dy;
+							if (cy < 0 || cy >= g_stereoRight->h) continue;
+							int dxLimit = 0;
+							while ((dxLimit + 1) * (dxLimit + 1) + dy * dy <= r2) {
+								dxLimit++;
+							}
+							int minX = rx - dxLimit;
+							int maxX = rx + dxLimit;
+							if (minX < 0) minX = 0;
+							if (maxX >= g_stereoRight->w) maxX = g_stereoRight->w - 1;
+							Uint16* row565 = (Uint16*)((Uint8*)g_stereoRight->pixels + cy * g_stereoRight->pitch);
+							for (int cx = minX; cx <= maxX; cx++) {
+								row565[cx] = col565;
+							}
+						}
+					}
+#endif
 				}
 				else {
 					int height = baseHeight;
