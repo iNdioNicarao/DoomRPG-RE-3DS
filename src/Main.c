@@ -245,6 +245,15 @@ int main(int argc, char* args[])
             UpTime = currentTimeMillis + 15;
             DoomRPG_loopGame(doomRpg);
         }
+#ifdef __3DS__
+        else {
+            svcSleepThread(1000000LL); /* 1ms sleep to yield CPU */
+        }
+#else
+        else {
+            SDL_Delay(1);
+        }
+#endif
     }
 #ifdef MIX_MAJOR_VERSION
     Mix_HaltChannel(-1);
