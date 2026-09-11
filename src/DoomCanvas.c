@@ -1560,6 +1560,44 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
     draw_box(sdlVideo.screenSurface, 358, 264, 33, 19, 0xFF10151E, plusBorder);
     DoomCanvas_drawString1(doomCanvas, "+", 374, 267, 16);
 
+    // 7. Exploration Percentage & Secret Counter HUD Badge (Bottom-left of automap: X=44, Y=430)
+    int totalWalkable = 0;
+    int visitedWalkable = 0;
+    for (int ti = 0; ti < 1024; ti++) {
+        byte mb = doomCanvas->render->mapFlags[ti];
+        if ((mb & BIT_AM_WALL) == 0) {
+            totalWalkable++;
+            if (mb & BIT_AM_VISITED) {
+                visitedWalkable++;
+            }
+        }
+    }
+    int explorePct = totalWalkable > 0 ? ((visitedWalkable * 100) / totalWalkable) : 100;
+    if (explorePct > 100) explorePct = 100;
+
+    int secretsFound = 0, secretsTotal = 0;
+    if (doomCanvas->player) {
+        Player_fillSecretStats(doomCanvas->player, &secretsFound, &secretsTotal);
+    }
+
+    char statsBuf[48];
+    if (secretsTotal > 0) {
+        SDL_snprintf(statsBuf, sizeof(statsBuf), "MAP:%d%% | SEC:%d/%d", explorePct, secretsFound, secretsTotal);
+    } else {
+        SDL_snprintf(statsBuf, sizeof(statsBuf), "MAP:%d%% | SEC:--", explorePct);
+    }
+
+    boolean allSecretsFound = (secretsTotal > 0 && secretsFound >= secretsTotal);
+    Uint32 statsBorder = allSecretsFound ? 0xFFFFAA00 : 0xFF2A3A4C;
+    Uint32 statsFill   = allSecretsFound ? 0xFF1C1A0E : 0xFF0A0E16;
+
+    draw_box(sdlVideo.screenSurface, 44, 430, 192, 19, statsFill, statsBorder);
+    if (allSecretsFound) {
+        // Gold accent highlight when 100% of secrets are uncovered
+        draw_box(sdlVideo.screenSurface, 45, 431, 190, 17, 0x00000000, 0xFFFFCC33);
+    }
+    DoomCanvas_drawString1(doomCanvas, statsBuf, 48, 434, 0);
+
     // Draw left-side weapon quick-select rack
     DoomCanvas_drawWeaponRack(doomCanvas);
 }
