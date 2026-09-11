@@ -5001,6 +5001,20 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 {
 	doomCanvas->lastFrameTime = doomCanvas->time;
 	doomCanvas->beforeRender = DoomRPG_GetUpTimeMS();
+
+	int dxMove = abs(doomCanvas->destX - x);
+	int dyMove = abs(doomCanvas->destY - y);
+	int distRemaining = (dxMove > dyMove) ? dxMove : dyMove;
+	int angleRemaining = abs(doomCanvas->destAngle - angle);
+
+	int bobY = 0;
+	int bobX = 0;
+	if (distRemaining > 0) {
+		float bobPhase = (float)(64 - distRemaining) * (3.14159265f / 64.0f);
+		bobY = (int)(sinf(bobPhase) * 3.5f);
+		bobX = (int)(sinf(bobPhase * 2.0f) * 1.5f);
+	}
+
 #ifdef __3DS__
 	extern SDL_Surface* g_stereoRight;
 	extern int g_top3D;
@@ -5012,11 +5026,6 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 		   Rapid parallax shearing during movement and turning causes disorientation and eye fatigue.
 		   We scale down separation during active movement/rotation and synchronize restoration
 		   with the step/turn animation so 3D is fully re-enabled the exact moment motion stops. */
-		int dxMove = abs(doomCanvas->destX - x);
-		int dyMove = abs(doomCanvas->destY - y);
-		int distRemaining = (dxMove > dyMove) ? dxMove : dyMove;
-		int angleRemaining = abs(doomCanvas->destAngle - angle);
-
 		float s_motion3DScale = 1.0f;
 		if (distRemaining > 0 || angleRemaining > 0) {
 			int isRotating = (angleRemaining > 0);
@@ -5049,7 +5058,7 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 		/* 1. Render RIGHT EYE at (x + dx, y + dy) into piDIB */
 		Render_render(doomCanvas->render, x + dx, y + dy, doomCanvas->viewZ, angle);
 		if (doomCanvas->state != ST_CAST) {
-			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX - gunOffsetR, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
+			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX + bobX - gunOffsetR, doomCanvas->shakeY + bobY - (doomCanvas->captureState == 2 ? 10 : 0));
 		}
 		/* Blit RIGHT EYE to g_stereoRight (matches screen region y=20..212) */
 		SDL_Rect clip, rq;
@@ -5064,7 +5073,7 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 		/* 2. Render LEFT EYE at (x - dx, y - dy) into piDIB */
 		Render_render(doomCanvas->render, x - dx, y - dy, doomCanvas->viewZ, angle);
 		if (doomCanvas->state != ST_CAST) {
-			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
+			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX + bobX, doomCanvas->shakeY + bobY - (doomCanvas->captureState == 2 ? 10 : 0));
 		}
 		/* Caller's DoomCanvas_drawRGB will blit piDIB (Left Eye) into sdlVideo.screenSurface */
 	}
@@ -5072,13 +5081,13 @@ void DoomCanvas_renderScene(DoomCanvas_t* doomCanvas, int x, int y, int angle)
 		g_stereoRightValid = 0;
 		Render_render(doomCanvas->render, x, y, doomCanvas->viewZ, angle);
 		if (doomCanvas->state != ST_CAST) {
-			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
+			Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX + bobX, doomCanvas->shakeY + bobY - (doomCanvas->captureState == 2 ? 10 : 0));
 		}
 	}
 #else
 	Render_render(doomCanvas->render, x, y, doomCanvas->viewZ, angle);
 	if (doomCanvas->state != ST_CAST) {
-		Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX, doomCanvas->shakeY - (doomCanvas->captureState == 2 ? 10 : 0));
+		Combat_drawWeapon(doomCanvas->combat, doomCanvas->shakeX + bobX, doomCanvas->shakeY + bobY - (doomCanvas->captureState == 2 ? 10 : 0));
 	}
 #endif
 	doomCanvas->afterRender = DoomRPG_GetUpTimeMS();
