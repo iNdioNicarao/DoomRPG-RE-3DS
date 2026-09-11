@@ -469,12 +469,6 @@ void Sound_updateVolume(Sound_t* sound)
 			}
 		}
 	} while (++chan < (MAX_SOUNDCHANNELS + 1));
-
-	int menu = sound->doomRpg->menuSystem->menu;
-	//if (menu == MENU_MAIN_OPTIONS || menu == MENU_INGAME_OPTIONS) { // Old
-	if (menu == MENU_SOUND || menu == MENU_INGAME_SOUND) {
-		Menu_textVolume(sound->doomRpg->menu, sound->volume);
-	}
 }
 
 int Sound_minusVolume(Sound_t* sound, int volume)
@@ -858,11 +852,6 @@ void Sound_updateVolume(Sound_t* sound)
         }
     } while (++chan < (MAX_SOUNDCHANNELS + 1));
     */
-
-	int menu = sound->doomRpg->menuSystem->menu;
-	if (menu == MENU_SOUND || menu == MENU_INGAME_SOUND) {
-		Menu_textVolume(sound->doomRpg->menu, sound->volume);
-	}
 }
 
 int Sound_minusVolume(Sound_t* sound, int volume)
