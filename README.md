@@ -2,7 +2,7 @@
 
 This is a Nintendo 3DS port of the [reverse engineered Doom RPG](https://github.com/Erick194/DoomRPG-RE) by [GEC]. All credits go to the GEC team, this project would not exist without their hard work.
 
-This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) created by **Dennis Isaac Gutierrez Zeledon** to provide a **home-menu `.cia` build** (installable on any 3DS/2DS model from the HOME Menu via FBI), **hardware autostereoscopic 3D with dynamic motion damping**, an interactive **bottom-screen Touch HUD with draggable automap and Turbo 2.0**, a custom **3D parallax diorama HOME banner**, dynamic hardware adaptation for Old 3DS / 2DS, and stability fixes that make the port shine on real hardware. Recent enhancements are detailed in [`docs/RELEASE_NOTES_v1.1.0.md`](docs/RELEASE_NOTES_v1.1.0.md).
+This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) maintained by **Dennis Isaac Gutierrez Zeledon**. It provides installable HOME Menu `.cia` and Homebrew Launcher `.3dsx` builds, hardware autostereoscopic 3D with motion damping, an interactive bottom-screen Touch HUD with draggable automap, Turbo 2.0 combat and exploration speed toggles, a 3D parallax HOME banner, dynamic hardware profiling for Old 3DS / 2DS / New 3DS, and performance and stability optimizations. Complete details of changes are documented in [`docs/RELEASE_NOTES_v1.1.0.md`](docs/RELEASE_NOTES_v1.1.0.md).
 
 > ### ⚠️ Notice for Upgrading Players (From v1.0.0 – v1.0.7)
 > If you are upgrading from an earlier version and your Circle Pad (left thumbstick) or other newly mapped controls feel unresponsive, your existing saved configuration file (`sdmc:/3ds/doomrpg/saves/Config`) may still contain the older binding table where secondary slots were unset (`-1`).
@@ -15,37 +15,62 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
 
 ## Highlights (v1.1.0)
 
-- **Universal Single Binary & Dynamic Hardware Profiles**: A single unified `.cia` and `.3dsx` release boots on all 3DS and 2DS consoles. Automatically probes console capabilities (`APT_CheckNew3DS`, `CFGU_GetSystemModel`) at boot, dynamically applying Old 3DS / 2DS vs New 3DS profiles without user intervention. Stereo 3D is automatically bypassed on Nintendo 2DS hardware.
-- **Old 3DS & 2DS Performance Suite**: Resolves CPU raycasting bottlenecks on legacy 268 MHz hardware. Scales internal software raycasting to 200 columns (saving 50% CPU raycasting and fitting inside the 32 KB L1 data cache), with zero-overhead PICA200 GPU upscaling to the 400px top screen via Citro2D. Combines with flat floor/ceiling presets, a 400-entry bottom-screen LUT (saving 96,000 divisions/frame), and automap dirty blit caching for locked 60 FPS gameplay.
-- **360px Widescreen Notebook**: Replaced the legacy 128px flip-phone container (`menuHalfW = 64`) with a widescreen 360px container (`menuHalfW = 180`), utilizing the entire 400px top screen. Mission notes and terminal messages are parsed across double-pipe entries (`||`), joining mobile wrap segments into natural sentences and wrapping cleanly up to 48–50 characters per line with metallic headers and dividers.
-- **HUD Memory Leak & Failsafe Watchdog Resolution**: Eliminated the 60 FPS RAM leak in `Hud_drawTopBar` which previously leaked ~1.92 MB/s on message expiration, causing black screens and heap exhaustion after saving. Allocated persistent static HUD surfaces (`s_topBarSurface`, `s_bottomBarSurface`), eliminating 120 dynamic heap allocations per second. Added a 3.0-second watchdog ceiling to prevent queue deadlocks from freezing notifications, and added OOM safety checks in BitShapes loader.
-- **Turbo Mode 2.0 & Gameplay Acceleration Suite**:
-  - Truncated post-attack tail wait from 333ms to 75ms in Turbo mode, with instant bypass on pressing `A` or `R`.
-  - Continuous "Hold-to-Fire" attack buffering: holding `A` or `R` automatically executes attacks the exact frame the player's turn opens.
-  - Quadrupled projectile travel velocity (4x missile speed, `speed <<= 2`) crossing rooms in 3–4 frames while preserving full 3D rendering, smoke trails, and explosions.
-  - Off-screen monster AI instant snap for distant or non-visible monster patrol turns.
-  - 2-frame exploration grid traversal (33ms at 60 FPS) and 2x fast door opening in Turbo exploration mode.
-  - Accelerated typewriter terminal text (5ms/char) with instant page reveal on tapping `A` or the touchscreen.
-- **Direct Analog Circle Pad Polling**: Polled directly via `hidCircleRead` with deadzones, guaranteeing Circle Pad thumbstick movement regardless of save file state.
-- **Right Nub (C-Stick) & X/Y Face Button Scrolling**: Smooth scrolling using the C-Stick (New 3DS) or dedicated **X (Scroll Down)** and **Y (Scroll Up)** face buttons during dialogs and computer terminals, giving Old 3DS and 2DS players without a right nub identical hardware scrolling capabilities.
-- **Terminal Password Auto-Scroll & Passcode Pinning**: In `ST_DIALOGPASSWORD`, the text automatically scrolls to reveal the prompt line, and the code input box remains pinned and visible at all times.
-- **Touchscreen Quick-Select Weapon Bar**: A vertical 9-slot rack on the left edge of the bottom screen ($X = 1..37, Y = 262..450$) displaying authentic HUD ammo icons and distinct weapon badges (`AX`, `EX`, `PI`, `SG`, `CG`, `SS`, `PL`, `RL`, `BF`). Tapping any owned weapon immediately equips it with authentic SFX. Active weapon slot glows with a high-visibility neon border.
-- **Color-Coded Locked Keycard Doors on Automap**: Scans bytecode and tile event triggers for `EV_CHECK_KEY` to render locked doors in vibrant Red (`0xFF2222`), Blue (`0x00D0FF`), Yellow (`0xFFEE00`), and Green (`0x20FF50`), with open doors in muted slate (`0x6688AA`) and normal closed doors in amber (`0xEEAA33`).
-- **Interactive 3DS Notification LED Telemetry**: Directly interfaces with libctru's `mcuHwc` service: smooth rhythmic crimson heartbeat pulse during low health (< 25% max HP), rapid fiery amber/orange throb when Berserk is active, and a celebratory emerald green double-flash when discovering a secret sector.
-- **Real-Time Automap Exploration % & Secret Counter**: Computes walkable vs visited map tiles and queries level secret discovery in real time, displaying a sleek tactical badge (`MAP: xx% | SEC: x/x`) at the bottom-left of the automap frame with a glowing gold border when 100% of secrets are uncovered.
-- **Sector Transition Checkpoint Autosaves**: Transitioning through doors to a new sector automatically creates a checkpoint state save, providing seamless recovery without lost progress.
-- **Independent Audio Controls**: Restored independent Music and SFX volume sliders (0% to 100%) in the Options menu that persist across saves.
-- **New In-Game Video, Audio & Input Options**: Dedicated menu toggles for System Profiles (`Auto`, `High`, `Perf`), Render Scaling (`Crisp 400`, `Retro 200`), Floor/Ceiling textures, 3D Depth, Independent Music/SFX Volume, Touch Menu, Hold Fire, Turbo Scope (`Combat`, `Explore`, `All`), Typewriter speed, and Reset Defaults.
+- **Universal Binary & Dynamic Hardware Profiling**: Single `.cia` and `.3dsx` binary for all 3DS and 2DS consoles. Boot detection queries `APT_CheckNew3DS` and `CFGU_GetSystemModel` to configure Old 3DS / 2DS vs New 3DS defaults automatically. Stereoscopic 3D rendering and left/right framebuffer setup are automatically bypassed on 2DS hardware (`consoleModel == 3`).
+- **Rendering & Frame Pacing Optimizations**:
+  - Optional 200×240 internal raycaster column rendering on Old 3DS / 2DS, halving raycast columns to fit within the ARM11 32 KB L1 data cache and upscaling to 400px via Citro2D / PICA200 hardware scaling with zero CPU overhead.
+  - Span rasterizer simplification in `Render.c`: reduced DDA step arithmetic for floor and ceiling texturing.
+  - Main loop thread yielding: executes `svcSleepThread(1000000)` (1ms) when the engine tick interval has not elapsed, reducing CPU idle spinning and power draw.
+  - Fast bottom screen clearing via `SDL_memset` and a 400-entry lookup table (`s_lutBotH`) replacing per-pixel integer division.
+  - Static persistent SDL surfaces (`s_topBarSurface`, `s_bottomBarSurface`) for HUD drawing, eliminating per-frame heap allocations.
+  - Automap dirty blit caching: skips bottom-screen redraws when player position, orientation, and zoom remain unchanged.
+  - Compiler optimization flags: `-O3 -ffast-math -fomit-frame-pointer -flto`.
+- **Visuals & Particle Systems**:
+  - Re-enabled blood and spark particle systems with an optimized circle rasterizer (`Video_fillCircle`).
+  - Added sinusoidal weapon bobbing and sway during player movement in `DoomCanvas_renderWeapon`.
+  - Replaced 2px damage lines with a 3-tier stepped red vignette during player damage (`Hud_drawDamageFlash`).
+  - Desynchronized rotation phases across gib particles.
+  - Initialized alpha channel to opaque (`0xFF`) in `DoomRPG_setColor`.
+- **UI & Widescreen Layout**:
+  - 360px widescreen Notebook layout (`menuHalfW = 180`, `scrollX = 378`), utilizing the full 400px top screen width instead of the legacy 128px container.
+  - Double-pipe (`||`) delimiter parser joins mobile wrap segments into continuous sentences (up to 50 characters per line).
+  - Bottom-screen 10-slot quick-select weapon rack ($X = 1..37$) supporting weapons `AX` through `BF`, plus dynamic Dog Collar / Hound progression (`RG` / `DG`).
+  - Real-time automap statistics badge: walkable exploration percentage (`MAP: xx%`) and secret sector counter (`SEC: x/x`).
+  - Color-coded locked keycard doors on automap (Red, Blue, Yellow, Green) parsed from script bytecode.
+- **Audio Subsystem**:
+  - Independent Music and SFX volume sliders (0–100%) in the Options menu with configuration persistence.
+  - Direct $O(1)$ lookup table (`chunkLUT`) for cached WAV sound effects, eliminating linear search overhead.
+  - Optimized music volume scaling via bitwise shifts (`>> 7`) instead of integer division.
+  - Support for Roland SC-55 MP3 soundtrack replacements.
+- **Controls & Input Modernization**:
+  - Direct Circle Pad analog polling via `hidCircleRead` with deadzone handling.
+  - C-Stick (Right Nub) smooth scrolling for dialogs, computer terminals, notebook logs, and menus.
+  - Physical face button mapping for weapon switching: `X` (Next Weapon) and `Y` (Previous Weapon).
+  - Contextual text scrolling: `X` (Scroll Down) and `Y` (Scroll Up) during dialogs and terminal screens.
+  - New 3DS `ZL` / `ZR` buttons mapped to Previous / Next weapon.
+  - Hold-to-fire attack buffering with 350ms initial press delay and interaction guard (prevents firing when opening doors).
+  - Touchscreen menu button with 100ms hold debounce to prevent accidental activations.
+  - Automatic configuration migration backfilling missing bindings into legacy config files.
+- **Turbo Mode 2.0**:
+  - Truncated post-attack wait from 333ms to 75ms in Turbo mode, with instant bypass on pressing `A`.
+  - Quadrupled projectile travel velocity (`speed <<= 2`).
+  - Off-screen monster AI instant tile snap for distant or non-visible tiles.
+  - 2-frame exploration grid traversal (33ms at 60 FPS) and 2x door opening animation speed.
+  - Typewriter terminal text accelerated to 5ms/char with instant page reveal on pressing `A` or touching the screen.
+- **Memory & Stability**:
+  - Resolved 60 FPS RAM leak in `Hud_drawTopBar` by eliminating un-freed temporary surfaces.
+  - Implemented 3.0-second watchdog ceiling to prevent queued HUD messages from freezing.
+  - Added NULL check after `SDL_malloc` in `Render_loadBitShapes` to prevent ARM11 data aborts on allocation failure.
+  - Added SD card read retry logic before logging fatal I/O read errors in `DoomRPG.c`.
+  - Automatic checkpoint state save on sector transitions.
 
 ## How to install
 
 1. Get the original game data: the game reads its assets as **loose files** from
-   `sdmc:/3ds/doomrpg/` — the 3DS build never opens a zip (the loader code paths
-   are zip-named but actually read files directly from that folder). The data
+   `sdmc:/3ds/doomrpg/` — the 3DS build reads files directly from that folder. The data
    lives inside the `doomrpg.bar` container, which is bundled in the
    `doomrpg.zip` archive at the `doomrpg_brew` item on
    [archive.org](https://archive.org/details/doomrpg_brew). Extract `doomrpg.bar`
-   (a BREW asset container; the upstream PC tools such as `BarToZip` turn it into
+   (a BREW asset container; upstream PC tools such as `BarToZip` turn it into
    loose files) and copy those loose files — no further zip step is needed.
 2. Install `DoomRPG-1.1.0.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
 3. On the SD card, copy the **extracted data files** into
@@ -58,7 +83,7 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
    - SFX as numbered `.wav` files (`5042.wav` through `5138.wav`).
    - Music as numbered `.mp3` files (`5039.mp3`, `5040.mp3`, `5043.mp3`):
      > **High-Quality Roland SC-55 Music (Recommended):**
-     > The original BREW extractions only provide low-bitrate downmixed MIDI files. As identified by GBAtemp user **bakuDD**, these tracks are the exact same compositions as the original Doom and Doom II music. For authentic, high-quality audio, download the Roland Sound Canvas SC-55 recordings from [sc55.duke4.net](https://sc55.duke4.net/games.php) and place them as:
+     > The original BREW extractions provide low-bitrate downmixed MIDI files. As identified by GBAtemp user **bakuDD**, these tracks correspond directly to original Doom and Doom II music. For higher fidelity, download the Roland Sound Canvas SC-55 recordings from [sc55.duke4.net](https://sc55.duke4.net/games.php) and place them as:
      > - `5039.mp3` $\leftarrow$ `d_dead.mp3` from Doom II ("The Demon's Dead" / "Waiting for Romero to Play")
      > - `5040.mp3` $\leftarrow$ `d_e1m1.mp3` from Doom ("At Doom's Gate")
      > - `5043.mp3` $\leftarrow$ `d_inter.mp3` from Doom ("Sweet Little Dead Bunny" / Intermission)
@@ -73,22 +98,35 @@ The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files p
 | Move Forward / Backward | D-pad Up / Down or Circle Pad (Left Stick) | — |
 | Strafe Left / Right | L / R | — |
 | Turn Left / Right | D-pad Left / Right or Circle Pad (Left Stick) | — |
-| Attack / Talk / Use / Confirm | A (Hold for Attack Buffering) | On-screen dialog tap |
+| Attack / Talk / Use / Confirm | A (Hold for Attack Buffering) | Tap dialog text |
 | Back / Dismiss Dialog / Pass Turn | B | Tap `[ PASS ]` on top bar |
-| Next / Prev Weapon | ZR / ZL or X / Y (during gameplay) | Tap weapon slot in left rack (`AX`–`BF`) |
-| Quick Select Weapon | — | Tap weapon in left quick-select rack |
-| Scroll Dialogs, Terminals & Menus | C-Stick (Right Nub) or X / Y (during dialogs: X = Down, Y = Up) | Touch & drag dialog text or scrollbar |
-| Quick Use Items | Hotbar touch | Tap `S.MED`, `L.MED`, `SOUL`, `BRSK`, `DOG` |
-| Combat Turbo Toggle | — | Tap `[ TURBO ]` next to map controls |
-| Pan Automap | — | Touch & drag map with stylus / finger |
+| Next / Prev Weapon | ZR / ZL or X / Y (during gameplay) | Tap weapon slot in left rack (`AX`–`BF`, `RG`/`DG`) |
+| Quick Select Weapon | — | Tap weapon slot in left quick-select rack |
+| Scroll Dialogs, Terminals & Menus | C-Stick (Right Nub) or X / Y (during dialogs: X = Down, Y = Up) | Touch & drag text / scrollbar |
+| Quick Use Items | — | Tap hotbar: `S.MED`, `L.MED`, `SOUL`, `BRSK`, `DOG` |
+| Combat Turbo Toggle | — | Tap `[ TURBO ]` button above automap |
+| Pan Automap | — | Touch & drag map viewport |
 | Zoom Automap | — | Tap `[+]` or `[-]` |
-| Recenter / Zoom Automap | Select (recenter; tap again to cycle zoom) | Tap `[CTR]` or `[+]` / `[-]` |
-| Passcode Entry | D-pad / A | Tap numpad digits `0`–`9`, `C`, `OK` |
+| Recenter Automap | Select (recenter; tap again to cycle zoom) | Tap `[CTR]` |
+| Passcode Entry | D-pad / A | Tap numpad `0`–`9`, `<-` (backspace), `OK` |
 | In-Game Menu / Back | Start | Tap `[ MENU ]` on top bar (100ms hold) |
 | 3D Depth Adjustment | Physical 3D Slider | — |
 
-NOTE: the D-pad/Circle Pad turns; **L/R are lateral movement (strafe)** — hold L or R to
-step left/right without changing facing. Automap is always on your bottom screen.
+> **Note:** The D-pad and Circle Pad control forward/backward movement and turning; **L and R are dedicated strafe buttons** (step left/right without turning). The Automap is permanently displayed on the bottom screen.
+
+## In-Game Settings (Options Menu)
+
+- **System Profile**: `[ Auto | N3DS (High) | O3DS (Perf) ]` — Controls default scaling and floor/ceiling texture settings.
+- **Render Scaling**: `[ Crisp (400) | Retro (200) ]` — Selects native 400px top screen raycasting or 200px internal raycasting with GPU upscale.
+- **Floor/Ceil Textures**: `[ on | off ]` — Toggles texture mapping on floors and ceilings (solid flat colors when off).
+- **3D Depth**: `[ Low | Normal | High | Max ]` — Adjusts stereoscopic separation scale (3DS models only).
+- **Music Volume**: `[ 0% - 100% ]` — Independent background music stream volume.
+- **SFX Volume**: `[ 0% - 100% ]` — Independent sound effects mixer volume.
+- **Touch Menu**: `[ on | off ]` — Enables or disables the bottom-screen `[ MENU ]` touch button.
+- **Hold Fire**: `[ on | off ]` — Enables continuous attack buffering while holding `A` during combat.
+- **Turbo Scope**: `[ Combat | Explore | All ]` — Determines which systems receive gameplay speed acceleration.
+- **Typewriter**: `[ Classic | Fast | Instant ]` — Controls text display rate in dialogs and computer terminals.
+- **Reset Defaults**: Restores default key bindings and configuration settings.
 
 ## Save and config data
 
@@ -98,7 +136,7 @@ All user data is stored in `sdmc:/3ds/doomrpg/saves` — these files are compati
 
 This port uses SDL1.2 and SDL_Mixer (1.2). The reproducible build runs inside a Docker image with the devkitARM toolchain (makerom + bannertool); the CIA recipe lives under `tools/cia/`.
 
-```
+```bash
 cd tools/cia
 ./build_cia.sh
 ```
@@ -124,7 +162,7 @@ This fork was developed by **Dennis Isaac Gutierrez Zeledon** with the assistanc
 
 - **v1.1.0 (Universal Binary, Old 3DS GPU Scaling, Widescreen Notebook, Turbo 2.0 & Stability Suite):**
   - **Assistant:** **Gemini Antigravity** (Google DeepMind)
-  - **Role:** Architectural design and implementation of universal single binary with runtime console detection (`APT_CheckNew3DS`), internal 200×240 raycaster scaling with zero-overhead PICA200 GPU scaling, 360px widescreen notebook with pipe-delimited note merging, elimination of HUD 60 FPS RAM leak and implementation of persistent static HUD surfaces and watchdog timer, Turbo Mode 2.0 gameplay acceleration suite (truncated post-attack wait, hold-to-fire attack buffering, 4x missile speed, off-screen monster AI snap, 2-frame exploration grid traversal, fast door animations, typewriter acceleration), direct Circle Pad analog polling via `hidCircleRead`, C-Stick scrolling, and touchscreen debounce.
+  - **Role:** Implementation of universal single binary with runtime console detection (`APT_CheckNew3DS`), internal 200×240 raycaster scaling with Citro2D PICA200 GPU scaling, 360px widescreen notebook with pipe-delimited note merging, elimination of HUD 60 FPS RAM leak and implementation of persistent static HUD surfaces and watchdog timer, Turbo Mode 2.0 gameplay acceleration suite (truncated post-attack wait, hold-to-fire attack buffering, 4x missile speed, off-screen monster AI snap, 2-frame exploration grid traversal, fast door animations, typewriter acceleration), direct Circle Pad analog polling via `hidCircleRead`, C-Stick scrolling, touchscreen debounce, floor/ceiling span step optimizations, $O(1)$ sound chunk lookup table, and particle circle rasterizer optimizations.
 
 - **v1.0.3 – v1.0.7 (Stereo 3D, Motion Damping, 3D Banner, Touch HUD & Engine Polish):**
   - **Assistant:** **Gemini Antigravity** (Google DeepMind)
@@ -136,7 +174,7 @@ This fork was developed by **Dennis Isaac Gutierrez Zeledon** with the assistanc
   - **Role:** Tracing the initial 3DS boot/render path, resolving early heap-exhaustion and null-surface crashes, establishing the New 3DS home-menu `.cia` build pipeline, and initial repository setup.
 
 - **Community Contributors & Research:**
-  - **bakuDD (GBAtemp)**: Research identifying that the downmixed mobile BREW MIDI tracks match original Doom and Doom II songs, and recommending the authentic Roland Sound Canvas SC-55 recordings from [sc55.duke4.net](https://sc55.duke4.net/games.php).
+  - **bakuDD (GBAtemp)**: Research identifying that downmixed mobile BREW MIDI tracks correspond directly to original Doom and Doom II songs, and recommending the Roland Sound Canvas SC-55 recordings from [sc55.duke4.net](https://sc55.duke4.net/games.php).
 
 ## License
 
