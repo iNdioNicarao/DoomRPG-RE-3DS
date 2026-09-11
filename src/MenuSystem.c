@@ -92,8 +92,8 @@ char* MenuSystem_buildDivider(MenuSystem_t* menuSystem, char* str)
 	len = (int)SDL_strlen(str);
 
 #ifdef __3DS__
-	// 320px container at ~7px per character is ~44 characters. Symmetrical divider:
-	cnt = (40 - (len + 2)) / 2;
+	// 280px container at ~7px per character is ~38 characters. Symmetrical divider:
+	cnt = (36 - (len + 2)) / 2;
 	if (cnt < 2) cnt = 2;
 #else
 	cnt = (15 - (len + 2)) / 2;
@@ -453,7 +453,7 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 		int local_28 = 12;
 		boolean isLargerFont = false;
 
-		if ((menuSystem->menu > MENU_NONE) && (menuSystem->menu < MENU_MAIN_OPTIONS)) {
+		if ((menuSystem->menu > MENU_NONE) && (menuSystem->menu <= MENU_MAIN_OPTIONS)) {
 			if ((menuSystem->menu != MENU_MAIN_HELP_ABOUT) && menuSystem->doomRpg->doomCanvas->largeStatus) {
 				local_34 = 13;
 				local_38 = 10;
@@ -465,27 +465,21 @@ void MenuSystem_paint(MenuSystem_t* menuSystem)
 		int local_2c = local_28 >> 1;
 
 #ifdef __3DS__
-		int menuHalfW = (menuSystem->type == 1 || menuSystem->type == 7) ? 160 :
+		int menuHalfW = (menuSystem->type == 1 || menuSystem->type == 7) ? 140 :
 		                (menuSystem->type == 5) ? 180 : 64;
 		int i101;
 		if (menuSystem->type == 1 || menuSystem->type == 7) {
-			// Wide 320px container for lists/store/options/submenus (centered on 400px screen)
-			i101 = doomCanvas->SCR_CX - menuHalfW + 16; // 200 - 160 + 16 = 56
+			// Balanced 280px container for lists/store/options/submenus (centered on 400px screen)
+			i101 = doomCanvas->SCR_CX - menuHalfW + 16; // 200 - 140 + 16 = 76
 		}
 		else if (menuSystem->type == 5) {
 			// Wide 360px container for Notebook / Help / Mission Logs
 			i101 = doomCanvas->SCR_CX - menuHalfW; // 200 - 180 = 20
 		}
 		else if (menuSystem->type == 4) {
-			// Startup menu ("Start Game", "Help/About", "Exit") centered under DOOM RPG logo
-			int maxLen = 0;
-			for (int k = 0; k < menuSystem->numItems; k++) {
-				int l = (int)SDL_strlen(menuSystem->items[k].textField);
-				while (l > 0 && menuSystem->items[k].textField[l - 1] == ' ') l--;
-				if (l > maxLen) maxLen = l;
-			}
-			int menuW = maxLen * local_38;
-			i101 = doomCanvas->SCR_CX - (menuW / 2);
+			// Startup title menus ("Start Game", "Options", "Continue", etc.) centered under DOOM RPG logo
+			// Fixed X position ensures the menu column never shifts or jitters between screens
+			i101 = doomCanvas->SCR_CX - 35; // 165
 		}
 		else if (menuSystem->type == 6) {
 			// Centered confirmation prompts (Yes / No dialogs)

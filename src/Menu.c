@@ -581,7 +581,7 @@ void Menu_initMenu(Menu_t* menu, int i)
 				menuSystem->oldMenu = MENU_INGAME;
 			}
 			else {
-				menuSystem->type = 7; // MENUTYPE_MAIN2
+				menuSystem->type = 4; // MENUTYPE_MAIN
 				menuSystem->oldMenu = MENU_MAIN;
 			}
 
