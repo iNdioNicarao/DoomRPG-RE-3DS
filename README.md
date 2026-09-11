@@ -174,6 +174,7 @@ This fork was developed by **Dennis Isaac Gutierrez Zeledon** with the assistanc
   - **Role:** Tracing the initial 3DS boot/render path, resolving early heap-exhaustion and null-surface crashes, establishing the New 3DS home-menu `.cia` build pipeline, and initial repository setup.
 
 - **Community Contributors & Research:**
+  - **CrashMidnick (GBAtemp)**: Invaluable community testing, file checklist verification, and input bug reporting.
   - **bakuDD (GBAtemp)**: Research identifying that downmixed mobile BREW MIDI tracks correspond directly to original Doom and Doom II songs, and recommending the Roland Sound Canvas SC-55 recordings from [sc55.duke4.net](https://sc55.duke4.net/games.php).
 
 ## License

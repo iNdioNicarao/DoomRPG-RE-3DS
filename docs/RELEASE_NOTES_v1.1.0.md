@@ -218,6 +218,7 @@ Doom RPG RE 3DS v1.1.0 provides performance optimizations across Old 3DS, 2DS, a
 
 - **Port & 3DS Enhancements**: Dennis Isaac Gutierrez Zeledon
 - **AI Coding Partner**: Gemini Antigravity (Google DeepMind)
+- **Community Testing & Feedback**: CrashMidnick (GBAtemp)
 - **Soundtrack Research & Recommendation**: bakuDD (GBAtemp)
 - **Original Reverse Engineering**: GEC Team (Erick194 and contributors)
 - **Initial 3DS Port Base**: Efim Andreev (`efimandreev0`)
