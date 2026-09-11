@@ -1562,7 +1562,7 @@ void Render_drawplane(Render_t* render, int x, int y, short** planeTextures, int
 
 	v16 = ((width * v14) / (v15 + 1));
 	v17 = (unsigned int)v16;
-	v18 = ((v16 << 19) / (32 * width)) >> 8;
+	v18 = (v14 << 6) / (v15 + 1);
 
 	Render_spanPlane(render,
 		v9 >> 1,
