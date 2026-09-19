@@ -852,6 +852,13 @@ void Game_loadConfig(Game_t* game)
 				if (fileSize - curPos >= 6) {
 					g_systemProfile = File_readByte(rw);
 					g_renderScaling = File_readByte(rw);
+					if (g_systemProfile == 0) {
+						/* Auto Profile: dynamically enforce hardware capabilities on boot */
+						g_renderScaling = g_isOldHardware ? 1 : 0;
+						if (game && game->doomRpg && game->doomRpg->doomCanvas) {
+							game->doomRpg->doomCanvas->renderFloorCeilingTextures = !g_isOldHardware;
+						}
+					}
 					g_turboScope = File_readByte(rw);
 					g_attackBuffer = File_readByte(rw) != 0;
 					g_typewriterSpeed = File_readByte(rw);

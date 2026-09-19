@@ -151,8 +151,10 @@ void SDL_InitVideo(void) {
 	   3 = O2DS (FTR), 4 = N3DS XL (RED), 5 = New 2DS XL (JAN) */
 	g_is2DS = (model == 3 || model == 5);
 
-	/* Default hardware performance profiles */
-	g_renderScaling = 0; // Default to Crisp (Native 400px) on all 3DS hardware
+	/* Default hardware performance profiles:
+	   Old 3DS / 2DS (CTR/FTR) defaults to Retro 200 (1) for 50% CPU savings.
+	   New 3DS (KTR/RED/JAN) defaults to Crisp 400 (0). */
+	g_renderScaling = g_isOldHardware ? 1 : 0;
 
 	/* NO SDL_INIT_VIDEO. We OWN gfx raw via gfxInit() below. SDL_Init with VIDEO
 	   calls gfxInitDefault() internally and claims the screens (SDL_DUALSCR
@@ -552,11 +554,7 @@ static void SDL_PresentGfx(SDL_Surface* surface) {
         s_botFrameCounter = 0;
     }
 
-    /* Clear bottom-screen rows 240..479 to black for NEXT frame so stale pixels never linger */
-    if (sdlVideo.screenSurface && sdlVideo.screenSurface->pixels) {
-        Uint32* sp = (Uint32*)sdlVideo.screenSurface->pixels;
-        SDL_memset(sp + 240 * 400, 0, 240 * 400 * sizeof(Uint32));
-    }
+
 
     /* TOP screen: hand to citro2d. Copy the top region (screenSurface rows 0..239, 400x240 or 200x240)
        directly into 512x256 RGB565 scratch texture, upload, and draw to BOTH stereo eye targets.
@@ -874,7 +872,8 @@ void SDL_RenderDrawCircle(RenderTarget* target, int x, int y, int r)
 void SDL_InitAudio(void)
 {
 	printf("SDL_InitAudio\n");
-	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+	int mixRate = g_isOldHardware ? 22050 : 44100;
+	if (Mix_OpenAudio(mixRate, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
 		DoomRPG_Error("Could not initialize SDL Mixer: %s", Mix_GetError());
 	}
 }

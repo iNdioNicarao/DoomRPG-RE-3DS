@@ -2214,6 +2214,22 @@ void Render_drawWallSpans(Render_t* render, Line_t* line)
 	Render_getSpanMode(render, render->mediaTexelOffsets[line->texture * 2 + 1], render->spanMode);
 
 	//printf("-.-.-.-.-.-.-.-.-.-.-.-.-.\n");
+#ifdef __3DS__
+	extern int g_renderScaling;
+	int colStep = (g_renderScaling == 1) ? 2 : 1;
+	if (colStep == 2 && (i5 & 1)) {
+		i8 += i3;
+		i7 += i4;
+		i5++;
+	}
+	int i3_step = i3 * colStep;
+	int i4_step = i4 * colStep;
+#else
+	int colStep = 1;
+	int i3_step = i3;
+	int i4_step = i4;
+#endif
+
 	while (i5 < i6)
 	{
 		i12 = (0x40000000 / i8) << 2;
@@ -2224,14 +2240,21 @@ void Render_drawWallSpans(Render_t* render, Line_t* line)
 		i13 = ((int)((((int64_t)i7) * ((int64_t)i12)) >> 32)) & 63;
 #endif
 
-		i8 += i3;
-		i7 += i4;
+		int cur_i8 = i8;
+		i8 += i3_step;
+		i7 += i4_step;
 		if (render->columnScale[i5] >= i12)
 		{
 			render->columnScale[i5] = i12;
+#ifdef __3DS__
+			if (colStep == 2 && (i5 + 1 < render->screenWidth)) {
+				render->columnScale[i5 + 1] = i12;
+			}
+#endif
 			i14 = i12 >> 3;
 
-			i15 = (64 * i8) >> 17;
+			int use_i8 = cur_i8 + i3;
+			i15 = (64 * use_i8) >> 17;
 
 			if (line->flags & 0xC0010000) { // BREW
 				if (!(line->flags & 0xC0000000)) {
@@ -2244,7 +2267,7 @@ void Render_drawWallSpans(Render_t* render, Line_t* line)
 			}
 			zPos = 64;
 
-			i16 = render->halfScreenHeight - (((zPos - render->viewZ) * i8) >> 17);
+			i16 = render->halfScreenHeight - (((zPos - render->viewZ) * use_i8) >> 17);
 			i17 = (i9 + (i13 << 6)) << 12;
 
 			if (render->screenTop > i16)
@@ -2262,7 +2285,7 @@ void Render_drawWallSpans(Render_t* render, Line_t* line)
 				render->spanFunction(render, i5, i16, i17, i14, i15);
 			}
 		}
-		i5++;
+		i5 += colStep;
 	}
 }
 
@@ -2364,11 +2387,17 @@ void Render_renderSpriteObject(Render_t* render, Sprite_t* sprite)
 	}
 
 	// spawn light glows
-	if (i == 135 || i == 140) {
-		Render_renderSprite(render, sprite->x, sprite->y, render->mediaSpriteIds[136] + anim, sprite->info, 7);
-	}
-	else if (i == 131) {
-		Render_renderSprite(render, sprite->x, sprite->y, render->mediaSpriteIds[144] + anim, sprite->info, 7);
+#ifdef __3DS__
+	extern boolean g_isOldHardware;
+	if (!g_isOldHardware)
+#endif
+	{
+		if (i == 135 || i == 140) {
+			Render_renderSprite(render, sprite->x, sprite->y, render->mediaSpriteIds[136] + anim, sprite->info, 7);
+		}
+		else if (i == 131) {
+			Render_renderSprite(render, sprite->x, sprite->y, render->mediaSpriteIds[144] + anim, sprite->info, 7);
+		}
 	}
 }
 
@@ -2535,6 +2564,22 @@ void Render_drawSpriteSpan(Render_t* render, Line_t* line)
 
 	i12 = i9 + 4;
 	i13 = (render->shapeData[i9] & 65535) | (render->shapeData[i9 + 1] << 16);
+#ifdef __3DS__
+	extern int g_renderScaling;
+	int colStep = (g_renderScaling == 1) ? 2 : 1;
+	if (colStep == 2 && (i5 & 1)) {
+		i8 += i3;
+		i7 += i4;
+		i5++;
+	}
+	int i3_step = i3 * colStep;
+	int i4_step = i4 * colStep;
+#else
+	int colStep = 1;
+	int i3_step = i3;
+	int i4_step = i4;
+#endif
+
 	while (i5 < i6) {
 
 		i14 = (0x40000000u / i8) << 2;
@@ -2545,8 +2590,9 @@ void Render_drawSpriteSpan(Render_t* render, Line_t* line)
 		i15 = (int)((((int64_t)i7) * ((int64_t)i14)) >> 32);
 #endif
 
-		i8 += i3;
-		i7 += i4;
+		int cur_i8 = i8;
+		i8 += i3_step;
+		i7 += i4_step;
 		if (render->columnScale[i5] >= i14) {
 			i16 = i14 >> 3;
 			i17 = i9 + render->shapeData[i12 + i15] + 2;
@@ -2561,8 +2607,9 @@ void Render_drawSpriteSpan(Render_t* render, Line_t* line)
 				i20 = s2 >> 8;
 				i21 = i13 + render->shapeData[i17 + 1];
 				i17 += 2;
-				i22 = (i20 * i8) >> 17;
-				i23 = render->halfScreenHeight - ((i19 * i8) >> 17);
+				int use_i8 = cur_i8 + i3;
+				i22 = (i20 * use_i8) >> 17;
+				i23 = render->halfScreenHeight - ((i19 * use_i8) >> 17);
 				i24 = i21 << 12;
 
 				if (i23 < render->screenTop) {
@@ -2580,7 +2627,7 @@ void Render_drawSpriteSpan(Render_t* render, Line_t* line)
 				}
 			}
 		}
-		i5++;
+		i5 += colStep;
 	}
 }
 

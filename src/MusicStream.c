@@ -17,6 +17,9 @@
 #include <SDL/SDL_mixer.h>
 #include "MusicStream.h"
 
+typedef enum { bool_false, bool_true } boolean;
+extern boolean g_isOldHardware;
+
 #define RING_SIZE   (64 * 1024)   /* power of two */
 
 static unsigned char* ms_mp3_buf = NULL;
@@ -84,8 +87,9 @@ static int ms_decodeMore(void)
         int ns = pcm->length;                 /* samples per channel */
         int ch = pcm->channels;
 
-        /* synth to interleaved S16LE */
-        for (int i = 0; i < ns; ++i) {
+        /* synth to interleaved S16LE. If Old 3DS / 2DS (22050 Hz output), downsample 2:1 from 44.1 kHz */
+        int step = (g_isOldHardware && pcm->samplerate >= 44100) ? 2 : 1;
+        for (int i = 0; i < ns; i += step) {
             short frame[2];
             for (int c = 0; c < 2; ++c) {
                 mad_fixed_t s = pcm->samples[c < ch ? c : ch - 1][i];

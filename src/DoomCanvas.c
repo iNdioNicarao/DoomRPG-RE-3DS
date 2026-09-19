@@ -161,7 +161,7 @@ DoomCanvas_t* DoomCanvas_init(DoomCanvas_t* doomCanvas, DoomRPG_t* doomRpg) // 0
 	doomCanvas->mouseYMove = true;
 	doomCanvas->sndPriority = false;
 	doomCanvas->vibrateEnabled = true;
-	doomCanvas->renderFloorCeilingTextures = true; // default on: render authentic textured floors, ceilings, and ceiling lights
+	doomCanvas->renderFloorCeilingTextures = !g_isOldHardware; // default on for N3DS, flat-shaded solid color on O3DS/2DS
 	doomCanvas->hotbarDeniedFlash = 0;
 	doomCanvas->hotbarDeniedTimer = 0;
 	doomCanvas->dialogDismissedTime = 0;
@@ -4646,12 +4646,10 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 
 			DoomCanvas_updateView(doomCanvas);
 			applyBerserk = true;
-		} // <- Agregu� el corchete aqu�, ya que necesito que los gr�ficos se actualicen siempre en cada cuadro, 
+		} // <- Agregu el corchete aqu, ya que necesito que los grficos se actualicen siempre en cada cuadro, 
 		  //    sin que intervengan las actualizaciones del movimiento del jugador.
 		  // <- I added the bracket here as I need the graphics to always update on every frame, 
 		  //    without player movement updates intervening.
-
-			DoomCanvas_drawRGB(doomCanvas);
 
 			boolean renderParticle = true;
 			if (doomCanvas->particleSystem->particleCount > 0) {
@@ -4665,7 +4663,7 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 
 			DoomCanvas_drawRGB(doomCanvas);
 
-			// En el c�digo original esta funci�n est� en la funci�n "Hud_drawEffects", pero decid� moverla aqu�, 
+			// En el cdigo original esta funcin est en la funcin "Hud_drawEffects", pero decid moverla aqu, 
 			// esto evita que se superponga a otros objetos dibujados previamente.
 			// 
 			// In the original code this function is in the "Hud_drawEffects" function, but I decided to move it here, 
@@ -4684,8 +4682,13 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 			Hud_drawBottomBar(doomCanvas);
 			Hud_drawEffects(doomCanvas);
 #ifdef __3DS__
-			DoomCanvas_drawAutomap(doomCanvas, true);
-			DoomCanvas_drawBottomTouchHUD(doomCanvas);
+			if (doomCanvas->viewX != doomCanvas->destX || doomCanvas->viewY != doomCanvas->destY || doomCanvas->viewAngle != doomCanvas->destAngle) {
+				g_botScreenDirty = true;
+			}
+			if (g_botScreenDirty) {
+				DoomCanvas_drawAutomap(doomCanvas, true);
+				DoomCanvas_drawBottomTouchHUD(doomCanvas);
+			}
 #endif
 
 			activeMonsters = doomCanvas->game->activeMonsters;

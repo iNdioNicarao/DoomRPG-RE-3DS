@@ -138,7 +138,13 @@ void ParticleSystem_render(ParticleSystem_t* particleSystem, int z)
 	if (particleSystem->particleCount) {
 		doomRpg = particleSystem->doomRpg;
 		doomCanvas = particleSystem->doomRpg->doomCanvas;
-
+#ifdef __3DS__
+		extern boolean g_isOldHardware;
+		if (g_isOldHardware && (doomCanvas->time - particleSystem->startTime >= 150)) {
+			ParticleSystem_freeAllParticles(particleSystem);
+			return;
+		}
+#endif
 		int i2 = doomCanvas->time > particleSystem->startTime ? (((int)(doomCanvas->time - particleSystem->startTime)) << 16) / 2560 : 0;
 		color = particleSystem->color;
 
@@ -369,6 +375,16 @@ void ParticleSystem_spawnParticles(ParticleSystem_t* particleSystem, int i, int 
 
 void ParticleSystem_calculateParticles(ParticleSystem_t* particleSystem, int i, int z)
 {
+#ifdef __3DS__
+	extern boolean g_isOldHardware;
+	if (g_isOldHardware) {
+		if (i > 8) i = 8;
+		if (particleSystem->particleCount + i > 8) {
+			i = 8 - particleSystem->particleCount;
+			if (i <= 0) return;
+		}
+	}
+#endif
 	ParticleNode_t* particleNode;
 	int maxStartX, maxStartY, minStartX, minStartY;
 	int maxVelX, maxVelY, minVelX, minVelY;

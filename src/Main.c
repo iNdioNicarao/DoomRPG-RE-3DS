@@ -31,7 +31,7 @@ unsigned int __stacksize__ = 0x40000; // 256KB
 #endif
 
 // Build identity - bump on every build so we can verify what is actually running.
-static const char* BUILD_VERSION = "DOOMRPG-3DS v1.1.0";
+static const char* BUILD_VERSION = "DOOMRPG-3DS v1.1.1";
 
 int main(int argc, char* args[])
 {
@@ -229,8 +229,13 @@ int main(int argc, char* args[])
             }
         }
 #endif
+#ifdef __3DS__
+        int frameDelay = g_isOldHardware ? 33 : 15;
+#else
+        int frameDelay = 15;
+#endif
         if (currentTimeMillis > UpTime) {
-            UpTime = currentTimeMillis + 15;
+            UpTime = currentTimeMillis + frameDelay;
             DoomRPG_loopGame(doomRpg);
         }
 #ifdef __3DS__

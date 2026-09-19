@@ -2217,17 +2217,13 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 				static const char* s_scaleNames[2] = { "Crisp (400)", "Retro (200)" };
 				g_systemProfile = (g_systemProfile + 1) % 3;
 				if (g_systemProfile == 0) {
-					g_renderScaling = 0;
-					if (g_isOldHardware) {
-						doomCanvas->renderFloorCeilingTextures = false;
-					} else {
-						doomCanvas->renderFloorCeilingTextures = true;
-					}
+					g_renderScaling = g_isOldHardware ? 1 : 0;
+					doomCanvas->renderFloorCeilingTextures = !g_isOldHardware;
 				} else if (g_systemProfile == 1) {
 					g_renderScaling = 0;
 					doomCanvas->renderFloorCeilingTextures = true;
 				} else if (g_systemProfile == 2) {
-					g_renderScaling = 0;
+					g_renderScaling = 1;
 					doomCanvas->renderFloorCeilingTextures = false;
 				}
 				strncpy(menuSystem->items[2].textField2, s_profileNames[g_systemProfile], sizeof(menuSystem->items[2].textField2));
