@@ -755,11 +755,7 @@ void MenuSystem_setMenu(MenuSystem_t* menuSystem, int menu)
 				else {
 					Render_loadPalettes(menuSystem->doomRpg->render);
 					menuSystem->doomRpg->render->skipViewNudge = false;
-#ifdef __3DS__
-					Render_setup(menuSystem->doomRpg->render, &menuSystem->doomRpg->doomCanvas->displayRect);
-#else
 					Render_setup(menuSystem->doomRpg->render, &menuSystem->doomRpg->doomCanvas->screenRect);
-#endif
 				}
 			}
 		}

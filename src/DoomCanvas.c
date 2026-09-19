@@ -2174,7 +2174,7 @@ void DoomCanvas_castState(DoomCanvas_t* doomCanvas)
 			/* 2. Left Eye: 3D scene at (viewX - dx, viewY - dy) into piDIB -> screenSurface */
 			Render_render(doomCanvas->render, doomCanvas->viewX - dx, doomCanvas->viewY - dy, doomCanvas->viewZ, doomCanvas->viewAngle);
 			if (doomCanvas->time >= doomCanvas->castTime + 1500) {
-				Render_setup(doomCanvas->doomRpg->render, &doomCanvas->displayRect);
+				Render_setup(doomCanvas->doomRpg->render, &doomCanvas->screenRect);
 				Render_freeRuntime(doomCanvas->doomRpg->render);
 				Game_unloadMapData(doomCanvas->doomRpg->game);
 				DoomCanvas_setState(doomCanvas, ST_CREDITS);
@@ -2189,7 +2189,7 @@ void DoomCanvas_castState(DoomCanvas_t* doomCanvas)
 			g_stereoFullFrame = 0;
 			Render_render(doomCanvas->render, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewZ, doomCanvas->viewAngle);
 			if (doomCanvas->time >= doomCanvas->castTime + 1500) {
-				Render_setup(doomCanvas->doomRpg->render, &doomCanvas->displayRect);
+				Render_setup(doomCanvas->doomRpg->render, &doomCanvas->screenRect);
 				Render_freeRuntime(doomCanvas->doomRpg->render);
 				Game_unloadMapData(doomCanvas->doomRpg->game);
 				DoomCanvas_setState(doomCanvas, ST_CREDITS);
@@ -6008,11 +6008,7 @@ void DoomCanvas_startup(DoomCanvas_t* doomCanvas)
 	printf("doomCanvas->SCR_CY %d\n", doomCanvas->SCR_CY);
 #endif
 
-#ifdef __3DS__
-	Render_setup(doomCanvas->render, &doomCanvas->displayRect);
-#else
 	Render_setup(doomCanvas->render, &doomCanvas->screenRect);
-#endif
 
 	softKeyY = doomCanvas->softKeyY - 1;
 	if ((doomCanvas->displayRect.y + doomCanvas->displayRect.h) == softKeyY) {
@@ -6094,11 +6090,7 @@ void DoomCanvas_unloadMedia(DoomCanvas_t* doomCanvas)
 		Render_freeRuntime(doomCanvas->doomRpg->render);
 		Game_unloadMapData(doomCanvas->doomRpg->game);
 		doomCanvas->doomRpg->render->skipViewNudge = false;
-#ifdef __3DS__
-		Render_setup(doomCanvas->doomRpg->render, &doomCanvas->displayRect);
-#else
 		Render_setup(doomCanvas->doomRpg->render, &doomCanvas->screenRect);
-#endif
 	}
 }
 
