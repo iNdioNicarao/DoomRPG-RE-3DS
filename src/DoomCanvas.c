@@ -2107,6 +2107,14 @@ void DoomCanvas_castState(DoomCanvas_t* doomCanvas)
 	int x, y, w, h;
 	int snd, field;
 	int texture, spriteId;
+#ifdef __3DS__
+	extern SDL_Surface* g_stereoRight;
+	extern int g_top3D;
+	extern float g_stereoSep;
+	extern int g_stereoRightValid;
+	extern int g_stereoFullFrame;
+	boolean isStereo = (g_top3D && g_stereoSep > 0.01f && g_stereoRight);
+#endif
 
 	if (doomCanvas->castSeq == -1) {
 		if (doomCanvas->castTime == 0) {
@@ -2138,6 +2146,53 @@ void DoomCanvas_castState(DoomCanvas_t* doomCanvas)
 		}
 	}
 	else if (doomCanvas->castSeq == -2) {
+#ifdef __3DS__
+		if (isStereo) {
+			float halfSep = g_stereoSep * 2.0f;
+			int dx = (int)(halfSep * sinf((float)doomCanvas->viewAngle * 3.14159265f / 128.0f));
+			int dy = (int)(halfSep * cosf((float)doomCanvas->viewAngle * 3.14159265f / 128.0f));
+
+			/* 1. Right Eye: 3D scene at (viewX + dx, viewY + dy) into piDIB -> g_stereoRight */
+			Render_render(doomCanvas->render, doomCanvas->viewX + dx, doomCanvas->viewY + dy, doomCanvas->viewZ, doomCanvas->viewAngle);
+			if (doomCanvas->time < doomCanvas->castTime + 1500) {
+				int fade = 255 - ((65280 * (((doomCanvas->time - doomCanvas->castTime) << 16) / 384000)) >> 16);
+				Render_fadeScreen(doomCanvas->render, fade & 0xff);
+			}
+			SDL_Rect fullR = { 0, 0, 400, 240 };
+			SDL_BlitSurface(doomCanvas->render->piDIB, &fullR, g_stereoRight, &fullR);
+			g_stereoRightValid = 1;
+			g_stereoFullFrame = 1;
+
+			/* 2. Left Eye: 3D scene at (viewX - dx, viewY - dy) into piDIB -> screenSurface */
+			Render_render(doomCanvas->render, doomCanvas->viewX - dx, doomCanvas->viewY - dy, doomCanvas->viewZ, doomCanvas->viewAngle);
+			if (doomCanvas->time >= doomCanvas->castTime + 1500) {
+				Render_setup(doomCanvas->doomRpg->render, &doomCanvas->displayRect);
+				Render_freeRuntime(doomCanvas->doomRpg->render);
+				Game_unloadMapData(doomCanvas->doomRpg->game);
+				DoomCanvas_setState(doomCanvas, ST_CREDITS);
+				DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+			} else {
+				int fade = 255 - ((65280 * (((doomCanvas->time - doomCanvas->castTime) << 16) / 384000)) >> 16);
+				Render_fadeScreen(doomCanvas->render, fade & 0xff);
+				DoomCanvas_drawRGB(doomCanvas);
+			}
+		} else {
+			g_stereoRightValid = 0;
+			g_stereoFullFrame = 0;
+			Render_render(doomCanvas->render, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewZ, doomCanvas->viewAngle);
+			if (doomCanvas->time >= doomCanvas->castTime + 1500) {
+				Render_setup(doomCanvas->doomRpg->render, &doomCanvas->displayRect);
+				Render_freeRuntime(doomCanvas->doomRpg->render);
+				Game_unloadMapData(doomCanvas->doomRpg->game);
+				DoomCanvas_setState(doomCanvas, ST_CREDITS);
+				DoomRPG_setColor(doomCanvas->doomRpg, 0x000000);
+			} else {
+				int fade = 255 - ((65280 * (((doomCanvas->time - doomCanvas->castTime) << 16) / 384000)) >> 16);
+				Render_fadeScreen(doomCanvas->render, fade & 0xff);
+				DoomCanvas_drawRGB(doomCanvas);
+			}
+		}
+#else
 		Render_render(doomCanvas->render, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewZ, doomCanvas->viewAngle);
 		if (doomCanvas->time >= doomCanvas->castTime + 1500) {
 			Render_setup(doomCanvas->doomRpg->render, &doomCanvas->screenRect);
@@ -2153,10 +2208,35 @@ void DoomCanvas_castState(DoomCanvas_t* doomCanvas)
 			Render_fadeScreen(doomCanvas->render, fade & 0xff);
 			DoomCanvas_drawRGB(doomCanvas);
 		}
+#endif
 	}
 	else {
+#ifdef __3DS__
+		if (isStereo) {
+			float halfSep = g_stereoSep * 2.0f;
+			int dx = (int)(halfSep * sinf((float)doomCanvas->viewAngle * 3.14159265f / 128.0f));
+			int dy = (int)(halfSep * cosf((float)doomCanvas->viewAngle * 3.14159265f / 128.0f));
+
+			/* 1. Right Eye: 3D scene at (viewX + dx, viewY + dy) into piDIB -> g_stereoRight */
+			Render_render(doomCanvas->render, doomCanvas->viewX + dx, doomCanvas->viewY + dy, doomCanvas->viewZ, doomCanvas->viewAngle);
+			SDL_Rect fullR = { 0, 0, 400, 240 };
+			SDL_BlitSurface(doomCanvas->render->piDIB, &fullR, g_stereoRight, &fullR);
+			g_stereoRightValid = 1;
+			g_stereoFullFrame = 1;
+
+			/* 2. Left Eye: 3D scene at (viewX - dx, viewY - dy) into piDIB -> screenSurface */
+			Render_render(doomCanvas->render, doomCanvas->viewX - dx, doomCanvas->viewY - dy, doomCanvas->viewZ, doomCanvas->viewAngle);
+			DoomCanvas_drawRGB(doomCanvas);
+		} else {
+			g_stereoRightValid = 0;
+			g_stereoFullFrame = 0;
+			Render_render(doomCanvas->render, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewZ, doomCanvas->viewAngle);
+			DoomCanvas_drawRGB(doomCanvas);
+		}
+#else
 		Render_render(doomCanvas->render, doomCanvas->viewX, doomCanvas->viewY, doomCanvas->viewZ, doomCanvas->viewAngle);
 		DoomCanvas_drawRGB(doomCanvas);
+#endif
 
 		if (doomCanvas->castEntity == NULL) {
 			doomCanvas->castEntityX++;
@@ -2193,6 +2273,11 @@ void DoomCanvas_castState(DoomCanvas_t* doomCanvas)
 
 		if ((doomCanvas->castEntity) && ((sprite->info & 0x10000) == 0)) {
 			DoomCanvas_drawString2(doomCanvas, doomCanvas->castEntity->def->name, doomCanvas->displayRect.w / 2, doomCanvas->displayRect.h, 18, -1);
+#ifdef __3DS__
+			if (isStereo && g_stereoRightValid && g_stereoRight) {
+				DoomCanvas_drawString2Sur(doomCanvas, doomCanvas->castEntity->def->name, doomCanvas->displayRect.w / 2, doomCanvas->displayRect.h, 18, -1, g_stereoRight);
+			}
+#endif
 		}
 
 		switch (doomCanvas->castSeq) {
@@ -4626,6 +4711,14 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 			Hud_drawBottomBar(doomCanvas);
 			Hud_drawEffects(doomCanvas);
 #ifdef __3DS__
+			static int s_lastHp = -1, s_lastArm = -1, s_lastWp = -1;
+			int curHp = CombatEntity_getHealth(&doomCanvas->player->ce);
+			int curArm = CombatEntity_getArmor(&doomCanvas->player->ce);
+			int curWp = doomCanvas->player->weapon;
+			if (curHp != s_lastHp || curArm != s_lastArm || curWp != s_lastWp) {
+				s_lastHp = curHp; s_lastArm = curArm; s_lastWp = curWp;
+				g_botScreenDirty = true;
+			}
 			if (doomCanvas->viewX != doomCanvas->destX || doomCanvas->viewY != doomCanvas->destY || doomCanvas->viewAngle != doomCanvas->destAngle) {
 				g_botScreenDirty = true;
 			}
@@ -5426,6 +5519,9 @@ void DoomCanvas_setState(DoomCanvas_t* doomCanvas, int stateNum)
 
 	if (doomCanvas->state != oldState) {
 		doomCanvas->restoreSoftKeys = false;
+#ifdef __3DS__
+		g_botScreenDirty = true;
+#endif
 	}
 
 	if (stateNum == ST_SORRY) {
@@ -5731,7 +5827,11 @@ void DoomCanvas_startup(DoomCanvas_t* doomCanvas)
 	printf("doomCanvas->SCR_CY %d\n", doomCanvas->SCR_CY);
 #endif
 
+#ifdef __3DS__
+	Render_setup(doomCanvas->render, &doomCanvas->displayRect);
+#else
 	Render_setup(doomCanvas->render, &doomCanvas->screenRect);
+#endif
 
 	softKeyY = doomCanvas->softKeyY - 1;
 	if ((doomCanvas->displayRect.y + doomCanvas->displayRect.h) == softKeyY) {
@@ -5813,7 +5913,11 @@ void DoomCanvas_unloadMedia(DoomCanvas_t* doomCanvas)
 		Render_freeRuntime(doomCanvas->doomRpg->render);
 		Game_unloadMapData(doomCanvas->doomRpg->game);
 		doomCanvas->doomRpg->render->skipViewNudge = false;
+#ifdef __3DS__
+		Render_setup(doomCanvas->doomRpg->render, &doomCanvas->displayRect);
+#else
 		Render_setup(doomCanvas->doomRpg->render, &doomCanvas->screenRect);
+#endif
 	}
 }
 

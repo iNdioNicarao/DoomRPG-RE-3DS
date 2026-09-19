@@ -713,7 +713,14 @@ void SDL_RenderClear(SDL_Surface *surface)
        (HOME crash, dumps 102/110). Guarding to screenSurface avoids that. */
     if (surface && surface == sdlVideo.screenSurface && surface->pixels) {
         int bpp = surface->format ? surface->format->BytesPerPixel : 4;
+#ifdef __3DS__
+        /* Clear ONLY the top screen region (rows 0..239). The bottom screen
+           region (rows 240..479) holds automap & touch HUD and must NOT be
+           wiped every frame, otherwise stationary dirty-skipping displays black. */
+        SDL_memset(surface->pixels, 0, (size_t)surface->w * 240 * bpp);
+#else
         SDL_memset(surface->pixels, 0, (size_t)surface->w * surface->h * bpp);
+#endif
         return;
     }
     Uint32 color = (Uint32)(uintptr_t)curColor;
