@@ -2,7 +2,7 @@
 
 This is a Nintendo 3DS port of the [reverse engineered Doom RPG](https://github.com/Erick194/DoomRPG-RE) by [GEC]. All credits go to the GEC team, this project would not exist without their hard work.
 
-This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) maintained by **Dennis Isaac Gutierrez Zeledon**. It provides installable HOME Menu `.cia` and Homebrew Launcher `.3dsx` builds, hardware autostereoscopic 3D with motion damping, an interactive bottom-screen Touch HUD with draggable automap, Turbo 2.0 combat and exploration speed toggles, a 3D parallax HOME banner, dynamic hardware profiling for Old 3DS / 2DS / New 3DS, and performance and stability optimizations. Complete details of changes are documented in [`docs/RELEASE_NOTES_v1.1.1.md`](docs/RELEASE_NOTES_v1.1.1.md).
+This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) maintained by **Dennis Isaac Gutierrez Zeledon**. It provides installable HOME Menu `.cia` and Homebrew Launcher `.3dsx` builds, hardware autostereoscopic 3D with motion damping, an interactive bottom-screen Touch HUD with draggable automap, Turbo 2.0 combat and exploration speed toggles, a 3D parallax HOME banner, dynamic hardware profiling for Old 3DS / 2DS / New 3DS, and performance and stability optimizations. Complete details of changes are documented in [`docs/RELEASE_NOTES_v1.1.2.md`](docs/RELEASE_NOTES_v1.1.2.md).
 
 > ### ⚠️ Notice for Upgrading Players
 > If you are upgrading from an earlier version and your Circle Pad (left thumbstick) or other newly mapped controls feel unresponsive, your existing saved configuration file (`sdmc:/3ds/doomrpg/saves/Config`) may still contain the older binding table where secondary slots were unset (`-1`).
@@ -11,7 +11,16 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
 > 1. In the in-game menu, navigate to **Options $\to$ Controls / Bindings $\to$ Reset Defaults**.
 > 2. Alternatively, you can delete or rename `sdmc:/3ds/doomrpg/saves/Config` on your SD card. *(Your save games in `saves/` are completely separate and will NOT be lost).*
 > 
-> *Note: v1.1.1 includes an in-engine auto-migration that backfills missing Circle Pad bindings and applies Old 3DS / 2DS performance settings to legacy config files automatically.*
+> *Note: v1.1.1+ includes an in-engine auto-migration that backfills missing Circle Pad bindings and applies Old 3DS / 2DS performance settings to legacy config files automatically.*
+
+## Highlights (v1.1.2)
+
+- **Bottom-Screen Redraw Blackout Fix**: Restricts `SDL_RenderClear` exclusively to top screen scanlines (rows 0..239), preventing stationary dirty-skipping from turning the lower automap/HUD black. Added proactive dirty updates when health, armor, or weapon state changes.
+- **Compact 1x Dialog Font & 6-Line Display**: Upgraded NPC and terminal message dialogs to the sharp 1x font (`imgFont`), doubling visible capacity to 6 full lines of text per window. Features syllable de-hyphenation, word wrapping at 246px, single-pipe cleanup, and retro phosphor green styling for terminal displays.
+- **Widescreen Help & Controls Menu**: Rebuilt Help & About screens across the full 400px widescreen display with a 64-character buffer and device-specific layouts for New 3DS (ZL/ZR, C-Stick) and Old 3DS (L/R, touch hotbar).
+- **Turbo Turn-Pass Acceleration**: Turn passing (`Select`) in Turbo mode now calls `Game_snapMonsters` to immediately snap monster animations off-screen with zero lag.
+- **Authentic Weapon Height & Viewport Grounding**: Restored 3D viewport height in `Render_setup` to `screenRect` ($h = 192$), curing the 48px downward sink and restoring authentic BREW idle weapon height (~30–60px above HUD).
+- **Autostereoscopic 3D End-Game Monster Cast**: Full stereo 3D rendering for the end-game monster parade (`ST_CAST`) with parallax slider separation, right-eye buffer blitting, and stereo-rendered monster labels.
 
 ## Highlights (v1.1.1)
 
