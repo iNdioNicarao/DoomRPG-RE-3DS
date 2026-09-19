@@ -33,7 +33,10 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
 - **Bottom-Screen Enemy / Kill Counter**:
   - Integrated `Player_fillMonsterStats()` into automap HUD badge: `MAP:%d%% | SEC:%s | KILLS:%s`.
   - Widened badge box to 318px ($X = 44, Y = 430, W = 318, H = 19$).
-  - Illuminated double golden border highlight when 100% of both secrets and enemies on the level are cleared.
+- **Weapons & Items UI Separation on Touch HUD**:
+  - Horizontal bottom bar button 4 updated to `COLR` for using the Dog Collar item (`Player_useItem(29)`).
+  - Left-side weapon rack slot 9 dedicated strictly to equipping the Dog companion weapon (`DG`).
+  - Eliminates dual-function ambiguity so the vertical column remains strictly weapons and the horizontal bar remains strictly items.
 - **Expanded 3-Second Notification LED Suite**:
   - Upgraded physical 3DS notification LED flash duration to 3.0 seconds across 17 distinct gameplay events (Secret found, Level Up, 4 Keycards, Soul Sphere, New Weapon, Game Saved, Dog Tamed, Play Coins exchanged, Player Death, Boss Defeated, Level Complete, Armor Broken, Capacity Full, Dog Strike, Critical Health strobe, Low Health pulse, Berserk pulse).
 
@@ -124,10 +127,10 @@ The game will not start unless `sdmc:/3ds/doomrpg/` exists with the data files p
 | Turn Left / Right | D-pad Left / Right or Circle Pad (Left Stick) | — |
 | Attack / Talk / Use / Confirm | A (Hold for Attack Buffering) | Tap dialog text |
 | Back / Dismiss Dialog / Pass Turn | B | Tap `[ PASS ]` on top bar |
-| Next / Prev Weapon | ZR / ZL or X / Y (during gameplay) | Tap weapon slot in left rack (`AX`–`BF`, `RG`/`DG`) |
+| Next / Prev Weapon | ZR / ZL or X / Y (during gameplay) | Tap weapon slot in left rack (`AX`–`BF`, `DG`) |
 | Quick Select Weapon | — | Tap weapon slot in left quick-select rack |
 | Scroll Dialogs, Terminals & Menus | C-Stick (Right Nub) or X / Y (during dialogs: X = Down, Y = Up) | Touch & drag text / scrollbar |
-| Quick Use Items | — | Tap hotbar: `S.MED`, `L.MED`, `SOUL`, `BRSK`, `DOG` |
+| Quick Use Items | — | Tap hotbar: `S.MED`, `L.MED`, `SOUL`, `BRSK`, `COLR` |
 | Combat Turbo Toggle | — | Tap `[ TURBO ]` button above automap |
 | Pan Automap | — | Touch & drag map viewport |
 | Zoom Automap | — | Tap `[+]` or `[-]` |

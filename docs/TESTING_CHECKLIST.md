@@ -68,13 +68,13 @@ Comprehensive testing checklist for verifying all Phase 1–5 performance, input
 
 - [ ] **Clean Cold Boot & SD Error Logging**
   - **Location:** Boot sequence / `sdmc:/doomrpg_error.log`
-  - **Action:** Cold boot the 3DS, launch `DoomRPG-1.1.0.cia` from Home Menu, play for 1 minute, exit and inspect `sdmc:/doomrpg_error.log`.
+  - **Action:** Cold boot the 3DS, launch `DoomRPG-1.1.1.cia` from Home Menu, play for 1 minute, exit and inspect `sdmc:/doomrpg_error.log`.
   - **Expected:** No false-positive `Failed to read file...` FATAL ERROR entries are recorded during normal boot.
 
 - [ ] **10-Slot Touchscreen Weapon Rack & Dog Companion**
   - **Location:** Bottom screen ($X=1..37, Y=241..450$)
-  - **Action:** Tap icons on the touchscreen weapon rack to cycle weapons. Capture a dog with a collar and equip from slot 9.
-  - **Expected:** Instant weapon switching; collar icon dynamically transforms into the Dog badge (`DG`), triggering authentic hound bark sound effect upon selection.
+  - **Action:** Tap icons on the touchscreen weapon rack to cycle weapons. Capture a dog using `COLR` on the bottom hotbar, and equip the dog from slot 9 in the weapon column.
+  - **Expected:** Instant weapon switching; slot 9 exclusively represents the Dog weapon (`DG`) with hound bark sound effect upon selection (displays `--` when unowned). Dog collar item is used via the horizontal `COLR` hotbar button.
 
 - [ ] **Stereoscopic 3D Depth Slider & Transition Safety**
   - **Location:** Top screen 3D slider

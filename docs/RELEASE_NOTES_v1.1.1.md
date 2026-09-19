@@ -87,6 +87,15 @@ Whenever a player pressed `Right + A` or `Down + A` simultaneously—or in rapid
 
 ---
 
+## 🗃️ UI Architecture: Strict Weapon vs. Item Separation on Touch HUD
+
+To eliminate dual-function ambiguity on the bottom screen Touch HUD:
+* **Horizontal Bottom Bar (Items Only)**: Button 4 has been updated from `DOG` to `COLR`, displaying the live count of Dog Collars in inventory (`COLR:x`). Tapping `COLR` uses the collar item (`Player_useItem(29)`) to tame a facing hound.
+* **Vertical Left Column (Weapons Only)**: Slot 9 is now strictly dedicated to equipping the Dog companion weapon (`DG`). When the player owns a hound, slot 9 is selectable with the hound head HUD icon; when unowned, it displays `--` like any other unacquired weapon in slots 0..8.
+* **Result**: The vertical column remains exclusively weapons, and the horizontal bottom bar remains exclusively usable inventory items.
+
+---
+
 ## 💡 Expanded 3-Second Notification LED Suite
 
 All physical 3DS notification LED alerts have been upgraded to a sustained **3.0-second (3000ms)** flash duration for unmistakable visibility, covering **17 distinct gameplay events**:

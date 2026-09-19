@@ -948,7 +948,7 @@ void DoomCanvas_drawBottomTouchHUD(DoomCanvas_t* doomCanvas)
                 { "L.MED", 1 },
                 { "SOUL",  2 },
                 { "BRSK",  3 },
-                { "DOG",   4 }
+                { "COLR",  4 }
             };
 
             Uint32* px = (Uint32*)sdlVideo.screenSurface->pixels;
@@ -1235,9 +1235,8 @@ void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY
                         g_botScreenDirty = true;
                     }
                 } else {
-                    // Slot 9: Dog Companion / Dog Collar
+                    // Slot 9: Dog Companion weapon only
                     boolean hasDog = (player->weapons & 0xE00) != 0;
-                    boolean hasCollar = (player->inventory[4] > 0);
 
                     if (hasDog) {
                         int dogWpn = -1;
@@ -1254,14 +1253,8 @@ void DoomCanvas_handleTouchHeld(DoomCanvas_t* doomCanvas, int touchX, int touchY
                                 Sound_playSound(doomCanvas->doomRpg->sound, 5088, 0, 3); // Hound bark
                             }
                         }
-                    } else if (hasCollar) {
-                        // Use Dog Collar to capture facing dog
-                        Player_useItem(player, 29);
-                        doomCanvas->f438d = true;
-                        doomCanvas->isUpdateView = true;
-                        g_botScreenDirty = true;
                     } else {
-                        Hud_addMessage(doomCanvas, "No Dog or Collar!");
+                        Hud_addMessage(doomCanvas, "No Dog companion!");
                         Sound_playSound(doomCanvas->doomRpg->sound, 5067, SND_FLG_NOFORCESTOP, 3);
                         doomCanvas->isUpdateView = true;
                         g_botScreenDirty = true;
@@ -1673,52 +1666,6 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
     DoomCanvas_drawString1(doomCanvas, statsBuf, 48, 434, 0);
 }
 
-// Draw 13x13 custom studded metallic Dog Collar / Ring icon
-static void DoomCanvas_drawRingIcon(SDL_Surface* surf, int ix, int iy)
-{
-    if (!surf || !surf->pixels) return;
-    Uint32* px = (Uint32*)surf->pixels;
-    int surfW = surf->w;
-    int surfH = surf->h;
-
-    // 13x13 Dog Collar / Ring icon
-    // '.' = transparent, 'D' = dark metal outline, 'M' = steel collar band, 'H' = light steel highlight, 'G' = golden stud/tag
-    static const char* const ringPattern[13] = {
-        "...DDMMMDD...",
-        "..DMMGHGMMD..",
-        ".DMMD...DMMD.",
-        ".MMD.....DMM.",
-        "DMG.......GMD",
-        "MMH.......HMM",
-        "DMG.......GMD",
-        ".MMD.....DMM.",
-        ".DMMD...DMMD.",
-        "..DMMGHGMMD..",
-        "...DDMGMDD...",
-        "....DMDMD....",
-        ".....DDD....."
-    };
-
-    for (int y = 0; y < 13; y++) {
-        int py = iy + y;
-        if (py < 0 || py >= surfH) continue;
-        for (int x = 0; x < 13; x++) {
-            int px_x = ix + x;
-            if (px_x < 0 || px_x >= surfW) continue;
-            char c = ringPattern[y][x];
-            Uint32 col = 0;
-            switch (c) {
-                case 'D': col = 0xFF282C34; break;
-                case 'M': col = 0xFF8A94A0; break;
-                case 'H': col = 0xFFD8E2EC; break;
-                case 'G': col = 0xFFFFCC22; break;
-                default:  continue;
-            }
-            px[py * surfW + px_x] = col;
-        }
-    }
-}
-
 // Left-side Touchscreen Weapon Quick-Select Rack (X=1..37, Y=241..450, 10 slots)
 void DoomCanvas_drawWeaponRack(DoomCanvas_t* doomCanvas)
 {
@@ -1747,7 +1694,6 @@ void DoomCanvas_drawWeaponRack(DoomCanvas_t* doomCanvas)
         int sy = 241 + w * 21;
         boolean owned = false;
         boolean active = false;
-        boolean isCollarRing = false;
         const char* label = "--";
 
         if (w < 9) {
@@ -1755,24 +1701,11 @@ void DoomCanvas_drawWeaponRack(DoomCanvas_t* doomCanvas)
             active = (player->weapon == w);
             label = weaponLabels[w];
         } else {
-            // Slot 9: Two-step Dog Companion / Dog Collar
+            // Slot 9: Dog Companion weapon only (DG)
             boolean hasDog = (player->weapons & 0xE00) != 0;
-            boolean hasCollar = (player->inventory[4] > 0);
-
-            if (hasDog) {
-                owned = true;
-                active = (player->weapon >= 9 && player->weapon <= 11);
-                label = "DG";
-            } else if (hasCollar) {
-                owned = true;
-                active = false;
-                isCollarRing = true;
-                label = "RG";
-            } else {
-                owned = false;
-                active = false;
-                label = "--";
-            }
+            owned = hasDog;
+            active = hasDog && (player->weapon >= 9 && player->weapon <= 11);
+            label = hasDog ? "DG" : "--";
         }
 
         Uint32 fillCol, borderCol;
@@ -1795,22 +1728,15 @@ void DoomCanvas_drawWeaponRack(DoomCanvas_t* doomCanvas)
         }
 
         if (owned) {
-            if (isCollarRing) {
-                // Draw custom 13x13 studded metallic dog collar / ring icon
+            // Draw ammo icon from HUD icon sheet (row 8 is dog head icon)
+            int row = (w < 9) ? iconRows[w] : 8;
+            if (iconSurf && iconW > 0 && iconH > 0) {
+                int bh = (iconH > sh - 2) ? (sh - 2) : iconH;
+                SDL_Rect src = { 0, iconH * row, iconW, bh };
                 int ix = sx + 2;
-                int iy = sy + (sh - 13) / 2;
-                DoomCanvas_drawRingIcon(sdlVideo.screenSurface, ix, iy);
-            } else {
-                // Draw ammo icon from HUD icon sheet (row 8 is dog head icon)
-                int row = (w < 9) ? iconRows[w] : 8;
-                if (iconSurf && iconW > 0 && iconH > 0) {
-                    int bh = (iconH > sh - 2) ? (sh - 2) : iconH;
-                    SDL_Rect src = { 0, iconH * row, iconW, bh };
-                    int ix = sx + 2;
-                    int iy = sy + (sh - bh) / 2;
-                    SDL_Rect dst = { ix, iy, iconW, bh };
-                    SDL_BlitSurface(iconSurf, &src, sdlVideo.screenSurface, &dst);
-                }
+                int iy = sy + (sh - bh) / 2;
+                SDL_Rect dst = { ix, iy, iconW, bh };
+                SDL_BlitSurface(iconSurf, &src, sdlVideo.screenSurface, &dst);
             }
             // Draw 2-char weapon differentiator/badge
             DoomCanvas_drawString1(doomCanvas, (char*)label, sx + 18, sy + 4, 0);
