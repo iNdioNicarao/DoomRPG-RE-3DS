@@ -19,6 +19,7 @@
 #include "Render.h"
 #include "Sound.h"
 #include "SDL_Video.h"
+#include "Hardware3DS.h"
 
 void Entity_attack(Entity_t* entity)
 {
@@ -238,6 +239,7 @@ void Entity_died(Entity_t* entity)
                     Game_linkEntity(game, sprTmp->ent, sprTmp->x >> 6, sprTmp->y >> 6);
                 }
                 else if (entity->def->eSubType == 12) { // Cyberdemon
+                    Hardware_triggerTimedLed(LED_MODE_BOSS_DEFEATED, 3000);
                     Game_executeTile(game, 0x480, 0x4c0, 0x100);
                     if (sprite->info & 0x1000000) {
                         sprite->info = sprite->info & 0xfeffffff | 0x10000;
@@ -258,6 +260,7 @@ void Entity_died(Entity_t* entity)
                     }
                 }
                 else if (entity->def->eSubType == 13) { // Kronos
+                    Hardware_triggerTimedLed(LED_MODE_BOSS_DEFEATED, 3000);
                     Game_executeTile(game, 1984, 0, 0x100);
                     sprite->info = (sprite->info & 0xfeffffff) | 0x10000;
                     entity->info |= 0x20000;

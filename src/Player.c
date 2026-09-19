@@ -20,6 +20,7 @@
 #include "MenuSystem.h"
 #include "Sound.h"
 #include "SDL_Video.h"
+#include "Hardware3DS.h"
 
 Player_t* Player_init(Player_t* player, DoomRPG_t* doomRpg)
 {
@@ -148,6 +149,7 @@ void Player_nextLevel(Player_t* player)
 	char msg[64], text[256];
 	player->level++;
 	player->nextLevelXP = Player_calcLevelXP(player, player->level);
+	Hardware_triggerTimedLed(LED_MODE_LEVEL_UP, 3000);
 	ce = &player->ce;
 
 	//if (!Mix_PlayingMusic()) // New Line Code
@@ -839,6 +841,7 @@ void Player_useItem(Player_t* player, byte item)
 			Player_addHealth(player->doomRpg->player, 200);
 			Player_addArmor(player->doomRpg->player, 200);
 			Sound_playSound(player->doomRpg->sound, 5062, SND_FLG_NOFORCESTOP, 3);
+			Hardware_triggerTimedLed(LED_MODE_SOUL_SPHERE, 3000);
 			break;
 		case 28:
 			Hud_addMessage(player->doomRpg->doomCanvas, "Berserker activated!");

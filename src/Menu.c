@@ -19,6 +19,7 @@
 #include "EntityDef.h"
 #include "Sound.h"
 #include "SDL_Video.h"
+#include "Hardware3DS.h"
 
 #define MAXSTORES 4
 #define MAXSTORELINES 17 * 2
@@ -2124,6 +2125,7 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 					}
 					Player_addCredits(menu->doomRpg->player, 20);
 					Sound_playSound(menu->doomRpg->sound, 5062, SND_FLG_NOFORCESTOP, 3);
+					Hardware_triggerTimedLed(LED_MODE_COIN_EXCHANGE, 3000);
 					return MENU_STORE;
 				}
 #endif

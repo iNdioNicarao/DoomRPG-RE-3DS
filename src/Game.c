@@ -23,6 +23,7 @@
 #include "Player.h"
 #include "Sound.h"
 #include "SDL_Video.h"
+#include "Hardware3DS.h"
 
 // #define CONFIG_VERSION 22 // Original Brew Version
 
@@ -1967,6 +1968,7 @@ void Game_saveState(Game_t* game, int mapId, int x, int y, int angleDir, boolean
 			Game_savePlayerState(game, "sdmc:/3ds/doomrpg/saves/Player", mapPath, x, y, angleDir);
 		}
 	}
+	Hardware_triggerTimedLed(LED_MODE_GAME_SAVED, 3000);
 }
 void Game_saveWorldState(Game_t* game)
 {
