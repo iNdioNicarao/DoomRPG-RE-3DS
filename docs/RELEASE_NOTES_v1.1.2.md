@@ -76,8 +76,11 @@ Doom RPG RE 3DS v1.1.2 builds directly upon the performance foundation of v1.1.1
 ## Verification & File Hashes
 
 - **File**: `DoomRPG-1.1.2.cia` (1,083,840 bytes)
-- **MD5**: `96f0cec89533d08c70edc3c96245f2d6`
-- **SHA256**: `1e3bc4358093b204aaffb880a4db306d6a22a23ad0774b3a16743072aac21c19`
+  - **MD5**: `96f0cec89533d08c70edc3c96245f2d6`
+  - **SHA256**: `1e3bc4358093b204aaffb880a4db306d6a22a23ad0774b3a16743072aac21c19`
+- **File**: `DoomRPG.3dsx` (1,097,192 bytes)
+  - **MD5**: `04d20ebfe00599e2905a8f3e07e3b90a`
+  - **SHA256**: `c882db2db066d1eae7dca220f1fae47f249604a8680049a00db336f96e6018fd`
 
 ---
 
