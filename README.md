@@ -2,16 +2,40 @@
 
 This is a Nintendo 3DS port of the [reverse engineered Doom RPG](https://github.com/Erick194/DoomRPG-RE) by [GEC]. All credits go to the GEC team, this project would not exist without their hard work.
 
-This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) maintained by **Dennis Isaac Gutierrez Zeledon**. It provides installable HOME Menu `.cia` and Homebrew Launcher `.3dsx` builds, hardware autostereoscopic 3D with motion damping, an interactive bottom-screen Touch HUD with draggable automap, Turbo 2.0 combat and exploration speed toggles, a 3D parallax HOME banner, dynamic hardware profiling for Old 3DS / 2DS / New 3DS, and performance and stability optimizations. Complete details of changes are documented in [`docs/RELEASE_NOTES_v1.1.0.md`](docs/RELEASE_NOTES_v1.1.0.md).
+This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/efimandreev0/DoomRPG-RE-3DS) maintained by **Dennis Isaac Gutierrez Zeledon**. It provides installable HOME Menu `.cia` and Homebrew Launcher `.3dsx` builds, hardware autostereoscopic 3D with motion damping, an interactive bottom-screen Touch HUD with draggable automap, Turbo 2.0 combat and exploration speed toggles, a 3D parallax HOME banner, dynamic hardware profiling for Old 3DS / 2DS / New 3DS, and performance and stability optimizations. Complete details of changes are documented in [`docs/RELEASE_NOTES_v1.1.1.md`](docs/RELEASE_NOTES_v1.1.1.md).
 
-> ### ⚠️ Notice for Upgrading Players (From v1.0.0 – v1.0.7)
+> ### ⚠️ Notice for Upgrading Players
 > If you are upgrading from an earlier version and your Circle Pad (left thumbstick) or other newly mapped controls feel unresponsive, your existing saved configuration file (`sdmc:/3ds/doomrpg/saves/Config`) may still contain the older binding table where secondary slots were unset (`-1`).
 > 
 > **To restore all default controls:**
 > 1. In the in-game menu, navigate to **Options $\to$ Controls / Bindings $\to$ Reset Defaults**.
 > 2. Alternatively, you can delete or rename `sdmc:/3ds/doomrpg/saves/Config` on your SD card. *(Your save games in `saves/` are completely separate and will NOT be lost).*
 > 
-> *Note: v1.1.0 includes an in-engine auto-migration that backfills missing Circle Pad bindings into legacy config files automatically, but manual reset is documented as the recommended first troubleshooting step.*
+> *Note: v1.1.1 includes an in-engine auto-migration that backfills missing Circle Pad bindings and applies Old 3DS / 2DS performance settings to legacy config files automatically.*
+
+## Highlights (v1.1.1)
+
+- **Aggressive Old 3DS / 2DS Performance Suite**:
+  - Automatic config migration pass: enforces `Retro 200` internal scaling (200×240 raycasting with PICA200 GPU upscale) and flat solid floors and ceilings on Old 3DS / 2DS systems, bypassing stale config files that silently forced heavy 400×240 textured rendering.
+  - Span rasterization halving: inner wall and sprite span loops step by 2 columns (`colStep = 2`), reducing CPU perspective division and texture sampling instructions by 50%.
+  - Particle system flood protection: capped particles to max 8 on Old 3DS / 2DS with 150ms lifetime, and instant memory freeing upon combat completion.
+  - Eliminated redundant 384 KB bottom-screen framebuffer clearing (`SDL_memset`) every frame.
+  - Old 3DS audio mixing reduced to 22,050 Hz with 2:1 MP3 downsampling to alleviate single-core ARM11 load.
+  - Disabled decorative sprite light glow passes on Old 3DS hardware.
+- **Snappy Combat & True Turbo Mode 2.0**:
+  - Slashing post-attack recovery wait in Turbo mode to 75ms (with instant skip on pressing `A`).
+  - Quadrupled projectile travel velocity and instant off-screen monster tile snapping.
+  - Decoupled turn animations from frame delays, making Turbo mode combat and exploration genuinely fast.
+- **Priority Input Resolution & Accidental Menu Popup Fix**:
+  - Resolved bug where holding or pressing `Right + A` or `Down + A` simultaneously (or in rapid overlapping succession) bitwise ORed sequential enum values into 23 (`AVK_SOFT1` $\rightarrow$ `MENUOPEN`).
+  - Input system now resolves actions with strict priority: fresh button taps (`kDown`) always take precedence over held directions, combat/interact actions take precedence over movement, and base actions are strictly single-value.
+  - Sanitized legacy phone softkey code in `keys_codeActions` to `0` for defense-in-depth.
+- **Bottom-Screen Enemy / Kill Counter**:
+  - Integrated `Player_fillMonsterStats()` into automap HUD badge: `MAP:%d%% | SEC:%s | KILLS:%s`.
+  - Widened badge box to 318px ($X = 44, Y = 430, W = 318, H = 19$).
+  - Illuminated double golden border highlight when 100% of both secrets and enemies on the level are cleared.
+- **Expanded 3-Second Notification LED Suite**:
+  - Upgraded physical 3DS notification LED flash duration to 3.0 seconds across 17 distinct gameplay events (Secret found, Level Up, 4 Keycards, Soul Sphere, New Weapon, Game Saved, Dog Tamed, Play Coins exchanged, Player Death, Boss Defeated, Level Complete, Armor Broken, Capacity Full, Dog Strike, Critical Health strobe, Low Health pulse, Berserk pulse).
 
 ## Highlights (v1.1.0)
 
@@ -72,7 +96,7 @@ This repository is a fork of [`efimandreev0/DoomRPG-RE-3DS`](https://github.com/
    [archive.org](https://archive.org/details/doomrpg_brew). Extract `doomrpg.bar`
    (a BREW asset container; upstream PC tools such as `BarToZip` turn it into
    loose files) and copy those loose files — no further zip step is needed.
-2. Install `DoomRPG-1.1.0.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
+2. Install `DoomRPG-1.1.1.cia` with FBI (or run `DoomRPG.3dsx` from the Homebrew Menu).
 3. On the SD card, copy the **extracted data files** into
    `sdmc:/3ds/doomrpg/` so they sit loose in that folder. Required files include:
    - `entities.db` and `help.txt`
@@ -159,6 +183,10 @@ If you find a bug, please open an issue here on GitHub.
 ## Acknowledgments
 
 This fork was developed by **Dennis Isaac Gutierrez Zeledon** with the assistance of AI coding assistants across its development milestones:
+
+- **v1.1.1 (Aggressive Old 3DS/2DS Performance Suite, Input Priority Fix, Enemy Counter & LED Suite):**
+  - **Assistant:** **Gemini Antigravity** (Google DeepMind)
+  - **Role:** Implementation of aggressive Old 3DS / 2DS performance overhaul (config auto-migration, 50% wall and sprite span rasterizer step halving, particle cap to 8 with 150ms lifetime, 22,050 Hz audio mixing with 2:1 MP3 downsampling, elimination of redundant 384 KB per-frame memset), priority input resolution eliminating accidental menu popups on simultaneous `Right + A` / `Down + A`, bottom-screen automap enemy kill counter integration with full-clear gold illumination, and 3-second colored notification LED alert expansion across 17 gameplay events.
 
 - **v1.1.0 (Universal Binary, Old 3DS GPU Scaling, Widescreen Notebook, Turbo 2.0 & Stability Suite):**
   - **Assistant:** **Gemini Antigravity** (Google DeepMind)

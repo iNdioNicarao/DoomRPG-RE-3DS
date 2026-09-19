@@ -1,6 +1,6 @@
-# Doom RPG RE 3DS — v1.1.0 Playtesting & Hardware Verification Checklist
+# Doom RPG RE 3DS — v1.1.1 Playtesting & Hardware Verification Checklist
 
-Comprehensive testing checklist for verifying all Phase 1–4 performance and visual fidelity enhancements on Nintendo 3DS / 2DS hardware.
+Comprehensive testing checklist for verifying all Phase 1–5 performance, input, and visual fidelity enhancements on Nintendo 3DS / 2DS hardware.
 
 ---
 
@@ -90,3 +90,27 @@ Comprehensive testing checklist for verifying all Phase 1–4 performance and vi
   - **Location:** Movement & Combat
   - **Action:** Test movement with Left Circle Pad; test weapon cycling with `X` / `Y` buttons; hold `A` to continuous-fire.
   - **Expected:** Full responsiveness; hold-to-fire buffers smoothly; dialogs scroll with `X` / `Y` or C-Stick nub.
+
+---
+
+## 🎯 Category 4: v1.1.1 Specific Regression & Enhancement Checks
+
+- [ ] **Simultaneous Direction & Attack Input (`Right + A` / `Down + A`)**
+  - **Location:** Combat / Grid traversal
+  - **Action:** Press `Right + A` or `Down + A` simultaneously, and sequentially in rapid succession while engaging an enemy or facing a door.
+  - **Expected:** Player attacks or interacts cleanly. The in-game menu NEVER unexpectedly pops open.
+
+- [ ] **Bottom-Screen Automap Enemy / Kill Counter**
+  - **Location:** Bottom-screen automap HUD badge ($X=44, Y=430$)
+  - **Action:** Defeat enemies in a sector and observe the statistics badge.
+  - **Expected:** Badge reads `MAP: xx% | SEC: x/x | KILLS: x/x` with proper padding. When 100% of both secrets and enemies are cleared, the badge illuminates with a double golden border.
+
+- [ ] **Aggressive Old 3DS / 2DS Performance Profile & Config Migration**
+  - **Location:** Options Menu $\to$ Video / Gameplay on 2DS or Old 3DS
+  - **Action:** Launch on an Old 3DS or 2DS with an existing legacy configuration.
+  - **Expected:** Game boots automatically into `Retro 200` scaling and flat floors/ceilings. Combat and exploration feel noticeably snappier, and Turbo Mode executes turns in rapid succession.
+
+- [ ] **3-Second Notification LED Telemetry Suite**
+  - **Location:** Physical 3DS notification LED
+  - **Action:** Discover a secret, level up, pick up keycards, defeat a boss, or exit a level.
+  - **Expected:** Physical LED illuminates with the corresponding event color for a full 3.0 seconds (3000ms) with high visibility.
