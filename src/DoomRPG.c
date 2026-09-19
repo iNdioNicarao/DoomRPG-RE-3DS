@@ -322,84 +322,107 @@ int DoomRPG_freeMemory(void) { // 0x1EBFC
 
 // New Function
 #ifdef __3DS__
+/* Priority order for resolving multiple simultaneous inputs:
+   System/Menu > Combat Actions > Weapons > Strafe > Directional Movement */
+static const int s_actionPriority[] = {
+    11, // AVK_MENUOPEN (Start)
+    10, // AVK_AUTOMAP (Select button)
+     8, // AVK_SELECT (A button - Attack/Talk/Use)
+     9, // AVK_PASSTURN (B button)
+     6, // AVK_NEXTWEAPON (ZR / X)
+     7, // AVK_PREVWEAPON (ZL / Y)
+     4, // AVK_MOVELEFT (L)
+     5, // AVK_MOVERIGHT (R)
+     0, // AVK_UP (D-Pad Up / CPAD Up)
+     1, // AVK_DOWN (D-Pad Down / CPAD Down)
+     2, // AVK_LEFT (D-Pad Left / CPAD Left)
+     3  // AVK_RIGHT (D-Pad Right / CPAD Right)
+};
+
+static int findMatchingKeyMappingIndex(u32 activeButtons, int ctrlCode)
+{
+    int numActions = (int)(sizeof(s_actionPriority) / sizeof(s_actionPriority[0]));
+    for (int p = 0; p < numActions; p++) {
+        int idx = s_actionPriority[p];
+        for (int j = 0; j < KEYBINDS_MAX; j++) {
+            int kb = keyMapping[idx].keyBinds[j];
+            if (kb == -1 || kb == 0) continue;
+            if ((activeButtons & (u32)kb) == (u32)kb) {
+                return idx;
+            }
+            if (ctrlCode != -1 && kb == ctrlCode) {
+                return idx;
+            }
+        }
+    }
+    return -1;
+}
+
 int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {
 
-    int key = AVK_UNDEFINED;
-    int i, j;
-
-    u32 buttonID = hidKeysHeld() | hidKeysDown();
+    u32 kDown = hidKeysDown();
+    u32 kHeld = hidKeysHeld();
 
     /* Direct Hardware Polling: Circle Pad (Left Thumbstick) */
     circlePosition circlePos;
     hidCircleRead(&circlePos);
+    u32 cpadMask = 0;
     if (circlePos.dy > 40) {
-        buttonID |= KEY_CPAD_UP;
-        key |= (AVK_UP | AVK_MENU_UP);
+        cpadMask |= KEY_CPAD_UP;
     } else if (circlePos.dy < -40) {
-        buttonID |= KEY_CPAD_DOWN;
-        key |= (AVK_DOWN | AVK_MENU_DOWN);
+        cpadMask |= KEY_CPAD_DOWN;
     }
     if (circlePos.dx > 40) {
-        buttonID |= KEY_CPAD_RIGHT;
-        key |= (AVK_RIGHT | AVK_MENU_PAGE_DOWN);
+        cpadMask |= KEY_CPAD_RIGHT;
     } else if (circlePos.dx < -40) {
-        buttonID |= KEY_CPAD_LEFT;
-        key |= (AVK_LEFT | AVK_MENU_PAGE_UP);
+        cpadMask |= KEY_CPAD_LEFT;
     }
+
+    static u32 s_lastCpadMask = 0;
+    u32 cpadDown = cpadMask & ~s_lastCpadMask;
+    s_lastCpadMask = cpadMask;
 
     /* Direct Hardware Polling: Right Nub (C-Stick) */
     circlePosition cstickPos;
     hidCstickRead(&cstickPos);
-    if (cstickPos.dy > 40 || (buttonID & KEY_CSTICK_UP)) {
-        key |= AVK_MENU_UP;
-    } else if (cstickPos.dy < -40 || (buttonID & KEY_CSTICK_DOWN)) {
-        key |= AVK_MENU_DOWN;
-    }
 
     int ctrlID = SDL_JoystickGetButtonID();
+    int ctrlCode = (ctrlID != -1) ? (ctrlID | IS_CONTROLLER_BUTTON) : -1;
 
-    int menuBits = AVK_UNDEFINED;
+    u32 freshButtons = kDown | cpadDown;
+    u32 heldButtons  = kHeld | cpadMask;
 
-    if (buttonID != 0 || ctrlID != -1)
-    {
-        int ctrlCode = (ctrlID != -1) ? (ctrlID | IS_CONTROLLER_BUTTON) : -1;
-
-        // Gameplay key from the active (rebindable) mapping.
-        for (i = 0; i < (sizeof(keyMapping) / sizeof(keyMapping_t)); ++i) {
-            for (j = 0; j < KEYBINDS_MAX; j++) {
-                int kb = keyMapping[i].keyBinds[j];
-                if (kb == -1 || kb == 0) continue;
-                if ((buttonID & (u32)kb) == (u32)kb) {
-                    key |= keyMapping[i].avk_action;
-                    break;
-                }
-                if (ctrlCode != -1 && kb == ctrlCode) {
-                    key |= keyMapping[i].avk_action;
-                    break;
-                }
-            }
-        }
+    /* Phase 1: Prioritize fresh button presses (kDown / cpadDown) so intentional
+       taps immediately override any held directions or movement. */
+    int winningIdx = -1;
+    if (freshButtons != 0 || ctrlCode != -1) {
+        winningIdx = findMatchingKeyMappingIndex(freshButtons, ctrlCode);
     }
 
-    // Force menu-navigation bits from the default mapping so menus are never
-    // affected by a gameplay rebind (e.g. binding A to "Move Right").
-    if (buttonID != 0) {
-        for (i = 0; i < (sizeof(keyMappingDefault) / sizeof(keyMapping_t)); ++i) {
-            for (j = 0; j < KEYBINDS_MAX; j++) {
-                int kb = keyMappingDefault[i].keyBinds[j];
-                if (kb == -1 || kb == 0) continue;
-                if ((buttonID & (u32)kb) == (u32)kb) {
-                    menuBits |= keyMappingDefault[i].avk_action;
-                    break;
-                }
-            }
-        }
+    /* Phase 2: If no fresh press matched, check continuously held buttons. */
+    if (winningIdx == -1 && heldButtons != 0) {
+        winningIdx = findMatchingKeyMappingIndex(heldButtons, ctrlCode);
     }
-    if (menuBits != AVK_UNDEFINED) {
-        key |= (menuBits & (AVK_MENU_UP | AVK_MENU_DOWN | AVK_MENU_PAGE_UP |
-                            AVK_MENU_PAGE_DOWN | AVK_MENU_SELECT | AVK_MENU_OPEN));
+
+    int baseKey   = AVK_UNDEFINED;
+    int menuFlags = 0;
+
+    if (winningIdx != -1) {
+        /* Strictly single base action: never bitwise OR multiple sequential enums! */
+        baseKey = keyMapping[winningIdx].avk_action & ~AVK_MENU_ALL_FLAGS;
+
+        /* Menu flags derived from default mapping so menus remain consistent. */
+        menuFlags = keyMappingDefault[winningIdx].avk_action & AVK_MENU_ALL_FLAGS;
     }
-    return key;
+
+    /* Direct C-Stick navigation for menus */
+    if (cstickPos.dy > 40 || (kDown & KEY_CSTICK_UP)) {
+        menuFlags |= AVK_MENU_UP;
+    } else if (cstickPos.dy < -40 || (kDown & KEY_CSTICK_DOWN)) {
+        menuFlags |= AVK_MENU_DOWN;
+    }
+
+    return baseKey | menuFlags;
 }
 #else
 int DoomRPG_getEventKey(int mouse_Button, const Uint8* state) {

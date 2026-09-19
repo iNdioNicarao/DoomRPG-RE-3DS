@@ -81,7 +81,7 @@ byte keys_numKeyPadActions[NUM_KEYPADS] = {MENUOPEN   ,
 int keys_codeActions[NUM_CODES] = {
 	AVK_CLR,		15,
 	AVK_SOFT2,		AUTOMAP,
-	AVK_SOFT1,		MENUOPEN,
+	AVK_SOFT1,		0,
 	// New items Only Port
 	AVK_STAR,		PREVWEAPON,
 	AVK_POUND,		AUTOMAP,
@@ -1616,7 +1616,7 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
     draw_box(sdlVideo.screenSurface, 358, 264, 33, 19, 0xFF10151E, plusBorder);
     DoomCanvas_drawString1(doomCanvas, "+", 374, 267, 16);
 
-    // 7. Exploration Percentage & Secret Counter HUD Badge (Bottom-left of automap: X=44, Y=430)
+    // 7. Exploration Percentage, Secret & Enemy Counter HUD Badge (Bottom-left of automap: X=44, Y=430)
     int totalWalkable = 0;
     int visitedWalkable = 0;
     for (int ti = 0; ti < 1024; ti++) {
@@ -1636,21 +1636,39 @@ void DoomCanvas_drawAutomap(DoomCanvas_t* doomCanvas, boolean z)
         Player_fillSecretStats(doomCanvas->player, &secretsFound, &secretsTotal);
     }
 
-    char statsBuf[48];
-    if (secretsTotal > 0) {
-        SDL_snprintf(statsBuf, sizeof(statsBuf), "MAP:%d%% | SEC:%d/%d", explorePct, secretsFound, secretsTotal);
-    } else {
-        SDL_snprintf(statsBuf, sizeof(statsBuf), "MAP:%d%% | SEC:--", explorePct);
+    int monstersKilled = 0, monstersTotal = 0;
+    if (doomCanvas->player) {
+        Player_fillMonsterStats(doomCanvas->player, &monstersKilled, &monstersTotal);
     }
 
-    boolean allSecretsFound = (secretsTotal > 0 && secretsFound >= secretsTotal);
-    Uint32 statsBorder = allSecretsFound ? 0xFFFFAA00 : 0xFF2A3A4C;
-    Uint32 statsFill   = allSecretsFound ? 0xFF1C1A0E : 0xFF0A0E16;
+    char secBuf[16];
+    if (secretsTotal > 0) {
+        SDL_snprintf(secBuf, sizeof(secBuf), "%d/%d", secretsFound, secretsTotal);
+    } else {
+        SDL_snprintf(secBuf, sizeof(secBuf), "--");
+    }
 
-    draw_box(sdlVideo.screenSurface, 44, 430, 192, 19, statsFill, statsBorder);
-    if (allSecretsFound) {
-        // Gold accent highlight when 100% of secrets are uncovered
-        draw_box(sdlVideo.screenSurface, 45, 431, 190, 17, 0x00000000, 0xFFFFCC33);
+    char killBuf[16];
+    if (monstersTotal > 0) {
+        SDL_snprintf(killBuf, sizeof(killBuf), "%d/%d", monstersKilled, monstersTotal);
+    } else {
+        SDL_snprintf(killBuf, sizeof(killBuf), "--");
+    }
+
+    char statsBuf[64];
+    SDL_snprintf(statsBuf, sizeof(statsBuf), "MAP:%d%% | SEC:%s | KILLS:%s", explorePct, secBuf, killBuf);
+
+    boolean allSecretsFound = (secretsTotal > 0 && secretsFound >= secretsTotal);
+    boolean allMonstersKilled = (monstersTotal > 0 && monstersKilled >= monstersTotal);
+    boolean fullMapClear = (allSecretsFound || secretsTotal == 0) && (allMonstersKilled || monstersTotal == 0);
+
+    Uint32 statsBorder = fullMapClear ? 0xFFFFAA00 : 0xFF2A3A4C;
+    Uint32 statsFill   = fullMapClear ? 0xFF1C1A0E : 0xFF0A0E16;
+
+    draw_box(sdlVideo.screenSurface, 44, 430, 318, 19, statsFill, statsBorder);
+    if (fullMapClear) {
+        // Gold accent highlight when 100% of secrets and enemies are cleared
+        draw_box(sdlVideo.screenSurface, 45, 431, 316, 17, 0x00000000, 0xFFFFCC33);
     }
     DoomCanvas_drawString1(doomCanvas, statsBuf, 48, 434, 0);
 }

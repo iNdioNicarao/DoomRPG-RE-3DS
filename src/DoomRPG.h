@@ -94,6 +94,9 @@ enum _AVKType {
 	AVK_MENU_OPEN =			0x800
 };
 
+#define AVK_MENU_ALL_FLAGS (AVK_MENU_UP | AVK_MENU_DOWN | AVK_MENU_PAGE_UP | \
+                            AVK_MENU_PAGE_DOWN | AVK_MENU_SELECT | AVK_MENU_OPEN)
+
 enum _GameController {
 	CONTROLLER_BUTTON_INVALID = -1,
 	CONTROLLER_BUTTON_A,			// Gamepad A
