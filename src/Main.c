@@ -92,8 +92,8 @@ int main(int argc, char* args[])
             (doomRpg->doomCanvas->state == ST_DIALOG || doomRpg->doomCanvas->state == ST_DIALOGPASSWORD)) {
             if (doomRpg->doomCanvas->dialogTypeLineIdx < doomRpg->doomCanvas->numDialogLines) {
                 doomRpg->doomCanvas->dialogTypeLineIdx = doomRpg->doomCanvas->numDialogLines;
-                if (doomRpg->doomCanvas->state == ST_DIALOGPASSWORD && doomRpg->doomCanvas->numDialogLines > 4) {
-                    doomRpg->doomCanvas->currentDialogLine = doomRpg->doomCanvas->numDialogLines - 4;
+                if (doomRpg->doomCanvas->state == ST_DIALOGPASSWORD && doomRpg->doomCanvas->numDialogLines > NUM_VISIBLE_DIALOG_LINES) {
+                    doomRpg->doomCanvas->currentDialogLine = doomRpg->doomCanvas->numDialogLines - NUM_VISIBLE_DIALOG_LINES;
                 }
             }
         }
@@ -113,7 +113,7 @@ int main(int argc, char* args[])
                     s_cstickScrollTime = curTime + 120;
                 }
             } else if (tapDown || (curTime > s_cstickScrollTime && (cstick.dy < -40 || (kHeld & (KEY_X | KEY_CSTICK_DOWN))))) {
-                if (doomRpg->doomCanvas->currentDialogLine + 4 < doomRpg->doomCanvas->numDialogLines) {
+                if (doomRpg->doomCanvas->currentDialogLine + NUM_VISIBLE_DIALOG_LINES < doomRpg->doomCanvas->numDialogLines) {
                     doomRpg->doomCanvas->currentDialogLine++;
                     s_cstickScrollTime = curTime + 120;
                 }
