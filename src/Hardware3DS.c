@@ -369,6 +369,100 @@ static const InfoLedPattern s_patBossDefeated = {
     }
 };
 
+// Level / Sector Completed - Radiant Starlight White / Cyan celebratory double flare (3.0 seconds)
+static const InfoLedPattern s_patLevelComplete = {
+    .delay = 0x02,
+    .smoothing = 0xA0,
+    .loopDelay = 0xFF,
+    .blinkSpeed = 0,
+    .redPattern = {
+        60, 180, 255, 255, 200, 140, 100, 140,
+        200, 255, 255, 255, 240, 190, 150, 100,
+        60, 30, 15, 5, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    },
+    .greenPattern = {
+        100, 220, 255, 255, 220, 160, 120, 160,
+        220, 255, 255, 255, 255, 210, 170, 120,
+        75, 40, 20, 5, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    },
+    .bluePattern = {
+        140, 240, 255, 255, 240, 180, 140, 180,
+        240, 255, 255, 255, 255, 220, 180, 130,
+        85, 45, 20, 5, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    }
+};
+
+// Armor Broken / Gone - Electric Hazard Yellow warning snap & decay (3.0 seconds)
+static const InfoLedPattern s_patArmorBroken = {
+    .delay = 0x02,
+    .smoothing = 0x60,
+    .loopDelay = 0xFF,
+    .blinkSpeed = 0,
+    .redPattern = {
+        255, 255, 0, 255, 255, 0, 200, 220,
+        160, 100, 0, 160, 180, 120, 60, 0,
+        100, 120, 60, 20, 5, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    },
+    .greenPattern = {
+        180, 180, 0, 180, 180, 0, 140, 150,
+        100, 60, 0, 110, 120, 80, 35, 0,
+        60, 75, 35, 10, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    },
+    .bluePattern = { 0 }
+};
+
+// Capacity Full / Denied Pickup - Warning Coral-Magenta strobe (3.0 seconds)
+static const InfoLedPattern s_patCapacityFull = {
+    .delay = 0x02,
+    .smoothing = 0x70,
+    .loopDelay = 0xFF,
+    .blinkSpeed = 0,
+    .redPattern = {
+        255, 255, 180, 40, 0, 0, 255, 255,
+        180, 40, 0, 0, 160, 160, 80, 20,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    },
+    .greenPattern = {
+        20, 20, 10, 0, 0, 0, 20, 20,
+        10, 0, 0, 0, 10, 10, 5, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    },
+    .bluePattern = {
+        100, 100, 60, 15, 0, 0, 100, 100,
+        60, 15, 0, 0, 60, 60, 30, 10,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    }
+};
+
+// Dog Familiar Attack / Guard Action - Fierce Amber-Orange Canine Strike (3.0 seconds)
+static const InfoLedPattern s_patDogAttack = {
+    .delay = 0x02,
+    .smoothing = 0x80,
+    .loopDelay = 0xFF,
+    .blinkSpeed = 0,
+    .redPattern = {
+        120, 255, 255, 80, 0, 140, 255, 255,
+        220, 180, 140, 100, 70, 45, 25, 10,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    },
+    .greenPattern = {
+        50, 140, 140, 35, 0, 60, 140, 140,
+        110, 80, 55, 35, 20, 10, 5, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    },
+    .bluePattern = { 0 }
+};
+
 static void applyLedMode(LedMode_t mode)
 {
     if (!s_mcuHwcAvailable) return;
@@ -423,6 +517,18 @@ static void applyLedMode(LedMode_t mode)
             break;
         case LED_MODE_BOSS_DEFEATED:
             MCUHWC_SetInfoLedPattern(&s_patBossDefeated);
+            break;
+        case LED_MODE_LEVEL_COMPLETE:
+            MCUHWC_SetInfoLedPattern(&s_patLevelComplete);
+            break;
+        case LED_MODE_ARMOR_BROKEN:
+            MCUHWC_SetInfoLedPattern(&s_patArmorBroken);
+            break;
+        case LED_MODE_CAPACITY_FULL:
+            MCUHWC_SetInfoLedPattern(&s_patCapacityFull);
+            break;
+        case LED_MODE_DOG_ATTACK:
+            MCUHWC_SetInfoLedPattern(&s_patDogAttack);
             break;
         case LED_MODE_OFF:
         default:

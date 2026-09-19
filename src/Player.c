@@ -365,6 +365,9 @@ boolean Player_fireWeapon(Player_t* player, Entity_t* entity)
 	if (weapon->ammoUsage <= 0 || ammo - weapon->ammoUsage >= 0) {
 		player->ammo[weapon->ammoType] = (ammo - weapon->ammoUsage);
 		Combat_performAttack(player->doomRpg->combat, NULL, entity);
+		if (player->weapon == 9 || player->weapon == 10 || player->weapon == 11) {
+			Hardware_triggerTimedLed(LED_MODE_DOG_ATTACK, 3000);
+		}
 		return true;
 	}
 
@@ -535,6 +538,7 @@ void Player_pain(Player_t* player, int i, int i2)
 	boolean dogHit = ((player->weapon == 9 || player->weapon == 10 || player->weapon == 11) && player->ammo[5] > 0);
 
 	if (dogHit) {
+		Hardware_triggerTimedLed(LED_MODE_DOG_ATTACK, 3000);
 		dogDamage = (int)player->ammo[5] - damage;
 		if (dogDamage < 0) {
 			dogDamage = 0;
@@ -599,6 +603,7 @@ void Player_pain(Player_t* player, int i, int i2)
 			}
 			else if (armor > 0 && CombatEntity_getArmor(ce) == 0) {
 				Hud_addMessageForce(player->doomRpg->doomCanvas, MenuSystem_buildDivider(player->doomRpg->menuSystem, "Armor Gone!"), true);
+				Hardware_triggerTimedLed(LED_MODE_ARMOR_BROKEN, 3000);
 			}
 		}
 		Player_addHealth(player, -i);
@@ -620,6 +625,7 @@ void Player_addLevelStats(Player_t* player, boolean z)
 	player->totalMoves += player->moves;
 
 	if (z && player->doomRpg->render->loadMapID != 2) {
+		Hardware_triggerTimedLed(LED_MODE_LEVEL_COMPLETE, 3000);
 		player->completedLevels |= 1 << (player->doomRpg->render->loadMapID - 1);
 		Player_fillSecretStats(player, &secretStats[0], &secretStats[1]);
 		if (secretStats[0] == secretStats[1]) {

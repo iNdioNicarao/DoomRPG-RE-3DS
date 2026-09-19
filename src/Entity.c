@@ -909,6 +909,7 @@ void Entity_touched(Entity_t* entity)
                 case 23: {
                     if (!Player_addCredits(player, entity->def->parm)) {
                         Hud_addMessage(entity->doomRpg->doomCanvas, "Credits at maximum");
+                        Hardware_triggerTimedLed(LED_MODE_CAPACITY_FULL, 3000);
                         return;
                     }
                     Player_updateDamageFaceTime(player);
@@ -918,6 +919,7 @@ void Entity_touched(Entity_t* entity)
                 case 21: {
                     if (CombatEntity_getArmor(&player->ce) >= CombatEntity_getMaxArmor(&player->ce)) {
                         Hud_addMessage(entity->doomRpg->doomCanvas, "Armor at maximum");
+                        Hardware_triggerTimedLed(LED_MODE_CAPACITY_FULL, 3000);
                         return;
                     }
                     Player_addArmor(player, entity->def->parm);
@@ -927,6 +929,7 @@ void Entity_touched(Entity_t* entity)
                 case 20: {
                     if (CombatEntity_getHealth(&player->ce) >= CombatEntity_getMaxHealth(&player->ce)) {
                         Hud_addMessage(entity->doomRpg->doomCanvas, "Health at maximum");
+                        Hardware_triggerTimedLed(LED_MODE_CAPACITY_FULL, 3000);
                         return;
                     }
                     Player_addHealth(player, entity->def->parm);
@@ -955,6 +958,7 @@ void Entity_touched(Entity_t* entity)
                 msg = Hud_getMessageBuffer(entity->doomRpg->doomCanvas);
                 SDL_snprintf(msg, MS_PER_CHAR, "Can't hold more %ss", entity->def->name);
                 Hud_finishMessageBuffer(entity->doomRpg->doomCanvas);
+                Hardware_triggerTimedLed(LED_MODE_CAPACITY_FULL, 3000);
                 return;
             }
             Player_updateDamageFaceTime(player);
@@ -976,6 +980,7 @@ void Entity_touched(Entity_t* entity)
         case 16: {
             if (!Player_addAmmo(player, entity->def->eSubType, entity->def->parm)) {
                 Hud_addMessage(entity->doomRpg->doomCanvas, "Ammo at maximum");
+                Hardware_triggerTimedLed(LED_MODE_CAPACITY_FULL, 3000);
                 return;
             }
             Player_updateDamageFaceTime(player);
